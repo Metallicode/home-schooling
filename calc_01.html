@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kids Math Visualizer</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: #e0f7fa; padding: 20px; color: #37474f;
+        }
+        
+        h1 { color: #ff7043; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; }
+
+        .controls { 
+            background: white; padding: 25px; border-radius: 25px; 
+            border: 4px solid #b2ebf2; box-shadow: 0 8px 0 #b2ebf2;
+            margin-bottom: 30px; display: flex; gap: 15px; align-items: center; 
+        }
+        
+        input { 
+            width: 80px; height: 60px; font-size: 32px; text-align: center; 
+            border: 4px solid #ffca28; border-radius: 15px; 
+            color: #d84315; font-family: inherit; font-weight: bold;
+        }
+        
+        select { 
+            font-size: 32px; border: 4px solid #ffca28; border-radius: 15px; 
+            cursor: pointer; height: 68px; color: #d84315; font-family: inherit; font-weight: bold;
+        }
+        
+        button { 
+            font-size: 24px; padding: 15px 30px; font-family: inherit; font-weight: bold;
+            background-color: #66bb6a; color: white; border: none; border-radius: 15px; 
+            cursor: pointer; box-shadow: 0 6px 0 #43a047; transition: 0.1s; 
+        }
+        
+        button:active { 
+            transform: translateY(6px); box-shadow: 0 0px 0 #43a047; 
+        }
+
+        button:disabled {
+            background-color: #a5d6a7; box-shadow: 0 6px 0 #81c784; cursor: not-allowed;
+        }
+
+        #canvas-container { 
+            background: white; border-radius: 25px; border: 4px solid #eceff1;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1); overflow: hidden; position: relative;
+        }
+        
+        .dot { 
+            transition: all 0.8s ease-in-out; 
+            stroke: white; stroke-width: 2;
+        }
+        
+        .dot-text { 
+            fill: white; font-weight: bold; 
+            pointer-events: none; opacity: 0; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+            transition: opacity 0.3s ease-in-out, x 0.8s ease-in-out, y 0.8s ease-in-out; 
+        }
+        
+        .cross { 
+            stroke: #e53935; stroke-linecap: round;
+            opacity: 0; transition: opacity 0.3s; 
+        }
+        
+        #result-text { 
+            font-size: 50px; font-weight: bold; margin-top: 30px; 
+            color: #ff7043; min-height: 70px; text-shadow: 2px 2px 0px #fff;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .pop { transform: scale(1.3); color: #d84315 !important; }
+
+        .particle {
+            transition: all 1s cubic-bezier(0.1, 0.8, 0.3, 1);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🎈 Let's Count! 🎈</h1>
+
+    <div class="controls">
+        <input type="number" id="num1" value="4" min="0" max="50">
+        <select id="operator">
+            <option value="+">+</option>
+            <option value="-">-</option>
+            <option value="x">x</option>
+        </select>
+        <input type="number" id="num2" value="5" min="0" max="50">
+        <button id="calcBtn" onclick="startCalculation()">Go!</button>
+    </div>
+
+    <div id="canvas-container">
+        <svg id="viz" width="600" height="350">
+            <g id="group1"></g>
+            <g id="group2"></g>
+        </svg>
+    </div>
+
+    <div id="result-text"></div>
+
+<script>
+    const svg = document.getElementById('viz');
+    const group1 = document.getElementById('group1');
+    const group2 = document.getElementById('group2');
+    const resultText = document.getElementById('result-text');
+    const calcBtn = document.getElementById('calcBtn');
+
+    // Locked to 800ms base tempo as requested
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    const BASE_TEMPO = 800;
+
+    let dotRadius = 20;
+    let dotSpacing = 45;
+    let fontSize = 22;
+    let dotsPerRow = 5;
+
+    // Adjusted dynamic sizes to handle larger multiplication results (e.g., 4x8=32)
+    function calculateDynamicSizes(totalDots) {
+        dotRadius = Math.max(6, 24 - (totalDots * 0.25));
+        dotSpacing = dotRadius * 2.2;
+        fontSize = Math.max(10, dotRadius * 0.9);
+        dotsPerRow = Math.max(5, Math.floor(220 / dotSpacing)); 
+    }
+
+    function triggerExplosion(centerX, centerY) {
+        const colors = ['#ffeb3b', '#ff4081', '#00e5ff', '#76ff03', '#ab47bc'];
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            particle.setAttribute("cx", centerX);
+            particle.setAttribute("cy", centerY);
+            particle.setAttribute("r", Math.random() * 6 + 3);
+            particle.setAttribute("class", "particle");
+            particle.style.fill = colors[Math.floor(Math.random() * colors.length)];
+            svg.appendChild(particle);
+            particle.getBoundingClientRect();
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 200 + 50;
+            particle.setAttribute("cx", centerX + Math.cos(angle) * distance);
+            particle.setAttribute("cy", centerY + Math.sin(angle) * distance);
+            particle.style.opacity = "0";
+            setTimeout(() => particle.remove(), 1000);
+        }
+    }
+
+    async function drawDots(container, count, startX, startY, color) {
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            await sleep(BASE_TEMPO); 
+            
+            const x = startX + (i % dotsPerRow) * dotSpacing;
+            const y = startY + Math.floor(i / dotsPerRow) * dotSpacing;
+            
+            createDot(container, x, y, color, i + 1);
+        }
+    }
+
+    function createDot(container, x, y, color, number) {
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", x);
+        circle.setAttribute("cy", y);
+        circle.setAttribute("r", dotRadius); 
+        circle.setAttribute("class", "dot");
+        circle.style.fill = color;
+        
+        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        text.setAttribute("x", x);
+        text.setAttribute("y", y + (fontSize * 0.35)); 
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("class", "dot-text");
+        text.style.fontSize = `${fontSize}px`;
+        text.textContent = number; 
+        text.style.opacity = "1";
+        
+        container.appendChild(circle);
+        container.appendChild(text);
+    }
+
+    async function startCalculation() {
+        calcBtn.disabled = true; 
+        resultText.classList.remove('pop');
+        group1.innerHTML = ''; group2.innerHTML = '';
+        
+        const n1 = parseInt(document.getElementById('num1').value) || 0;
+        const n2 = parseInt(document.getElementById('num2').value) || 0;
+        const op = document.getElementById('operator').value;
+        
+        let totalNeeded = (op === 'x') ? n1 * n2 : Math.max(n1, n2, n1 + n2);
+        calculateDynamicSizes(totalNeeded);
+        
+        resultText.innerText = `${n1} ${op} ${n2} = ?`;
+        
+        if (op === 'x') {
+            await drawMultiplicationGroups(n1, n2);
+        } else {
+            await drawDots(group1, n1, 50, 60, "#29b6f6"); 
+            await drawDots(group2, n2, 320, 60, op === '+' ? "#66bb6a" : "#b0bec5"); 
+        }
+
+        await sleep(BASE_TEMPO); 
+
+        if (op === '+') await animateAddition(n1, n2);
+        else if (op === '-') await animateSubtraction(n1, n2);
+        else if (op === 'x') await animateMultiplication(n1, n2);
+        
+        calcBtn.disabled = false;
+    }
+
+    // --- MULTIPLICATION DRAWING ---
+    async function drawMultiplicationGroups(groups, amountPerGroup) {
+        const cols = Math.max(1, Math.ceil(Math.sqrt(groups)));
+        const rows = Math.ceil(groups / cols);
+        const cellW = 550 / cols;
+        const cellH = 300 / rows;
+
+        let globalCount = 1;
+
+        for (let g = 0; g < groups; g++) {
+            const row = Math.floor(g / cols);
+            const col = g % cols;
+            const centerX = 25 + (col * cellW) + (cellW / 2);
+            const centerY = 25 + (row * cellH) + (cellH / 2);
+            
+            // Draw a cluster for this group rapidly
+            for (let d = 0; d < amountPerGroup; d++) {
+                const angle = (d / amountPerGroup) * Math.PI * 2;
+                const clusterRadius = dotRadius * 1.5 + (amountPerGroup * dotRadius * 0.1);
+                const x = centerX + (amountPerGroup > 1 ? Math.cos(angle) * clusterRadius : 0);
+                const y = centerY + (amountPerGroup > 1 ? Math.sin(angle) * clusterRadius : 0);
+                
+                createDot(group1, x, y, "#9c27b0", globalCount++); // Purple dots for multiplication
+                await sleep(50); // Fast pop-in for group members
+            }
+            await sleep(BASE_TEMPO); // Wait the standard 800ms between groups
+        }
+    }
+
+    async function animateAddition(n1, n2) {
+        const total = n1 + n2;
+        if (total === 0) return finalizeResult(n1, n2, total, '+');
+        await formRingAndCount(total, n1, n2, '+', BASE_TEMPO);
+    }
+
+    async function animateMultiplication(n1, n2) {
+        const total = n1 * n2;
+        if (total === 0) return finalizeResult(n1, n2, total, 'x');
+        // Multiplication counts MUCH faster (120ms per dot)
+        await formRingAndCount(total, n1, n2, 'x', 120);
+    }
+
+    // Shared logic for Addition and Multiplication grouping
+    async function formRingAndCount(total, n1, n2, operator, countSpeed) {
+        const dots = document.querySelectorAll('.dot');
+        const texts = document.querySelectorAll('.dot-text');
+        
+        const ringRadius = Math.min(130, total * dotRadius * 0.35 + 30);
+        
+        dots.forEach((dot, i) => {
+            const angle = (i / total) * Math.PI * 2;
+            const x = 300 + Math.cos(angle) * ringRadius;
+            const y = 175 + Math.sin(angle) * ringRadius;
+            
+            dot.setAttribute("cx", x);
+            dot.setAttribute("cy", y);
+            
+            texts[i].style.opacity = "0"; 
+            texts[i].setAttribute("x", x);
+            texts[i].setAttribute("y", y + (fontSize * 0.35));
+        });
+
+        await sleep(1000); 
+
+        for (let i = 0; i < total; i++) {
+            await sleep(countSpeed);
+            dots[i].style.stroke = "#ffca28"; 
+            texts[i].textContent = i + 1;
+            texts[i].style.opacity = "1"; 
+        }
+
+        await sleep(500);
+        finalizeResult(n1, n2, total, operator, 300, 175);
+    }
+
+    async function animateSubtraction(n1, n2) {
+        const dots1 = group1.querySelectorAll('.dot');
+        const texts1 = group1.querySelectorAll('.dot-text');
+        const dots2 = group2.querySelectorAll('.dot');
+        const texts2 = group2.querySelectorAll('.dot-text');
+        
+        for(let i = 0; i < n2; i++) {
+            await sleep(BASE_TEMPO);
+            
+            // 1. Gray out the "take away" dot in Group 2
+            if(dots2[i]) {
+                dots2[i].style.fill = "#cfd8dc"; 
+                dots2[i].style.opacity = "0.4";
+                texts2[i].style.opacity = "0.4";
+            }
+            
+            if(i < n1) { 
+                // 2. Cross out the dot in Group 1
+                const targetDot = dots1[n1 - 1 - i];
+                const targetText = texts1[n1 - 1 - i];
+                
+                targetDot.style.opacity = "0.4";
+                targetDot.style.fill = "#9e9e9e"; 
+                targetText.style.opacity = "0.4"; 
+                
+                const x = parseFloat(targetDot.getAttribute("cx"));
+                const y = parseFloat(targetDot.getAttribute("cy"));
+                const crossSize = dotRadius * 0.8;
+                
+                const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                const line1 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line1.setAttribute("x1", x - crossSize); line1.setAttribute("y1", y - crossSize);
+                line1.setAttribute("x2", x + crossSize); line1.setAttribute("y2", y + crossSize);
+                line1.setAttribute("class", "cross");
+                line1.setAttribute("stroke-width", dotRadius * 0.3);
+                
+                const line2 = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                line2.setAttribute("x1", x + crossSize); line2.setAttribute("y1", y - crossSize);
+                line2.setAttribute("x2", x - crossSize); line2.setAttribute("y2", y + crossSize);
+                line2.setAttribute("class", "cross");
+                line2.setAttribute("stroke-width", dotRadius * 0.3);
+                
+                g.appendChild(line1); g.appendChild(line2);
+                group1.appendChild(g);
+                
+                setTimeout(() => {
+                    line1.style.opacity = "1";
+                    line2.style.opacity = "1";
+                }, 50);
+
+            } else {
+                // 3. NEGATIVE TERRITORY! We ran out of dots in Group 1.
+                // Turn the remaining "take away" dots in Group 2 RED.
+                if(dots2[i]) {
+                    dots2[i].style.opacity = "1";
+                    dots2[i].style.fill = "#e53935"; // Angry Red!
+                    texts2[i].style.opacity = "1";
+                    // Change the text to show the negative deficit amount
+                    texts2[i].textContent = "-" + ((i - n1) + 1); 
+                }
+            }
+        }
+
+        await sleep(BASE_TEMPO);
+
+        const result = n1 - n2;
+        let lastX = 300, lastY = 175; 
+        
+        if (result > 0) {
+            // Highlight remaining positive dots
+            for(let i = 0; i < result; i++) {
+                dots1[i].style.fill = "#ffca28"; 
+                dots1[i].setAttribute("r", dotRadius * 1.2); 
+                texts1[i].setAttribute("y", parseFloat(dots1[i].getAttribute("cy")) + (fontSize * 0.4)); 
+                lastX = parseFloat(dots1[i].getAttribute("cx"));
+                lastY = parseFloat(dots1[i].getAttribute("cy"));
+            }
+        } else if (result < 0) {
+            // Focus explosion on the red negative dots
+            const lastRedDot = dots2[n2 - 1];
+            if (lastRedDot) {
+                lastX = parseFloat(lastRedDot.getAttribute("cx"));
+                lastY = parseFloat(lastRedDot.getAttribute("cy"));
+            }
+        }
+
+        finalizeResult(n1, n2, result, '-', lastX, lastY);
+    }
+
+    function finalizeResult(n1, n2, result, operator, explodeX = 300, explodeY = 175) {
+        resultText.innerText = `${n1} ${operator} ${n2} = ${result}`;
+        resultText.classList.add('pop'); 
+        triggerExplosion(explodeX, explodeY); 
+    }
+</script>
+</body>
+</html>

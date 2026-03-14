@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Duck Battle Math!</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: #e0f2f1; padding: 20px; color: #004d40;
+            margin: 0; overflow-x: hidden;
+        }
+        
+        h1 { color: #00796b; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin-bottom: 5px; text-align: center; }
+        #instructions { font-size: 20px; font-weight: bold; color: #00695c; margin-bottom: 20px; text-align: center; }
+
+        .controls { 
+            background: white; padding: 20px 40px; border-radius: 25px; 
+            border: 4px solid #4db6ac; box-shadow: 0 8px 0 #4db6ac;
+            margin-bottom: 30px; display: flex; gap: 15px; align-items: center; 
+            flex-wrap: wrap; justify-content: center; z-index: 20; position: relative;
+        }
+        
+        input { 
+            width: 80px; height: 60px; font-size: 36px; text-align: center; 
+            border: 4px solid #ffca28; border-radius: 15px; 
+            color: #d84315; font-family: inherit; font-weight: bold;
+        }
+        
+        select { 
+            font-size: 36px; border: 4px solid #ffca28; border-radius: 15px; 
+            cursor: pointer; height: 68px; color: #d84315; font-family: inherit; font-weight: bold;
+        }
+        
+        button { 
+            font-size: 24px; padding: 15px 30px; font-family: inherit; font-weight: bold;
+            background-color: #ff7043; color: white; border: none; border-radius: 15px; 
+            cursor: pointer; box-shadow: 0 6px 0 #d84315; transition: 0.1s; 
+        }
+        
+        button:active { transform: translateY(6px); box-shadow: 0 0px 0 #d84315; }
+        button:disabled { background-color: #ffccbc; box-shadow: 0 6px 0 #ffab91; cursor: not-allowed; }
+
+        /* The Battle Arena */
+        .arena {
+            width: 100%; max-width: 900px; height: 300px; 
+            background: linear-gradient(to bottom, #81d4fa 60%, #aed581 60%);
+            border: 6px solid #8d6e63; border-radius: 20px;
+            position: relative; overflow: hidden;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.1), 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        /* The Ducks */
+        .duck {
+            position: absolute;
+            font-size: 50px;
+            bottom: 25%; /* Sitting on the grass */
+            transition: all 1s ease-in-out;
+            user-select: none;
+            z-index: 10;
+        }
+
+        .duck.left-duck {
+            /* Normal friendly duck */
+            filter: drop-shadow(2px 4px 2px rgba(0,0,0,0.3));
+        }
+
+        .duck.right-duck {
+            /* Face left */
+            transform: scaleX(-1);
+            filter: drop-shadow(-2px 4px 2px rgba(0,0,0,0.3));
+        }
+
+        .duck.anti-duck {
+            /* Turn it red and angry for subtraction! */
+            filter: sepia(1) hue-rotate(315deg) saturate(300%) drop-shadow(-2px 4px 2px rgba(0,0,0,0.4));
+        }
+
+        .duck.hop {
+            animation: hop-anim 0.5s infinite alternate;
+        }
+
+        @keyframes hop-anim {
+            from { bottom: 25%; }
+            to { bottom: 35%; }
+        }
+
+        /* Explosion Text */
+        .boom {
+            font-size: 60px;
+            filter: none !important;
+            transform: scale(1.5) !important;
+            transition: all 0.2s !important;
+        }
+
+        #result-text { 
+            font-size: 50px; font-weight: bold; margin-top: 20px; 
+            color: #00695c; min-height: 70px; text-shadow: 2px 2px 0px #fff;
+            text-align: center; transition: all 0.3s;
+        }
+
+        .negative-text { color: #c62828 !important; }
+        .pop { transform: scale(1.2); }
+
+    </style>
+</head>
+<body>
+
+    <h1>🦆 Duck Battle Math! 🦆</h1>
+    <div id="instructions">Addition = Friends join up. Subtraction = Ducks cancel out!</div>
+
+    <div class="controls">
+        <input type="number" id="num1" value="4" min="0" max="15">
+        <select id="operator">
+            <option value="-">-</option>
+            <option value="+">+</option>
+        </select>
+        <input type="number" id="num2" value="5" min="0" max="15">
+        <button id="calcBtn" onclick="startBattle()">BATTLE!</button>
+    </div>
+
+    <div class="arena" id="arena">
+        </div>
+
+    <div id="result-text"></div>
+
+<script>
+    const arena = document.getElementById('arena');
+    const resultText = document.getElementById('result-text');
+    const calcBtn = document.getElementById('calcBtn');
+
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function startBattle() {
+        calcBtn.disabled = true;
+        arena.innerHTML = '';
+        resultText.innerText = '';
+        resultText.className = '';
+
+        const n1 = parseInt(document.getElementById('num1').value) || 0;
+        const n2 = parseInt(document.getElementById('num2').value) || 0;
+        const op = document.getElementById('operator').value;
+
+        // Arrays to keep track of the DOM elements
+        let leftDucks = [];
+        let rightDucks = [];
+
+        // 1. Spawn Left Ducks (Always positive/friendly)
+        for (let i = 0; i < n1; i++) {
+            const duck = document.createElement('div');
+            duck.innerText = '🦆';
+            duck.className = 'duck left-duck';
+            duck.style.left = `${10 + (i * 4)}%`; // Space them out on the left
+            arena.appendChild(duck);
+            leftDucks.push(duck);
+            await sleep(100);
+        }
+
+        // 2. Spawn Right Ducks
+        // If addition, they are friendly. If subtraction, they are Red Anti-Ducks!
+        const isAnti = (op === '-');
+        for (let i = 0; i < n2; i++) {
+            const duck = document.createElement('div');
+            duck.innerText = '🦆';
+            duck.className = `duck right-duck ${isAnti ? 'anti-duck' : ''}`;
+            duck.style.right = `${10 + (i * 4)}%`; // Space them out on the right
+            arena.appendChild(duck);
+            rightDucks.push(duck);
+            await sleep(100);
+        }
+
+        await sleep(1000); // Dramatic pause before they move
+
+        if (op === '+') {
+            await animateAddition(leftDucks, rightDucks, n1, n2);
+        } else {
+            await animateSubtraction(leftDucks, rightDucks, n1, n2);
+        }
+
+        calcBtn.disabled = false;
+    }
+
+    async function animateAddition(leftDucks, rightDucks, n1, n2) {
+        // Everyone marches to the center to be friends
+        const total = n1 + n2;
+        
+        leftDucks.forEach((duck, i) => {
+            duck.style.left = `${40 + (Math.random() * 15)}%`; // Group up in the middle
+        });
+        
+        rightDucks.forEach((duck, i) => {
+            duck.style.right = `${40 + (Math.random() * 15)}%`;
+            duck.style.transform = 'scaleX(1)'; // Turn around to face the camera!
+        });
+
+        await sleep(1000); // Wait for them to walk
+
+        // Happy hop!
+        leftDucks.forEach(d => d.classList.add('hop'));
+        rightDucks.forEach(d => d.classList.add('hop'));
+
+        await sleep(500);
+        resultText.innerText = `${n1} + ${n2} = ${total}`;
+        resultText.classList.add('pop');
+    }
+
+    async function animateSubtraction(leftDucks, rightDucks, n1, n2) {
+        // Find out how many pairs will fight
+        const pairsToFight = Math.min(n1, n2);
+        
+        // 1. The Fighters march to the center
+        for (let i = 0; i < pairsToFight; i++) {
+            leftDucks[i].style.left = '48%';
+            rightDucks[i].style.right = '48%';
+        }
+
+        await sleep(1000); // Wait for them to meet
+
+        // 2. EXPLOSION! 💥
+        if (pairsToFight > 0) {
+            for (let i = 0; i < pairsToFight; i++) {
+                leftDucks[i].innerText = '💥';
+                leftDucks[i].classList.add('boom');
+                rightDucks[i].innerText = '💥';
+                rightDucks[i].classList.add('boom');
+            }
+            
+            await sleep(500); // Show explosion
+            
+            // Remove the exploded ducks from the arena
+            for (let i = 0; i < pairsToFight; i++) {
+                leftDucks[i].remove();
+                rightDucks[i].remove();
+            }
+        }
+
+        // 3. The Survivors march to the center to claim victory
+        const remainingLeft = leftDucks.slice(pairsToFight);
+        const remainingRight = rightDucks.slice(pairsToFight);
+
+        remainingLeft.forEach((duck, i) => {
+            duck.style.left = `${45 + (i * 5)}%`;
+            duck.classList.add('hop'); // Victory hop
+        });
+
+        remainingRight.forEach((duck, i) => {
+            duck.style.right = `${45 + (i * 5)}%`;
+            duck.classList.add('hop'); // Anti-duck victory hop
+        });
+
+        await sleep(800);
+
+        // 4. Calculate final result and explain it
+        const result = n1 - n2;
+        
+        if (result > 0) {
+            resultText.innerText = `${n1} - ${n2} = ${result} (Friendly ducks win!)`;
+        } else if (result < 0) {
+            resultText.innerText = `${n1} - ${n2} = ${result} (Red Anti-Ducks left over!)`;
+            resultText.classList.add('negative-text');
+        } else {
+            resultText.innerText = `${n1} - ${n2} = 0 (Nobody survived!)`;
+        }
+        
+        resultText.classList.add('pop');
+    }
+</script>
+</body>
+</html>

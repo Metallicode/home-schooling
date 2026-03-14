@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Code Breaker</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; /* Techy font! */
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: #1e1e2f; /* Dark hacker background */
+            padding: 20px; color: #fff;
+            margin: 0; overflow-x: hidden;
+        }
+        
+        h1 { color: #00e676; font-size: 2.5rem; text-shadow: 0 0 10px rgba(0,230,118,0.5); margin-bottom: 5px; text-align: center; }
+
+        #instructions { font-size: 20px; font-weight: bold; color: #b0bec5; margin-bottom: 20px; text-align: center; }
+        
+        /* The Game Interface */
+        .game-board {
+            background: #282a36; padding: 30px; border-radius: 20px; 
+            border: 4px solid #44475a; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%; max-width: 900px; display: flex; flex-direction: column; align-items: center; gap: 30px;
+            position: relative; z-index: 10;
+        }
+
+        /* Displays */
+        .displays {
+            display: flex; width: 100%; justify-content: space-around; flex-wrap: wrap; gap: 20px;
+        }
+
+        .display-box {
+            background: #000; padding: 15px 30px; border-radius: 15px;
+            border: 3px solid #6272a4; text-align: center; min-width: 200px;
+        }
+
+        .display-title { font-size: 18px; color: #8be9fd; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+        
+        .display-value { font-size: 50px; font-weight: bold; }
+        #target-value { color: #ff79c6; text-shadow: 0 0 15px rgba(255,121,198,0.5); }
+        #current-value { color: #50fa7b; text-shadow: 0 0 15px rgba(80,250,123,0.5); transition: color 0.3s, transform 0.1s; }
+
+        /* Switches Container */
+        .switches-container {
+            display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;
+            background: #1a1a24; padding: 25px; border-radius: 15px;
+            box-shadow: inset 0 5px 15px rgba(0,0,0,0.8);
+        }
+
+        /* Individual Switch Wrapper */
+        .switch-wrapper {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        /* The Bulky Switch */
+        .switch-housing {
+            width: 70px; height: 130px; background: #333; border-radius: 10px;
+            border: 3px solid #222; position: relative; cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+            /* Creating an inset track for the toggle */
+            background-image: linear-gradient(to bottom, #111, #222);
+        }
+
+        .toggle-knob {
+            width: 60px; height: 60px; background: linear-gradient(to bottom, #cfd8dc, #90a4ae);
+            border-radius: 8px; position: absolute; left: 2px; bottom: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4), inset 0 2px 2px rgba(255,255,255,0.5);
+            transition: bottom 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.15s;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Texture on the knob */
+        .toggle-knob::after {
+            content: ''; width: 40px; height: 4px; background: rgba(0,0,0,0.2);
+            border-radius: 2px; box-shadow: 0 10px 0 rgba(0,0,0,0.2), 0 -10px 0 rgba(0,0,0,0.2);
+        }
+
+        /* Switch ON State */
+        .switch-housing.on .toggle-knob {
+            bottom: 60px; /* Moves up */
+            background: linear-gradient(to bottom, #50fa7b, #28a745);
+        }
+
+        /* Labels */
+        .bit-value { font-size: 24px; font-weight: bold; color: #6272a4; transition: color 0.2s; }
+        .switch-housing.on + .bit-value { color: #50fa7b; text-shadow: 0 0 10px rgba(80,250,123,0.5); }
+        
+        .bit-label { font-size: 14px; color: #44475a; }
+
+        /* Confetti */
+        #confetti-svg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+        .particle { transition: all 1s cubic-bezier(0.1, 0.8, 0.3, 1); }
+
+    </style>
+</head>
+<body>
+
+    <h1>💻 Binary Code Breaker 💻</h1>
+    <div id="instructions">Flip the switches to add up to the Target Number!</div>
+
+    <div class="game-board">
+        <div class="displays">
+            <div class="display-box">
+                <div class="display-title">Target Output</div>
+                <div class="display-value" id="target-value">000</div>
+            </div>
+            <div class="display-box">
+                <div class="display-title">Current Power</div>
+                <div class="display-value" id="current-value">0</div>
+            </div>
+        </div>
+
+        <div class="switches-container" id="switches-container">
+            </div>
+    </div>
+    
+    <svg id="confetti-svg"></svg>
+
+<script>
+    const switchesContainer = document.getElementById('switches-container');
+    const targetEl = document.getElementById('target-value');
+    const currentEl = document.getElementById('current-value');
+    const confettiSvg = document.getElementById('confetti-svg');
+
+    // Base-2 values from left to right (8 bits = 1 byte)
+    const bitValues = [128, 64, 32, 16, 8, 4, 2, 1];
+    let switchStates = [false, false, false, false, false, false, false, false];
+    
+    let targetNumber = 0;
+    let currentNumber = 0;
+    let isAnimating = false;
+
+    window.onload = initGame;
+
+    function initGame() {
+        // Build the switches in the DOM once
+        switchesContainer.innerHTML = '';
+        bitValues.forEach((val, index) => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'switch-wrapper';
+
+            const housing = document.createElement('div');
+            housing.className = 'switch-housing';
+            housing.onclick = () => toggleSwitch(index, housing);
+
+            const knob = document.createElement('div');
+            knob.className = 'toggle-knob';
+
+            housing.appendChild(knob);
+
+            const valueLabel = document.createElement('div');
+            valueLabel.className = 'bit-value';
+            valueLabel.innerText = val;
+
+            const bitLabel = document.createElement('div');
+            bitLabel.className = 'bit-label';
+            bitLabel.innerText = `Bit ${7 - index}`; // Bit 7 to 0
+
+            wrapper.appendChild(housing);
+            wrapper.appendChild(valueLabel);
+            wrapper.appendChild(bitLabel);
+
+            switchesContainer.appendChild(wrapper);
+        });
+
+        startRound();
+    }
+
+    function startRound() {
+        isAnimating = false;
+        
+        // Pick a random target between 1 and 255
+        targetNumber = Math.floor(Math.random() * 255) + 1;
+        targetEl.innerText = targetNumber;
+
+        // Reset all switches
+        switchStates = [false, false, false, false, false, false, false, false];
+        const housings = document.querySelectorAll('.switch-housing');
+        housings.forEach(h => h.classList.remove('on'));
+
+        updateCurrentValue();
+    }
+
+    function toggleSwitch(index, housingElement) {
+        if (isAnimating) return;
+
+        // Toggle the boolean state
+        switchStates[index] = !switchStates[index];
+        
+        // Toggle the visual class
+        if (switchStates[index]) {
+            housingElement.classList.add('on');
+        } else {
+            housingElement.classList.remove('on');
+        }
+
+        // Add a tiny bump animation to the current value display to make it feel responsive
+        currentEl.style.transform = 'scale(1.1)';
+        setTimeout(() => currentEl.style.transform = 'scale(1)', 100);
+
+        updateCurrentValue();
+    }
+
+    function updateCurrentValue() {
+        currentNumber = 0;
+        
+        // Add up the values of the switches that are currently ON
+        for (let i = 0; i < 8; i++) {
+            if (switchStates[i]) {
+                currentNumber += bitValues[i];
+            }
+        }
+
+        currentEl.innerText = currentNumber;
+
+        // Check for win condition
+        if (currentNumber === targetNumber) {
+            triggerWin();
+        } else if (currentNumber > targetNumber) {
+            // Warn them if they went over
+            currentEl.style.color = '#ff5555';
+        } else {
+            // Normal color
+            currentEl.style.color = '#50fa7b';
+        }
+    }
+
+    function triggerWin() {
+        isAnimating = true;
+        currentEl.style.color = '#ffb86c'; // Gold color for win
+        
+        fireConfetti();
+        
+        // Wait a few seconds to bask in glory, then start next round
+        setTimeout(startRound, 2500);
+    }
+
+    function fireConfetti() {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const colors = ['#50fa7b', '#ff79c6', '#8be9fd', '#bd93f9', '#f1fa8c'];
+        
+        confettiSvg.innerHTML = ''; // Clear old
+
+        for (let i = 0; i < 100; i++) {
+            const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            particle.setAttribute("cx", centerX);
+            particle.setAttribute("cy", centerY);
+            particle.setAttribute("r", Math.random() * 8 + 4);
+            particle.setAttribute("class", "particle");
+            particle.style.fill = colors[Math.floor(Math.random() * colors.length)];
+            confettiSvg.appendChild(particle);
+            
+            particle.getBoundingClientRect(); 
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 500 + 100; 
+            
+            particle.setAttribute("cx", centerX + Math.cos(angle) * distance);
+            particle.setAttribute("cy", centerY + Math.sin(angle) * distance + 200);
+            particle.style.opacity = "0";
+            
+            setTimeout(() => particle.remove(), 1500);
+        }
+    }
+</script>
+</body>
+</html>

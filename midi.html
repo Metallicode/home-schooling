@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melody Striker - Timeline Engine</title>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0d0d1a; color: white;
+            display: flex; flex-direction: column; align-items: center;
+            margin: 0; padding: 20px; overflow-x: hidden;
+        }
+
+        h1 { color: #b388ff; text-shadow: 0 0 15px rgba(179,136,255,0.6); margin-bottom: 5px; text-align: center; }
+        p { color: #90a4ae; margin-top: 0; text-align: center; font-size: 18px; }
+
+        .controls {
+            background: #1a1a2e; padding: 20px 30px; border-radius: 15px;
+            border: 2px solid #5e35b1; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex; gap: 20px; align-items: center; margin-bottom: 20px;
+            flex-wrap: wrap; justify-content: center;
+        }
+
+        .control-group {
+            background: #282a36; padding: 10px 15px; border-radius: 8px;
+            border: 1px solid #7e57c2; display: flex; flex-direction: column;
+            align-items: center; gap: 5px;
+        }
+
+        input[type="file"] { color: white; cursor: pointer; outline: none; }
+        input[type="range"] { accent-color: #00e5ff; cursor: pointer; }
+
+        button {
+            background: #b388ff; color: #0d0d1a; border: none;
+            padding: 12px 24px; font-size: 16px; font-weight: bold;
+            border-radius: 8px; cursor: pointer; transition: 0.1s;
+            box-shadow: 0 4px 0 #7e57c2; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        button:active { transform: translateY(4px); box-shadow: 0 0px 0 #7e57c2; }
+        
+        #demo-btn { background: #00e5ff; box-shadow: 0 4px 0 #00b8d4; }
+        #demo-btn:active { box-shadow: 0 0px 0 #00b8d4; }
+
+        #replay-btn { 
+            background: #ff4081; box-shadow: 0 4px 0 #c51162; 
+            color: white; display: none; margin-top: 10px;
+        }
+        #replay-btn:active { box-shadow: 0 0px 0 #c51162; }
+
+        .game-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; }
+
+        canvas {
+            background: linear-gradient(to right, #0d0d1a, #16162a);
+            border: 4px solid #311b92; border-radius: 15px;
+            box-shadow: 0 0 40px rgba(49,27,146,0.6);
+            display: none; 
+        }
+
+        #ui-layer {
+            position: absolute; top: 15px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between;
+            font-size: 24px; font-weight: bold; color: #b388ff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            display: none; pointer-events: none;
+        }
+
+        #feedback-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 40px; font-weight: bold; text-align: center;
+            opacity: 0; transition: opacity 0.2s, transform 0.2s;
+            pointer-events: none; text-shadow: 0 0 20px currentColor;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>✨ Melody Striker ✨</h1>
+    <p>Tap spacebar when the note hits the glowing line!</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label style="font-weight: bold; color: #b388ff;">Load Track</label>
+            <input type="file" id="midi-upload" accept="audio/midi, audio/x-midi">
+        </div>
+
+        <div class="control-group">
+            <label style="font-weight: bold; color: #00e5ff;">Speed: <span id="speed-display">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0.2" max="2.0" step="0.1" value="1.0">
+        </div>
+
+        <button id="demo-btn" onclick="loadDemo()">Play Demo Melody</button>
+    </div>
+    
+    <div class="game-wrapper">
+        <div id="ui-layer">
+            <div>Hits: <span id="score" style="color:#00e5ff;">0</span></div>
+            <div id="status-text">Waiting for music...</div>
+            <div>Combo: <span id="combo" style="color:#ff4081;">0</span></div>
+        </div>
+        <div id="feedback-text">PERFECT!</div>
+        <canvas id="gameCanvas" width="900" height="400"></canvas>
+        <button id="replay-btn" onclick="replaySong()">Play Again 🔄</button>
+    </div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const uiLayer = document.getElementById('ui-layer');
+    const scoreEl = document.getElementById('score');
+    const comboEl = document.getElementById('combo');
+    const statusText = document.getElementById('status-text');
+    const feedbackText = document.getElementById('feedback-text');
+    const uploadInput = document.getElementById('midi-upload');
+    const speedSlider = document.getElementById('speed-slider');
+    const speedDisplay = document.getElementById('speed-display');
+    const replayBtn = document.getElementById('replay-btn');
+
+    let audioCtx;
+    let isPlaying = false;
+    let currentMidiNotes = null; 
+    let notesData = [];
+    let lastTime = 0;
+    
+    // TIMELINE VARIABLES
+    let songTime = 0; 
+    let maxSongTime = 0;
+    
+    let score = 0;
+    let combo = 0;
+    let particles = [];
+    let speedMultiplier = 1.0;
+    
+    // UX CONSTANTS
+    const PLAYHEAD_X = 150; 
+    const PIXELS_PER_SONG_SECOND = 300; // How spread out the notes are logically
+    const HIT_WINDOW_SECONDS = 0.15; // 150ms of leniency
+    
+    const player = {
+        y: 200,
+        targetY: 200,
+        radius: 15,
+        color: '#b388ff',
+        trail: [] 
+    };
+
+    // --- SPEED CONTROL ---
+    speedSlider.addEventListener('input', (e) => {
+        speedMultiplier = parseFloat(e.target.value);
+        speedDisplay.innerText = speedMultiplier.toFixed(1) + 'x';
+    });
+
+    // --- AUDIO SYNTHESIS ---
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playNoteTone(midiNumber) {
+        if (!audioCtx) return;
+        const freq = Math.pow(2, (midiNumber - 69) / 12) * 440;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine'; 
+        osc.frequency.value = freq;
+        
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        
+        // Scale the audio length based on speed
+        const holdTime = 0.6 / speedMultiplier; 
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + holdTime); 
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + holdTime);
+    }
+
+    // --- INPUT HANDLING ---
+    function handleTap() {
+        if (!isPlaying) return;
+        
+        let hitSomething = false;
+
+        for (let note of notesData) {
+            if (!note.hit && !note.missed) {
+                // We check hit based on time, not pixels!
+                const timeDiff = Math.abs(note.time - songTime);
+                
+                if (timeDiff <= HIT_WINDOW_SECONDS) {
+                    note.hit = true;
+                    hitSomething = true;
+                    
+                    player.targetY = note.y;
+                    player.color = note.color;
+                    
+                    playNoteTone(note.midi);
+                    createExplosion(PLAYHEAD_X, note.y, note.color);
+                    
+                    score++; combo++;
+                    scoreEl.innerText = score; comboEl.innerText = combo;
+
+                    showFeedback("PERFECT!", note.color);
+                    break; 
+                }
+            }
+        }
+
+        if (!hitSomething) {
+            combo = 0;
+            comboEl.innerText = combo;
+            player.color = '#555'; 
+            setTimeout(() => player.color = '#b388ff', 200);
+        }
+    }
+
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); handleTap(); } });
+    canvas.addEventListener('mousedown', handleTap);
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); handleTap(); });
+
+    // --- MIDI PARSING ---
+    uploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        statusText.innerText = "Parsing MIDI...";
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const midiData = new window.Midi(e.target.result);
+                processMidi(midiData);
+            } catch (err) {
+                statusText.innerText = "Error reading MIDI file.";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    function loadDemo() {
+        const demoNotes = [
+            { midi: 64, time: 0.0, duration: 0.4 }, { midi: 64, time: 0.5, duration: 0.4 },
+            { midi: 65, time: 1.0, duration: 0.4 }, { midi: 67, time: 1.5, duration: 0.4 },
+            { midi: 67, time: 2.0, duration: 0.4 }, { midi: 65, time: 2.5, duration: 0.4 },
+            { midi: 64, time: 3.0, duration: 0.4 }, { midi: 62, time: 3.5, duration: 0.4 },
+            { midi: 60, time: 4.0, duration: 0.4 }, { midi: 60, time: 4.5, duration: 0.4 },
+            { midi: 62, time: 5.0, duration: 0.4 }, { midi: 64, time: 5.5, duration: 0.4 },
+            { midi: 64, time: 6.0, duration: 0.6 }, { midi: 62, time: 6.75, duration: 0.2 },
+            { midi: 62, time: 7.0, duration: 0.8 }
+        ];
+        buildLevel(demoNotes);
+    }
+
+    function processMidi(midi) {
+        let mainTrack = midi.tracks[0];
+        for (let i = 1; i < midi.tracks.length; i++) {
+            if (midi.tracks[i].notes.length > mainTrack.notes.length) mainTrack = midi.tracks[i];
+        }
+        if (mainTrack.notes.length === 0) return statusText.innerText = "No notes found!";
+        buildLevel(mainTrack.notes);
+    }
+
+    function replaySong() {
+        if (currentMidiNotes) {
+            replayBtn.style.display = 'none';
+            buildLevel(currentMidiNotes);
+        }
+    }
+
+    function buildLevel(notes) {
+        initAudio();
+        currentMidiNotes = notes; 
+        notesData = [];
+        score = 0; combo = 0;
+        scoreEl.innerText = score; comboEl.innerText = combo;
+        particles = [];
+
+        let minPitch = 127, maxPitch = 0;
+        notes.forEach(n => {
+            if (n.midi < minPitch) minPitch = n.midi;
+            if (n.midi > maxPitch) maxPitch = n.midi;
+        });
+
+        const pitchRange = Math.max(1, maxPitch - minPitch);
+        const paddingY = 80; 
+        const usableHeight = canvas.height - (paddingY * 2);
+        maxSongTime = 0;
+
+        notes.forEach(note => {
+            const normalizedPitch = (note.midi - minPitch) / pitchRange;
+            const y = canvas.height - paddingY - (normalizedPitch * usableHeight);
+            
+            // Calculate base width mapped strictly to duration
+            // We subtract 6 pixels so consecutive notes have a guaranteed visual gap
+            const visualW = Math.max(10, (note.duration * PIXELS_PER_SONG_SECOND) - 6);
+
+            notesData.push({
+                time: note.time,
+                duration: note.duration,
+                w: visualW, 
+                y: y,
+                midi: note.midi,
+                hit: false,
+                missed: false,
+                color: `hsl(${(note.midi * 15) % 360}, 100%, 70%)`
+            });
+            
+            if (note.time + note.duration > maxSongTime) {
+                maxSongTime = note.time + note.duration;
+            }
+        });
+
+        player.y = canvas.height / 2;
+        player.targetY = player.y;
+
+        // Set song time back slightly so notes spawn offscreen and scroll in
+        const leadInDistance = canvas.width - PLAYHEAD_X;
+        songTime = -(leadInDistance / PIXELS_PER_SONG_SECOND);
+
+        startGame();
+    }
+
+    function startGame() {
+        canvas.style.display = 'block';
+        uiLayer.style.display = 'flex';
+        statusText.innerText = "Tap on the beat!";
+        
+        isPlaying = true; 
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function showFeedback(text, color) {
+        feedbackText.innerText = text;
+        feedbackText.style.color = color;
+        feedbackText.style.opacity = '1';
+        feedbackText.style.transform = 'translate(-50%, -50%) scale(1.2)';
+        
+        setTimeout(() => {
+            feedbackText.style.opacity = '0';
+            feedbackText.style.transform = 'translate(-50%, -50%) scale(0.8)';
+        }, 400);
+    }
+
+    function createExplosion(x, y, color) {
+        for(let i=0; i<15; i++) {
+            particles.push({
+                x: x, y: y,
+                vx: (Math.random() - 0.5) * 400,
+                vy: (Math.random() - 0.5) * 400,
+                life: 1.0,
+                color: color
+            });
+        }
+    }
+
+    // --- GAME LOOP ---
+    function gameLoop(currentTime) {
+        if (!isPlaying) return;
+        const dt = (currentTime - lastTime) / 1000; 
+        lastTime = currentTime;
+
+        update(dt);
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+        // Timeline moves forward multiplied by speed!
+        songTime += (dt * speedMultiplier);
+
+        notesData.forEach(note => {
+            // Missed note detection using Timeline
+            if (!note.hit && !note.missed && songTime > note.time + HIT_WINDOW_SECONDS) {
+                note.missed = true;
+                note.color = '#333344'; 
+                combo = 0;
+                comboEl.innerText = combo;
+                showFeedback("MISS", "#ff5555");
+            }
+        });
+
+        player.y += (player.targetY - player.y) * 15 * dt;
+
+        player.trail.unshift({x: PLAYHEAD_X, y: player.y});
+        if (player.trail.length > 20) player.trail.pop();
+
+        particles.forEach(p => {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.life -= dt * 2;
+        });
+        particles = particles.filter(p => p.life > 0);
+
+        // End game a couple seconds after the last note
+        if (songTime > maxSongTime + 1.0) {
+            statusText.innerText = "Song Complete! 🎉";
+            isPlaying = false;
+            replayBtn.style.display = 'inline-block'; 
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Playhead
+        ctx.beginPath();
+        ctx.moveTo(PLAYHEAD_X, 0);
+        ctx.lineTo(PLAYHEAD_X, canvas.height);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Notes (Calculated on the fly using Timeline!)
+        notesData.forEach(note => {
+            // Find X coordinate based on time difference from playhead
+            const xOffset = (note.time - songTime) * PIXELS_PER_SONG_SECOND;
+            const currentX = PLAYHEAD_X + xOffset;
+            
+            // Only draw if on screen
+            if (currentX + note.w > 0 && currentX < canvas.width) {
+                if (note.hit) {
+                    ctx.shadowColor = note.color;
+                    ctx.shadowBlur = 15;
+                    ctx.fillStyle = '#fff'; 
+                } else {
+                    ctx.shadowBlur = note.missed ? 0 : 5;
+                    ctx.shadowColor = note.color;
+                    ctx.fillStyle = note.color;
+                }
+                
+                ctx.beginPath();
+                ctx.roundRect(currentX, note.y - 10, note.w, 20, 10);
+                ctx.fill();
+            }
+        });
+        ctx.shadowBlur = 0; 
+
+        // Player Trail
+        if (player.trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(player.trail[0].x, player.trail[0].y);
+            for (let i = 1; i < player.trail.length; i++) {
+                ctx.lineTo(player.trail[i].x - (i * 5), player.trail[i].y);
+            }
+            ctx.strokeStyle = player.color + '66'; 
+            ctx.lineWidth = 8;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        // Player Orb
+        ctx.shadowColor = player.color;
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = player.color;
+        ctx.beginPath();
+        ctx.arc(PLAYHEAD_X, player.y, player.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(PLAYHEAD_X, player.y, player.radius * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Particles
+        particles.forEach(p => {
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+    }
+</script>
+</body>
+</html>

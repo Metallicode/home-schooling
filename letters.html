@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Letter Listener</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: #e3f2fd; padding: 20px; color: #1565c0;
+            margin: 0; overflow-x: hidden;
+            text-align: center;
+        }
+        
+        h1 { color: #1976d2; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin-bottom: 5px; }
+        p { font-size: 20px; color: #1e88e5; font-weight: bold; margin-top: 0; }
+
+        .game-board {
+            background: white; padding: 30px; border-radius: 25px; 
+            border: 4px solid #90caf9; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; gap: 30px;
+            position: relative; z-index: 10;
+        }
+
+        /* The Speaker Button */
+        #speaker-btn {
+            background-color: #ffb74d; color: white; border: none; border-radius: 50%;
+            width: 100px; height: 100px; font-size: 50px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 8px 0 #f57c00; transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        #speaker-btn:active { transform: translateY(8px); box-shadow: 0 0px 0 #f57c00; }
+        
+        .pulse { animation: pulse-anim 1s infinite; }
+        @keyframes pulse-anim {
+            0% { transform: scale(1); box-shadow: 0 8px 0 #f57c00, 0 0 0 0 rgba(255, 183, 77, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 8px 0 #f57c00, 0 0 0 20px rgba(255, 183, 77, 0); }
+            100% { transform: scale(1); box-shadow: 0 8px 0 #f57c00, 0 0 0 0 rgba(255, 183, 77, 0); }
+        }
+
+        /* Letter Options */
+        .options-container {
+            display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; width: 100%;
+        }
+
+        .letter-btn {
+            background: #ffffff; color: #1565c0;
+            border: 4px solid #64b5f6; border-radius: 20px;
+            width: 100px; height: 100px; font-size: 60px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; box-shadow: 0 8px 0 #64b5f6;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Removed uppercase transform so we can inject lowercase dynamically */
+        }
+
+        .letter-btn:hover { transform: translateY(-4px); box-shadow: 0 12px 0 #64b5f6; }
+        .letter-btn:active { transform: translateY(8px); box-shadow: 0 0px 0 #64b5f6; }
+
+        /* Incorrect Guess Animation */
+        .wrong-guess {
+            background-color: #ffebee !important;
+            color: #d32f2f !important;
+            border-color: #ef5350 !important;
+            box-shadow: 0 4px 0 #ef5350 !important;
+            transform: translateY(4px) !important;
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Correct Guess Animation */
+        .correct-guess {
+            background-color: #e8f5e9 !important;
+            color: #2e7d32 !important;
+            border-color: #66bb6a !important;
+            box-shadow: 0 4px 0 #66bb6a !important;
+            transform: scale(1.15) !important;
+            z-index: 5;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 4px, 0); }
+            20%, 80% { transform: translate3d(4px, 4px, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 4px, 0); }
+            40%, 60% { transform: translate3d(8px, 4px, 0); }
+        }
+
+        /* Feedback & Next Button */
+        #feedback-area {
+            min-height: 80px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        #feedback-text {
+            font-size: 40px; font-weight: bold; color: #43a047;
+            opacity: 0; transition: opacity 0.3s, transform 0.3s;
+            transform: scale(0.5); text-shadow: 2px 2px 0px #e8f5e9;
+        }
+
+        .show-feedback { opacity: 1 !important; transform: scale(1) !important; }
+
+        #next-btn {
+            background-color: #66bb6a; color: white; border: none; border-radius: 15px;
+            padding: 15px 40px; font-size: 24px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0 #43a047; display: none;
+        }
+        #next-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #43a047; }
+
+        /* Confetti */
+        #confetti-svg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 100; }
+        .particle { transition: all 1s cubic-bezier(0.1, 0.8, 0.3, 1); }
+
+    </style>
+</head>
+<body>
+
+    <h1>🔤 Letter Listener 🔤</h1>
+    <p>Listen carefully and click the matching letter!</p>
+
+    <div class="game-board">
+        <button id="speaker-btn" class="pulse" onclick="playSound()">🔊</button>
+
+        <div class="options-container" id="options">
+            </div>
+
+        <div id="feedback-area">
+            <div id="feedback-text">Very Good! 🌟</div>
+            <button id="next-btn" onclick="startRound()">Next Letter ➡️</button>
+        </div>
+    </div>
+    
+    <svg id="confetti-svg"></svg>
+
+<script>
+    const optionsContainer = document.getElementById('options');
+    const speakerBtn = document.getElementById('speaker-btn');
+    const feedbackText = document.getElementById('feedback-text');
+    const nextBtn = document.getElementById('next-btn');
+    const confettiSvg = document.getElementById('confetti-svg');
+
+    const alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+    let currentLetter = "";
+    let isWaitingForNext = false;
+    let isShaking = false; // Prevents spam-clicking during the shake animation
+    let currentAudio = null;
+
+    window.onload = startRound;
+
+    function startRound() {
+        isWaitingForNext = false;
+        isShaking = false;
+        optionsContainer.innerHTML = '';
+        confettiSvg.innerHTML = '';
+        feedbackText.classList.remove('show-feedback');
+        nextBtn.style.display = 'none';
+        speakerBtn.classList.add('pulse');
+
+        // Randomly decide if this round will show UPPERCASE or lowercase letters
+        const isLowerCaseRound = Math.random() > 0.5;
+
+        // 1. Pick the correct letter
+        currentLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+
+        // 2. Pick 4 random distractors
+        let options = [currentLetter];
+        while (options.length < 5) {
+            let randomLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
+            if (!options.includes(randomLetter)) {
+                options.push(randomLetter);
+            }
+        }
+
+        // 3. Shuffle the options
+        options.sort(() => Math.random() - 0.5);
+
+        // 4. Create the buttons
+        options.forEach(letter => {
+            const btn = document.createElement('button');
+            btn.className = 'letter-btn';
+            
+            // Display the letter based on the round's chosen case
+            btn.innerText = isLowerCaseRound ? letter : letter.toUpperCase(); 
+            
+            btn.onclick = () => handleGuess(btn, letter);
+            optionsContainer.appendChild(btn);
+        });
+
+        // Small delay before playing sound automatically on new round
+        setTimeout(playSound, 500);
+    }
+
+    function playSound() {
+        if (currentAudio) {
+            currentAudio.pause();
+            currentAudio.currentTime = 0;
+        }
+        
+        // Always looks for the lowercase filename (e.g., sounds/a.wav) regardless of display case
+        currentAudio = new Audio(`sounds/${currentLetter}.wav`);
+        
+        currentAudio.play().catch(e => {
+            console.log(`Could not play sounds/${currentLetter}.wav. Make sure the file exists!`);
+        });
+
+        speakerBtn.classList.remove('pulse');
+    }
+
+    function handleGuess(btnElement, guessedLetter) {
+        // Ignore clicks if the game is over, or if a button is currently shaking
+        if (isWaitingForNext || isShaking) return;
+
+        if (guessedLetter === currentLetter) {
+            // CORRECT!
+            isWaitingForNext = true;
+            btnElement.classList.add('correct-guess');
+            
+            // Dim the other buttons so the correct one stands out
+            Array.from(optionsContainer.children).forEach(child => {
+                if (child !== btnElement) child.style.opacity = '0.5';
+            });
+
+            feedbackText.classList.add('show-feedback');
+            nextBtn.style.display = 'block';
+            fireConfetti();
+
+        } else {
+            // INCORRECT!
+            isShaking = true;
+            btnElement.classList.add('wrong-guess');
+            
+            // Wait for the shake animation (0.4s) to finish before doing anything else
+            setTimeout(() => {
+                btnElement.classList.remove('wrong-guess');
+                
+                // Play the target sound reminder AFTER the visual shake finishes
+                playSound();
+                
+                // Unlock the board so they can guess again
+                isShaking = false;
+            }, 500);
+        }
+    }
+
+    function fireConfetti() {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const colors = ['#64b5f6', '#4dd0e1', '#81c784', '#fff176', '#ffb74d', '#f06292'];
+        
+        for (let i = 0; i < 80; i++) {
+            const particle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            particle.setAttribute("cx", centerX);
+            particle.setAttribute("cy", centerY);
+            particle.setAttribute("r", Math.random() * 6 + 4);
+            particle.setAttribute("class", "particle");
+            particle.style.fill = colors[Math.floor(Math.random() * colors.length)];
+            confettiSvg.appendChild(particle);
+            
+            particle.getBoundingClientRect(); // Force redraw
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 400 + 100; 
+            
+            particle.setAttribute("cx", centerX + Math.cos(angle) * distance);
+            particle.setAttribute("cy", centerY + Math.sin(angle) * distance + 150);
+            particle.style.opacity = "0";
+            
+            setTimeout(() => particle.remove(), 1200);
+        }
+    }
+</script>
+</body>
+</html>

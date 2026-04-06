@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplication Grid</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            background-color: #f3e5f5; padding: 20px; color: #4a148c;
+            margin: 0; overflow-x: hidden;
+        }
+        
+        h1 { color: #9c27b0; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin-bottom: 20px; text-align: center; }
+
+        .controls { 
+            background: white; padding: 20px 40px; border-radius: 25px; 
+            border: 4px solid #ce93d8; box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px; display: flex; gap: 20px; align-items: center; 
+            justify-content: center; flex-wrap: wrap; z-index: 10;
+        }
+        
+        .input-group {
+            display: flex; flex-direction: column; align-items: center; gap: 5px;
+        }
+
+        .input-label { font-size: 18px; font-weight: bold; color: #ab47bc; text-transform: uppercase; }
+
+        input { 
+            width: 90px; height: 70px; font-size: 40px; text-align: center; 
+            border: 4px solid #ba68c8; border-radius: 15px; 
+            color: #6a1b9a; font-family: inherit; font-weight: bold;
+            background-color: #f3e5f5; transition: transform 0.1s, border-color 0.2s;
+        }
+        
+        input:focus { outline: none; border-color: #9c27b0; transform: scale(1.05); background-color: #fff; }
+
+        .operator { font-size: 50px; font-weight: bold; color: #ff7043; text-shadow: 2px 2px 0px #fff; margin-top: 25px; }
+
+        #result-text { 
+            font-size: 45px; font-weight: bold; color: #ff7043; 
+            text-shadow: 2px 2px 0px #fff; min-height: 60px; margin-bottom: 20px;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .pop { transform: scale(1.2); color: #d84315 !important; }
+
+        /* The Grid Arena */
+        .grid-arena {
+            background: white; padding: 20px; border-radius: 25px;
+            border: 4px solid #e1bee7; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex; justify-content: center; align-items: center;
+            width: 100%; max-width: 900px; min-height: 400px;
+            overflow: hidden;
+        }
+
+        #dot-container {
+            display: grid;
+            gap: 4px; /* Tiny gap between dots */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .dot {
+            border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            color: white; font-weight: bold;
+            background-color: #29b6f6;
+            box-shadow: inset -2px -2px 5px rgba(0,0,0,0.2), 0 2px 4px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: scale(0);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        .final-dot {
+            background-color: #ffca28 !important; /* Gold for the answer! */
+            color: #d84315 !important;
+            box-shadow: inset -2px -2px 5px rgba(0,0,0,0.1), 0 0 15px rgba(255,202,40,0.8) !important;
+            z-index: 2;
+        }
+
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>✖️ Fast Multiplier ✖️</h1>
+
+    <div class="controls">
+        <div class="input-group">
+            <span class="input-label">Rows</span>
+            <input type="number" id="rows" value="4" min="1" max="25">
+        </div>
+        
+        <div class="operator">×</div>
+        
+        <div class="input-group">
+            <span class="input-label">Columns</span>
+            <input type="number" id="cols" value="5" min="1" max="25">
+        </div>
+    </div>
+
+    <div id="result-text">4 × 5 = 20</div>
+
+    <div class="grid-arena">
+        <div id="dot-container"></div>
+    </div>
+
+<script>
+    const rowInput = document.getElementById('rows');
+    const colInput = document.getElementById('cols');
+    const dotContainer = document.getElementById('dot-container');
+    const resultText = document.getElementById('result-text');
+
+    // Run immediately on load
+    window.onload = updateGrid;
+
+    // Listen for ANY change in the inputs (typing, clicking arrows)
+    rowInput.addEventListener('input', updateGrid);
+    colInput.addEventListener('input', updateGrid);
+
+    function updateGrid() {
+        let rows = parseInt(rowInput.value);
+        let cols = parseInt(colInput.value);
+
+        // Input validation and safety caps (prevents browser freezing if a kid types 9999)
+        if (isNaN(rows) || rows < 1) rows = 0;
+        if (isNaN(cols) || cols < 1) cols = 0;
+        if (rows > 25) rows = 25; // Capped at 25x25 (625 dots) for screen fit
+        if (cols > 25) cols = 25;
+
+        const total = rows * cols;
+        
+        // Update Text
+        if (total > 0) {
+            resultText.innerText = `${rows} × ${cols} = ${total}`;
+            resultText.classList.add('pop');
+            setTimeout(() => resultText.classList.remove('pop'), 200);
+        } else {
+            resultText.innerText = "Waiting for numbers...";
+            dotContainer.innerHTML = '';
+            return;
+        }
+
+        // Clear old grid
+        dotContainer.innerHTML = '';
+
+        // --- DYNAMIC SIZING ENGINE ---
+        // Max space available for the grid
+        const maxArenaWidth = 850; 
+        const maxArenaHeight = 500;
+        const gap = 4;
+
+        // Calculate maximum possible dot size to fit all rows and columns
+        const maxDotWidth = (maxArenaWidth / cols) - gap;
+        const maxDotHeight = (maxArenaHeight / rows) - gap;
+        
+        // Pick the smaller constraint so circles stay perfectly round, cap at 60px max
+        let dotSize = Math.floor(Math.min(maxDotWidth, maxDotHeight, 60));
+        
+        // Scale the font size relative to the dot size (approx 40% of dot height)
+        let fontSize = Math.max(10, Math.floor(dotSize * 0.4));
+
+        // Set the CSS Grid layout columns
+        dotContainer.style.gridTemplateColumns = `repeat(${cols}, ${dotSize}px)`;
+
+        // Calculate a ripple delay so dots don't all appear at the exact same millisecond
+        // Faster ripple for huge grids so we don't wait forever
+        const rippleSpeed = Math.min(20, 1000 / total); 
+
+        // Generate the dots
+        for (let i = 1; i <= total; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dot';
+            dot.style.width = `${dotSize}px`;
+            dot.style.height = `${dotSize}px`;
+            dot.style.fontSize = `${fontSize}px`;
+            
+            // Only show numbers if the dot is big enough to read them
+            if (dotSize >= 20) {
+                dot.innerText = i;
+            }
+
+            // Stagger the animation
+            dot.style.animationDelay = `${i * rippleSpeed}ms`;
+
+            // Highlight the final answer dot
+            if (i === total) {
+                dot.classList.add('final-dot');
+            }
+
+            dotContainer.appendChild(dot);
+        }
+    }
+</script>
+</body>
+</html>

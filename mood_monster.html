@@ -1,0 +1,321 @@
+\<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Mood Monster: Express!</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #f4f6f8; padding: 10px; color: #37474f;
+            margin: 0; height: 100vh; box-sizing: border-box; overflow: hidden;
+        }
+        
+        h1 { color: #546e7a; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 10px 0; }
+
+        .game-board {
+            background: white; padding: 20px; border-radius: 25px; 
+            border: 4px solid #cfd8dc; box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            width: 100%; max-width: 1000px; display: flex; flex-direction: row; align-items: stretch; gap: 20px;
+            height: 600px; box-sizing: border-box;
+        }
+
+        /* --- LEFT SIDE: THE MONSTER --- */
+        .stage-area {
+            flex: 1; background: #eceff1; border-radius: 20px; border: 4px dashed #b0bec5;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+
+        /* Container handling the scaling from the slider */
+        #monster-scale-container {
+            width: 250px; height: 250px; overflow: visible;
+            transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            position: relative;
+        }
+
+        /* Container handling the CSS animation classes */
+        #monster-anim-container {
+            width: 100%; height: 100%; transform-origin: center center;
+            animation-duration: 1s; animation-iteration-count: infinite; animation-timing-function: linear;
+            will-change: transform;
+        }
+
+        #monster-svg { width: 100%; height: 100%; overflow: visible; }
+
+        /* SVG Styles */
+        .monster-body { transition: fill 0.4s ease; stroke: #263238; stroke-width: 4; stroke-linejoin: round; }
+        .monster-face { stroke: #263238; stroke-width: 8; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+        .monster-eye-bg { fill: white; stroke: #263238; stroke-width: 6; }
+        .monster-pupil { fill: #263238; }
+        .heart-eye { fill: #ef5350; stroke: #b71c1c; stroke-width: 4; }
+        .monster-tear { fill: #4fc3f7; stroke: #0288d1; stroke-width: 3; opacity: 0; transition: opacity 0.2s;}
+        .show-tear { opacity: 1; }
+
+        /* CSS ANIMATIONS */
+        .shake-anim { animation-name: shake; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+            20%, 40%, 60%, 80% { transform: translateX(8px); }
+        }
+
+        .bounce-anim { animation-name: bounce; animation-timing-function: cubic-bezier(0.28, 0.84, 0.42, 1); animation-duration: 1.4s;}
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-40px); }
+            60% { transform: translateY(-20px); }
+        }
+
+        .wobble-anim { animation-name: wobble; animation-duration: 1.2s; }
+        @keyframes wobble {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(-8deg); }
+            30% { transform: rotate(6deg); }
+            45% { transform: rotate(-6deg); }
+            60% { transform: rotate(4deg); }
+            75% { transform: rotate(-2deg); }
+        }
+
+        .spin-anim { animation-name: spin; animation-duration: 4s; }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+
+        /* --- RIGHT SIDE: CONTROLS --- */
+        .control-panel {
+            width: 320px; display: flex; flex-direction: column; gap: 12px;
+            justify-content: space-between;
+        }
+
+        .control-group {
+            background: #f8fdff; padding: 12px; border-radius: 12px; border: 3px solid #e1f5fe;
+        }
+
+        .control-title {
+            font-size: 16px; font-weight: bold; color: #0277bd; margin: 0 0 8px 0;
+            text-transform: uppercase; text-align: center;
+        }
+
+        /* Color Palette */
+        .palette { display: flex; justify-content: center; gap: 8px; }
+        .color-btn {
+            width: 40px; height: 40px; border-radius: 50%; border: 4px solid white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.1s;
+        }
+        .color-btn:active { transform: scale(0.9); }
+        .color-btn.active { border-color: #37474f; transform: scale(1.1); }
+
+        /* Feature Buttons */
+        .feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .feature-btn {
+            background: white; border: 3px solid #b3e5fc; border-radius: 12px;
+            padding: 8px; font-size: 30px; cursor: pointer; box-shadow: 0 4px 0 #b3e5fc;
+            transition: all 0.1s; display: flex; justify-content: center; align-items: center;
+        }
+        .feature-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 #b3e5fc; }
+        .feature-btn.active { background: #e1f5fe; border-color: #0288d1; box-shadow: 0 4px 0 #0288d1; color: #01579b;}
+
+        /* Size Slider */
+        .slider-container { display: flex; align-items: center; gap: 10px; }
+        input[type=range] { flex: 1; -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 30px; width: 30px; border-radius: 50%;
+            background: #0288d1; cursor: pointer; margin-top: -10px; box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 10px; cursor: pointer; background: #b3e5fc; border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<a href="index.html" id="home-link" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.9);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Home">&#x1F3E0; Home</a>
+
+    <h1>🎨 My Mood Monster 🎨</h1>
+
+    <div class="game-board">
+        
+        <div class="stage-area">
+            <div id="monster-scale-container">
+                <div id="monster-anim-container">
+                    <svg id="monster-svg" viewBox="0 0 200 200">
+                        <path class="monster-body" id="m-body" d="M 100,180 C 20,180 20,60 100,40 C 180,60 180,180 100,180 Z" fill="#66bb6a" />
+
+                        <g id="m-mouth" transform="translate(0, 14)">
+                            <path d="M 70,120 Q 100,150 130,120" class="monster-face" />
+                        </g>
+
+                        <path id="m-tears" class="monster-tear" d="M 75,105 Q 85,120 75,130 Q 65,120 75,105 M 125,105 Q 135,120 125,130 Q 115,120 125,105" />
+
+                        <g id="m-eyes">
+                            <path d="M 65,95 Q 75,80 85,95" class="monster-face" />
+                            <path d="M 115,95 Q 125,80 135,95" class="monster-face" />
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="control-panel">
+            
+            <div class="control-group">
+                <div class="control-title">1. What color is it?</div>
+                <div class="palette">
+                    <div class="color-btn" style="background: #ef5350;" onclick="setColor('#ef5350', 'MAD', this)"></div>
+                    <div class="color-btn" style="background: #42a5f5;" onclick="setColor('#42a5f5', 'SAD', this)"></div>
+                    <div class="color-btn" style="background: #ffca28;" onclick="setColor('#ffca28', 'HAPPY', this)"></div>
+                    <div class="color-btn active" style="background: #66bb6a;" onclick="setColor('#66bb6a', 'CALM', this)"></div>
+                    <div class="color-btn" style="background: #ab47bc;" onclick="setColor('#ab47bc', 'WORRIED', this)"></div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">2. How big is it?</div>
+                <div class="slider-container">
+                    <span style="font-size: 20px;">🤏</span>
+                    <input type="range" id="size-slider" min="0.5" max="1.5" step="0.1" value="1" oninput="setSize(this.value)">
+                    <span style="font-size: 30px;">👐</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">3. Change Face</div>
+                <div class="feature-grid">
+                    <button class="feature-btn" onclick="cycleEyes()">👀</button>
+                    <button class="feature-btn" onclick="cycleMouth()">👄</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="control-title">4. Add a Feeling Motion</div>
+                <div class="feature-grid anim-grid">
+                    <button class="feature-btn" style="font-size: 16px; font-weight: bold; background: #bdbdbd; box-shadow: 0 4px 0 #9e9e9e; color: #fff;" onclick="setAnimation('', this)">Stop</button>
+                    <button class="feature-btn" onclick="setAnimation('shake', this)">Shake</button>
+                    <button class="feature-btn" onclick="setAnimation('bounce', this)">Bounce</button>
+                    <button class="feature-btn" onclick="setAnimation('wobble', this)">Wobble</button>
+                    <button class="feature-btn" onclick="setAnimation('spin', this)">Spin</button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+<script>
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    function playPop(freq, type='sine') {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // --- MONSTER SVG DATA ---
+    const eyesData = [
+        { svg: `<path d="M 65,95 Q 75,80 85,95" class="monster-face" /><path d="M 115,95 Q 125,80 135,95" class="monster-face" />`, tears: false }, // default happy
+        { svg: `<line x1="60" y1="85" x2="90" y2="95" class="monster-face"/><line x1="140" y1="85" x2="110" y2="95" class="monster-face"/><circle cx="75" cy="100" r="4" class="monster-pupil"/><circle cx="125" cy="100" r="4" class="monster-pupil"/>`, tears: false }, // Mad 1
+        { svg: `<line x1="60" y1="90" x2="85" y2="80" class="monster-face"/><line x1="140" y1="90" x2="115" y2="80" class="monster-face"/><ellipse cx="75" cy="105" rx="5" ry="10" class="monster-pupil"/><ellipse cx="125" cy="105" rx="5" ry="10" class="monster-pupil"/>`, tears: false }, // Intense rage
+        { svg: `<line x1="60" y1="95" x2="90" y2="85" class="monster-face"/><line x1="140" y1="95" x2="110" y2="85" class="monster-face"/><circle cx="75" cy="100" r="4" class="monster-pupil"/><circle cx="125" cy="100" r="4" class="monster-pupil"/>`, tears: true }, // Sad 1
+        { svg: `<circle cx="75" cy="97" r="14" class="monster-eye-bg"/><circle cx="125" cy="97" r="14" class="monster-eye-bg"/><ellipse cx="75" cy="103" rx="5" ry="7" class="monster-pupil"/><ellipse cx="125" cy="103" rx="5" ry="7" class="monster-pupil"/><path d="M 61,90 Q 75,100 89,90" class="monster-face"/><path d="M 111,90 Q 125,100 139,90" class="monster-face"/>`, tears: true }, // Crushed/Sobbing
+        { svg: `<circle cx="75" cy="95" r="15" class="monster-eye-bg"/><circle cx="125" cy="95" r="15" class="monster-eye-bg"/><circle cx="75" cy="95" r="3" class="monster-pupil"/><circle cx="125" cy="95" r="3" class="monster-pupil"/>`, tears: false }, // Worried
+        { svg: `<line x1="65" y1="85" x2="85" y2="105" class="monster-face"/><line x1="85" y1="85" x2="65" y2="105" class="monster-face"/><line x1="115" y1="85" x2="135" y2="105" class="monster-face"/><line x1="135" y1="85" x2="115" y2="105" class="monster-face"/>`, tears: false }, // Scared/Crossed
+        { svg: `<path d="M 75,107 C 61,99 57,86 66,83 C 71,81 75,87 75,87 C 75,87 79,81 84,83 C 93,86 89,99 75,107 Z" class="heart-eye"/><path d="M 125,107 C 111,99 107,86 116,83 C 121,81 125,87 125,87 C 125,87 129,81 134,83 C 143,86 139,99 125,107 Z" class="heart-eye"/>`, tears: false }, // Love/Excited
+        { svg: `<path d="M 60,95 Q 75,105 90,95" class="monster-face" /><path d="M 110,95 Q 125,105 140,95" class="monster-face" />`, tears: false }, // Sleepy/Calm
+        { svg: `<circle cx="75" cy="95" r="15" class="monster-eye-bg"/><circle cx="125" cy="95" r="15" class="monster-eye-bg"/><circle cx="75" cy="95" r="8" class="monster-pupil"/><circle cx="125" cy="95" r="8" class="monster-pupil"/>`, tears: false } // Wide shock
+    ];
+
+    const mouthData = [
+        { svg: `<path d="M 70,120 Q 100,150 130,120" class="monster-face" />` }, // default smile
+        { svg: `<path d="M 70,120 Q 100,103 130,120" class="monster-face" />` }, // frown
+        { svg: `<path d="M 70,125 L 85,115 L 100,125 L 115,115 L 130,125" class="monster-face" />` }, // teeth/clenched
+        { svg: `<path d="M 70,120 Q 80,108 100,120 Q 120,108 130,120" class="monster-face" />` }, // Jagged mad
+        { svg: `<path d="M 70,125 L 80,125 L 90,115 L 100,125 L 110,125 L 120,115 L 130,125" class="monster-face" />` }, // wobbly line
+        { svg: `<ellipse cx="100" cy="125" rx="15" ry="20" class="monster-face" />` }, // open gasp
+        { svg: `<circle cx="100" cy="125" r="5" class="monster-face" />` }, // pursed oooh
+        { svg: `<line x1="70" y1="125" x2="130" y2="125" class="monster-face" />` }, // neutral line
+        { svg: `<path d="M 70,120 Q 100,160 130,120 L 115,140 L 100,120 L 85,140 Z" class="monster-face" />` }, // Giant grin with teeth
+        { svg: `<path d="M 70,130 Q 100,140 130,130 L 100,120 Z" class="monster-face" fill="#263238"/>` } // Tongue out/Silly
+    ];
+
+    // --- STATE ---
+    let state = {
+        color: '#66bb6a',
+        emotionWord: 'CALM',
+        sizeWord: 'medium',
+        eyeIndex: 0,
+        mouthIndex: 0,
+        currentAnimation: ''
+    };
+
+    // DOM Elements
+    const bodyEl = document.getElementById('m-body');
+    const eyesEl = document.getElementById('m-eyes');
+    const mouthEl = document.getElementById('m-mouth');
+    const tearsEl = document.getElementById('m-tears');
+    const scaleContainer = document.getElementById('monster-scale-container');
+    const animContainer = document.getElementById('monster-anim-container');
+
+    // --- FUNCTIONS ---
+
+    function setColor(hex, word, btnEl) {
+        initAudio(); playPop(400);
+        document.querySelectorAll('.palette .color-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+        state.color = hex; state.emotionWord = word;
+        bodyEl.setAttribute('fill', hex);
+    }
+
+    function setSize(val) {
+        scaleContainer.style.transform = `scale(${val})`;
+        if (val < 0.7) state.sizeWord = "tiny";
+        else if (val < 0.9) state.sizeWord = "little";
+        else if (val < 1.2) state.sizeWord = "medium";
+        else if (val < 1.4) state.sizeWord = "BIG";
+        else state.sizeWord = "HUGE";
+    }
+
+    function cycleEyes() {
+        initAudio(); playPop(600);
+        state.eyeIndex = (state.eyeIndex + 1) % eyesData.length;
+        const eyeObj = eyesData[state.eyeIndex];
+        eyesEl.innerHTML = eyeObj.svg;
+        if (eyeObj.tears) tearsEl.classList.add('show-tear');
+        else tearsEl.classList.remove('show-tear');
+    }
+
+    function cycleMouth() {
+        initAudio(); playPop(500);
+        state.mouthIndex = (state.mouthIndex + 1) % mouthData.length;
+        mouthEl.innerHTML = mouthData[state.mouthIndex].svg;
+    }
+
+    function setAnimation(anim, btnEl) {
+        initAudio(); 
+        
+        // UI Update
+        document.querySelectorAll('.anim-grid .feature-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+
+        animContainer.className = ''; // reset previous class
+
+        if (anim) {
+            playPop(700, 'square');
+            animContainer.classList.add(anim + '-anim');
+        } else {
+            playPop(200, 'triangle'); // gentle stop sound
+        }
+    }
+
+
+</script>
+</body>
+</html>

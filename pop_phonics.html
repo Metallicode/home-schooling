@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bubble Pop: Shouting Stars</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #e0f7fa; padding: 20px; color: #006064;
+            margin: 0; height: 100vh; box-sizing: border-box; overflow: hidden;
+            text-align: center;
+        }
+        
+        h1 { color: #00acc1; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 5px 0; }
+        p { font-size: 18px; color: #00838f; font-weight: bold; margin: 0 0 20px 0;}
+
+        .controls {
+            display: flex; justify-content: center; gap: 10px; width: 100%; max-width: 600px;
+            background: #ffffff; padding: 15px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: 3px solid #b2ebf2; z-index: 20;
+        }
+
+        .vowel-btn {
+            background: #e0f7fa; color: #00838f; border: 3px solid #80deea; border-radius: 50%;
+            width: 50px; height: 50px; font-size: 24px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 0 #80deea; transition: all 0.1s; text-transform: uppercase;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .vowel-btn:active, .vowel-btn.active { 
+            transform: translateY(4px); box-shadow: 0 0px 0 #80deea; 
+            background: #26c6da; border-color: #0097a7; color: #fff;
+        }
+        .mix-btn { border-radius: 15px; width: auto; padding: 0 15px; }
+
+        #play-area {
+            flex-grow: 1; width: 100%; position: relative;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        /* --- THE SHOUTING SIGN --- */
+        #shouting-sign {
+            font-size: 50px; margin-bottom: 10px;
+            opacity: 0; transform: scale(0.5);
+            transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            pointer-events: none;
+        }
+        #shouting-sign.visible { opacity: 1; transform: scale(1); }
+
+        /* The Bubble */
+        #bubble {
+            width: 300px; height: 300px; border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #80deea 60%, #00acc1 100%);
+            box-shadow: inset -10px -10px 30px rgba(0, 131, 143, 0.5), 0 15px 25px rgba(0,0,0,0.1);
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; user-select: none;
+            animation: float 4s ease-in-out infinite;
+            position: relative;
+        }
+
+        #bubble::after {
+            content: ''; position: absolute; top: 15%; left: 15%;
+            width: 60px; height: 30px; border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            transform: rotate(-45deg); pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .pop-anim { animation: pop 0.2s forwards !important; pointer-events: none; }
+        @keyframes pop {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        #syllable-text {
+            font-size: 110px; font-weight: bold; color: #ffffff;
+            text-shadow: 3px 3px 0 #00838f, -2px -2px 0 #00838f;
+        }
+
+        .droplet {
+            position: absolute; background: #80deea; border-radius: 50%;
+            pointer-events: none; animation: splash 0.4s ease-out forwards;
+        }
+        @keyframes splash {
+            0% { transform: translate(0, 0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🫧 Bubble Pop Phonics 🫧</h1>
+    <p>Look for the Shouting Star! 🌟 (It means the vowel says its name)</p>
+
+    <div class="controls">
+        <div class="vowel-btn active" onclick="setVowel('a', this)">A</div>
+        <div class="vowel-btn" onclick="setVowel('e', this)">E</div>
+        <div class="vowel-btn" onclick="setVowel('i', this)">I</div>
+        <div class="vowel-btn" onclick="setVowel('o', this)">O</div>
+        <div class="vowel-btn" onclick="setVowel('u', this)">U</div>
+        <div class="vowel-btn mix-btn" onclick="setVowel('mix', this)">MIX</div>
+    </div>
+
+    <div id="play-area">
+        <div id="shouting-sign">🌟</div>
+        
+        <div id="bubble" onclick="popBubble()">
+            <div id="syllable-text">ma</div>
+        </div>
+    </div>
+
+<script>
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    
+    function playPop() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    const consonants = ['b', 'd', 'f', 'h', 'k', 'l', 'm', 'n', 'p', 'r', 's', 't', 'v', 'w', 'y', 'z'];
+    const vowels = ['a', 'e', 'i', 'o', 'u'];
+    
+    // THE SPECIAL CASES LIST
+    const shoutingWords = ['be', 'he', 'me', 'we', 'go', 'no', 'so', 'hi', 'my', 'by'];
+    
+    let currentVowelFilter = 'a';
+    let syllableQueue = [];
+    
+    const bubbleEl = document.getElementById('bubble');
+    const syllableTextEl = document.getElementById('syllable-text');
+    const shoutingSign = document.getElementById('shouting-sign');
+
+    function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+    function generateQueue() {
+        syllableQueue = [];
+        // Add special 'y' words if we are in mix mode
+        if (currentVowelFilter === 'mix') {
+            syllableQueue.push('my', 'by');
+            for(let i=0; i<18; i++) {
+                const c = consonants[Math.floor(Math.random() * consonants.length)];
+                const v = vowels[Math.floor(Math.random() * vowels.length)];
+                syllableQueue.push(c + v);
+            }
+        } else {
+            consonants.forEach(c => syllableQueue.push(c + currentVowelFilter));
+        }
+        syllableQueue = shuffle(syllableQueue);
+    }
+
+    function setVowel(vowel, btnEl) {
+        initAudio();
+        currentVowelFilter = vowel;
+        document.querySelectorAll('.vowel-btn').forEach(b => b.classList.remove('active'));
+        btnEl.classList.add('active');
+        bubbleEl.classList.remove('pop-anim');
+        generateQueue();
+        loadNextSyllable();
+    }
+
+    function loadNextSyllable() {
+        if (syllableQueue.length === 0) generateQueue();
+        const next = syllableQueue.shift();
+        syllableTextEl.innerText = next;
+
+        // Check if it's a special shouting word
+        if (shoutingWords.includes(next)) {
+            shoutingSign.classList.add('visible');
+        } else {
+            shoutingSign.classList.remove('visible');
+        }
+    }
+
+    function popBubble() {
+        initAudio();
+        playPop();
+        bubbleEl.classList.add('pop-anim');
+        createSplash();
+        setTimeout(() => {
+            loadNextSyllable();
+            bubbleEl.classList.remove('pop-anim');
+        }, 300);
+    }
+
+    function createSplash() {
+        const rect = bubbleEl.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        for (let i = 0; i < 8; i++) {
+            const droplet = document.createElement('div');
+            droplet.className = 'droplet';
+            const size = Math.random() * 15 + 10;
+            droplet.style.width = size + 'px';
+            droplet.style.height = size + 'px';
+            droplet.style.left = (centerX - size/2) + 'px';
+            droplet.style.top = (centerY - size/2) + 'px';
+            const angle = Math.random() * Math.PI * 2;
+            const distance = Math.random() * 100 + 50;
+            droplet.style.setProperty('--tx', `${Math.cos(angle) * distance}px`);
+            droplet.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+            document.body.appendChild(droplet);
+            setTimeout(() => droplet.remove(), 400);
+        }
+    }
+
+    window.onload = () => {
+        generateQueue();
+        loadNextSyllable();
+    };
+</script>
+</body>
+</html>

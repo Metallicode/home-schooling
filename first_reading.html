@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sentence Reader (Structured)</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #e0f2f1; padding: 20px; color: #004d40;
+            margin: 0; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00796b; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 10px 0; }
+        p { font-size: 18px; color: #00695c; font-weight: bold; margin: 0 0 30px 0; max-width: 600px;}
+
+        .card {
+            background: white; padding: 40px; border-radius: 25px; 
+            border: 5px solid #80cbc4; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; align-items: center; gap: 40px;
+        }
+
+        /* --- SENTENCE DISPLAY --- */
+        #sentence-display {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 15px;
+            min-height: 150px; align-items: center;
+        }
+
+        .word {
+            font-size: 60px; font-weight: bold; color: #004d40;
+            padding: 5px 15px; border-radius: 15px; cursor: pointer;
+            transition: all 0.2s; border: 3px solid transparent;
+        }
+
+        .word:hover {
+            background: #e0f2f1; border-color: #4db6ac; color: #00796b;
+            transform: translateY(-5px); box-shadow: 0 5px 0 #4db6ac;
+        }
+        
+        /* Highlight state for ElevenLabs playback */
+        .word.playing {
+            background: #fff59d; border-color: #fbc02d; color: #f57f17;
+            transform: scale(1.1); box-shadow: 0 5px 15px rgba(251, 192, 45, 0.4);
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; width: 100%;
+        }
+
+        .play-btn {
+            background: #29b6f6; color: white; border: none; border-radius: 20px;
+            padding: 15px 40px; font-size: 24px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0 #0288d1; transition: all 0.1s; flex: 1; min-width: 200px;
+        }
+        .play-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #0288d1; }
+        .play-btn:disabled { background: #90caf9; box-shadow: 0 6px 0 #64b5f6; cursor: wait;}
+
+        .next-btn {
+            background: #66bb6a; color: white; border: none; border-radius: 20px;
+            padding: 15px 40px; font-size: 24px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0 #43a047; transition: all 0.1s; flex: 1; min-width: 200px;
+        }
+        .next-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #43a047; }
+
+    </style>
+</head>
+<body>
+
+    <h1>📚 The Sentence Reader 📚</h1>
+    <p>Hover over any word to hear it, or click the blue button to hear the whole story!</p>
+
+    <div class="card">
+        
+        <div id="sentence-display">
+            </div>
+        
+        <div class="controls">
+            <button class="play-btn" id="full-read-btn" onclick="playFullSentence()">🔊 Read to Me</button>
+            <button class="next-btn" onclick="loadNextSentence()">Next Sentence ➡️</button>
+        </div>
+
+    </div>
+
+<script>
+    // ==========================================
+    // PASTE YOUR ELEVENLABS API KEY HERE
+    // ==========================================
+    const ELEVENLABS_API_KEY = "YOUR_API_KEY_HERE"; 
+    
+    // Default Voice ID (Rachel). You can change this to any voice ID from your account.
+    const ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; 
+    // ==========================================
+
+    // --- YOUR PREDEFINED SENTENCE LIST ---
+    const predefinedSentences = [
+        "The big dog runs fast.",
+        "A small cat sleeps on the bed.",
+        "The red apple is sweet.",
+        "I see a blue bird.",
+        "The sun is hot today.",
+        "The boy has a new toy.",
+        "A green frog jumps in the pond.",
+        "The girl likes to read a book.",
+        "We can play in the park.",
+        "My dad drives a yellow car.",
+        // --- ANIMALS & PETS ---
+        "The fat cat sat on the mat.",
+        "A big dog can run fast.",
+        "The little pig plays in the mud.",
+        "I see a bug on the rug.",
+        "The bird sits in the tree.",
+        "A brown bear sleeps all day.",
+        "The duck can swim in the pond.",
+        "My fish is red and small.",
+        "Look at the frog hop up.",
+        "The hen has a little chick.",
+        "A mouse hides in the box.",
+        "The cow gives us white milk.",
+        "I like to pet my soft bunny.",
+        "The black bat flies at night.",
+        "A turtle is very slow.",
+        "The sheep eats the green grass.",
+        "The yellow bee can fly away.",
+        "I have a cute pet rat.",
+        "The horse will trot in the pen.",
+        "A seal claps its two hands.",
+
+        // --- PLAY & ACTION ---
+        "The boy can kick the ball.",
+        "The girl will jump up high.",
+        "We like to run in the sun.",
+        "They play tag in the yard.",
+        "I can ride my red bike.",
+        "Do you want to hide and seek?",
+        "The kids slide down the hill.",
+        "We can swing at the park.",
+        "He will catch the big ball.",
+        "Let us build a tall fort.",
+        "She can skip on the path.",
+        "We walk to the big ship.",
+        "I will paint a blue star.",
+        "They sing a loud song.",
+        "The baby can crawl on the floor.",
+        "I like to dig in the sand.",
+        "You can clap to the beat.",
+        "He throws the toy in the bin.",
+        "We read a book in the tent.",
+        "She draws a cat on the page.",
+
+        // --- HOME & EVERYDAY LIFE ---
+        "I sleep in a soft bed.",
+        "The mug is on the brown desk.",
+        "Put the toys in the toy box.",
+        "We sit on the long rug.",
+        "The door is open for you.",
+        "I will wash my two hands.",
+        "The clock goes tick and tock.",
+        "Mom has a nice pink hat.",
+        "Dad will fix the broken cup.",
+        "The lamp makes the room bright.",
+        "Look at the coat on the hook.",
+        "We sweep the dirt with a broom.",
+        "I tie my left shoe tight.",
+        "The bath has a lot of bubbles.",
+        "The fire is warm and red.",
+        "We sit on the big couch.",
+        "Look out the window at the rain.",
+        "The dog sleeps on the mat.",
+        "Put your hat on your head.",
+        "The steps go up to the top.",
+
+        // --- FOOD & EATING ---
+        "I eat an apple for a snack.",
+        "The hot soup is in the bowl.",
+        "We drink milk from a tall glass.",
+        "Do you like to eat sweet corn?",
+        "I have jam on my toast.",
+        "The brown nut fell from the tree.",
+        "We bake a cake in the pan.",
+        "I want a cold drink of water.",
+        "The yellow cheese is very good.",
+        "He bites into the big pear.",
+        "Mom cuts the bread with a knife.",
+        "We have peas on our plate.",
+        "The grape is small and round.",
+        "I will sip the hot tea.",
+        "Look at the big birthday cake.",
+        "Do not spill the red juice.",
+        "I like to crunch the chip.",
+        "She drops the yam on the floor.",
+        "The plum is soft and sweet.",
+        "We eat the fish from the dish.",
+
+        // --- NATURE, COLORS, & WEATHER ---
+        "The sun shines in the sky.",
+        "The white cloud looks like a sheep.",
+        "A drop of rain hits the roof.",
+        "The wind blows the red kite.",
+        "I see a rainbow in the east.",
+        "The moon is bright tonight.",
+        "Look at the shiny little star.",
+        "The leaf falls off the tree.",
+        "We plant a seed in the dirt.",
+        "A pink flower blooms in the spring.",
+        "The grass is wet with cold dew.",
+        "I find a rock on the trail.",
+        "The snow makes everything white.",
+        "The ice is very cold and hard.",
+        "A bug crawls up the green stem.",
+        "The sky is dark and black.",
+        "We see a hill in the back.",
+        "The river flows down to the sea.",
+        "The mud is soft and brown.",
+        "A spark jumps from the camp fire.",
+// --- ANIMALS & CRITTERS ---
+        "The red fox hid in the log.",
+        "A big bug bit the pig.",
+        "The frog sits on a lily pad.",
+        "I see a little brown pup.",
+        "The crab has two big claws.",
+        "A fat toad hops in the mud.",
+        "The snail is on the wet leaf.",
+        "Look at the moth by the lamp.",
+        "The deer runs in the deep woods.",
+        "A snake slithers in the tall grass.",
+        "The cub plays with the mom bear.",
+        "I hear a bird sing a sweet song.",
+        "The cat will nap in the sun.",
+        "A worm wiggles in the soft dirt.",
+        "The ant lifts a big crumb.",
+        "Look at the goat eat the weeds.",
+        "The chimp swings from the tree.",
+        "A little chick says peep peep.",
+        "The owl hoots in the dark night.",
+        "I fed the fish in the round bowl.",
+
+        // --- TOYS & PLAY ---
+        "I will spin the red top.",
+        "We can build a tall block tower.",
+        "The doll wears a pink dress.",
+        "Look at my shiny new train.",
+        "We fly the kite up so high.",
+        "He puts the puzzle piece in place.",
+        "I have a drum to bang loud.",
+        "The teddy bear is soft to hug.",
+        "Let us roll the blue ball.",
+        "I use chalk to draw on the walk.",
+        "The toy car goes beep beep beep.",
+        "She has a jump rope for the park.",
+        "We blow bubbles in the wind.",
+        "The yo-yo goes up and down.",
+        "I put the blocks in the big box.",
+        "My boat floats in the bath tub.",
+        "He rides the truck in the dirt.",
+        "We hide the toy under the bed.",
+        "The robot walks across the floor.",
+        "I share my toys with my best pal.",
+
+        // --- SCHOOL & LEARNING ---
+        "I take the yellow bus to school.",
+        "We sit at the desk to do our work.",
+        "The teacher reads a good book.",
+        "I write my name with a pen.",
+        "We use glue to make the craft.",
+        "The bell rings for us to go out.",
+        "I count to ten on my two hands.",
+        "We sing the ABC song out loud.",
+        "Let us line up at the tall door.",
+        "I pack my bag for the day.",
+        "The clock tells us it is time to go.",
+        "We cut the paper with care.",
+        "I share my red crayon with you.",
+        "Look at the map on the wall.",
+        "We learn about bugs and plants.",
+        "I raise my hand to say hi.",
+        "The math game is fun to play.",
+        "We eat lunch at the long table.",
+        "I put my coat in the cubby hole.",
+        "Reading is my favorite thing to do.",
+
+        // --- FAMILY & FRIENDS ---
+        "My mom gives me a big hug.",
+        "Dad helps me tie my shoes.",
+        "I like to play with my little sister.",
+        "My brother runs fast in a race.",
+        "We go to see grandma and grandpa.",
+        "My friend has a fun name.",
+        "We smile for the photo.",
+        "Uncle Bob tells a funny joke.",
+        "The baby takes a nap in the crib.",
+        "Aunt Sue bakes us a pie.",
+        "I hold hands with my best pal.",
+        "We help clean up the house.",
+        "My family sits down for dinner.",
+        "I make a card for mom and dad.",
+        "We say thank you for the meal.",
+        "My dad has a big loud laugh.",
+        "I wave goodbye to my friend.",
+        "We share our snacks at the park.",
+        "Mom reads a story before bed.",
+        "I am glad you are my buddy.",
+
+        // --- ACTIONS & SILLY THINGS ---
+        "I hop on one foot down the hall.",
+        "The silly pig wears a wig.",
+        "I touch my nose and blink my eyes.",
+        "We spin around until we fall down.",
+        "The cat tries to catch its own tail.",
+        "I can pat my head and rub my tummy.",
+        "He makes a funny face at me.",
+        "We tiptoe past the sleeping dog.",
+        "The monkey puts a hat on a rock.",
+        "I wiggle my toes in the soft sand.",
+        "She zips up her coat in a flash.",
+        "The frog tries to drive a little car.",
+        "I stretch my arms up to the sky.",
+        "We stomp our feet like a bear.",
+        "The bird wears a tiny red bow.",
+        "I can balance a book on my head.",
+        "He slurps his noodles very loud.",
+        "We march in a line like a band.",
+        "The fish tries to fly in the air.",
+        "I give a big smile to you."
+    ];
+
+    let sentenceQueue = [];
+    let currentSentence = "";
+    let hoverTimer;
+    let currentAudio = null;
+    const audioCache = new Map(); // session cache: text -> Audio object
+
+    function getAudio(text) {
+        if (!audioCache.has(text)) {
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(text)}`;
+            const audio = new Audio(url);
+            audio.preload = 'auto';
+            audioCache.set(text, audio);
+        }
+        return audioCache.get(text);
+    }
+
+    const sentenceDisplayEl = document.getElementById('sentence-display');
+    const fullReadBtn = document.getElementById('full-read-btn');
+
+    // --- LOGIC ---
+    function shuffle(array) {
+        return array.sort(() => Math.random() - 0.5);
+    }
+
+    function getNextSentence() {
+        // If the queue is empty, fill it with a fresh shuffled batch
+        if (sentenceQueue.length === 0) {
+            sentenceQueue = shuffle([...predefinedSentences]);
+            
+            // Prevent the first sentence of the new batch from matching the very last sentence they just read
+            if (sentenceQueue[0] === currentSentence) {
+                sentenceQueue.push(sentenceQueue.shift());
+            }
+        }
+        return sentenceQueue.shift();
+    }
+
+    function loadNextSentence() {
+        if (currentAudio) currentAudio.pause(); // Stop any playing audio
+
+        currentSentence = getNextSentence();
+        renderSentence(currentSentence);
+    }
+
+    function renderSentence(sentence) {
+        sentenceDisplayEl.innerHTML = '';
+        const words = sentence.split(" ");
+
+        words.forEach(wordText => {
+            const span = document.createElement('span');
+            span.className = 'word';
+            span.innerText = wordText;
+
+            // Strip punctuation before sending to audio reader
+            const cleanWord = wordText.replace(/[^a-zA-Z]/g, "");
+
+            // Prefetch word audio into cache
+            if (cleanWord) getAudio(cleanWord);
+
+            // Hover logic with debounce
+            span.onmouseenter = () => {
+                clearTimeout(hoverTimer);
+                hoverTimer = setTimeout(() => {
+                    playSingleWord(cleanWord);
+                }, 150);
+            };
+            span.onmouseleave = () => clearTimeout(hoverTimer);
+
+            sentenceDisplayEl.appendChild(span);
+        });
+
+        // Prefetch full sentence audio into cache
+        getAudio(sentence);
+    }
+
+    // --- CLOUD AUDIO LOGIC ---
+    function playSingleWord(word) {
+        if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+
+        currentAudio = getAudio(word);
+        currentAudio.currentTime = 0;
+        currentAudio.play().catch(e => console.error("Audio play blocked by browser. Click the screen first.", e));
+    }
+
+    function playFullSentence() {
+        if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
+
+        currentAudio = getAudio(currentSentence);
+        currentAudio.currentTime = 0;
+
+        const wordSpans = document.querySelectorAll('.word');
+        wordSpans.forEach(span => span.classList.add('playing'));
+
+        currentAudio.onended = () => {
+            wordSpans.forEach(span => span.classList.remove('playing'));
+        };
+
+        currentAudio.play().catch(e => console.error("Audio play blocked by browser. Click the screen first.", e));
+    }
+
+    // Initialize first load
+    window.onload = loadNextSentence;
+
+</script>
+</body>
+</html>

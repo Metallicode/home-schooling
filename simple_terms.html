@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Daily Star Jar</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background-color: #f3e5f5; padding: 20px; color: #4a148c;
+            margin: 0; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #8e24aa; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 10px 0; }
+        p { font-size: 18px; color: #ab47bc; font-weight: bold; margin: 0 0 20px 0;}
+
+        .card {
+            background: white; padding: 30px; border-radius: 25px; 
+            border: 5px solid #ce93d8; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; gap: 20px;
+            position: relative;
+        }
+
+        /* --- THE MATH DISPLAY --- */
+        #math-problem {
+            font-size: 80px; font-weight: bold; color: #6a1b9a;
+            margin: 20px 0; letter-spacing: 5px;
+            transition: transform 0.1s;
+        }
+
+        /* --- THE BUTTONS --- */
+        .options-container {
+            display: flex; gap: 15px; width: 100%; justify-content: center;
+        }
+
+        .option-btn {
+            background: #ab47bc; color: white; border: none; border-radius: 20px;
+            width: 100px; height: 100px; font-size: 50px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 8px 0 #7b1fa2; transition: all 0.1s;
+        }
+        .option-btn:active { transform: translateY(8px); box-shadow: 0 0px 0 #7b1fa2; }
+        
+        /* Error Animation */
+        .error-shake {
+            animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both;
+            background: #ef5350 !important; box-shadow: 0 8px 0 #c62828 !important;
+        }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-8px, 0, 0); }
+            40%, 60% { transform: translate3d(8px, 0, 0); }
+        }
+
+        /* --- THE STAR JAR --- */
+        .jar-container {
+            width: 100%; background: #f3e5f5; border-radius: 20px; border: 3px solid #e1bee7;
+            padding: 15px; box-sizing: border-box; margin-top: 10px;
+        }
+        
+        .jar-title { font-size: 20px; font-weight: bold; color: #8e24aa; margin-bottom: 10px;}
+        
+        .stars-grid {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; min-height: 50px;
+        }
+
+        .star {
+            font-size: 40px; color: #e0e0e0; transition: color 0.3s, transform 0.3s;
+        }
+        .star.filled { color: #ffca28; filter: drop-shadow(0 0 5px rgba(255, 202, 40, 0.8)); transform: scale(1.2); }
+
+        /* --- WIN SCREEN --- */
+        #win-screen {
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); border-radius: 20px; z-index: 10;
+        }
+        #win-screen h2 { font-size: 50px; color: #ff8f00; margin: 0;}
+        #win-screen p { font-size: 24px; color: #6a1b9a; }
+
+    </style>
+</head>
+<body>
+
+    <h1>⭐ The Daily Star Jar ⭐</h1>
+    <p>Fill the jar to finish today's mission!</p>
+
+    <div class="card">
+        
+        <div id="math-problem">1 + 1 = ?</div>
+        
+        <div class="options-container" id="options-container">
+            </div>
+
+        <div class="jar-container">
+            <div class="jar-title">Daily Goal: 10 Stars</div>
+            <div class="stars-grid" id="stars-grid">
+                </div>
+        </div>
+
+        <div id="win-screen">
+            <h2>🎉 YOU DID IT! 🎉</h2>
+            <p>Your brain is getting so strong!</p>
+        </div>
+
+    </div>
+
+<script>
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    
+    function playStarSound() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1600, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playErrorSound() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'triangle'; osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function playWinChime() {
+        if (!audioCtx) return;
+        const notes = [400, 500, 600, 800];
+        notes.forEach((freq, i) => {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            }, i * 150);
+        });
+    }
+
+    // --- MATH FACTS REPOSITORY (Foundational Memorization) ---
+    // At 5-6, focus strictly on +1, +2, and doubles. 
+    const coreFacts = [
+        { a: 1, b: 1 }, { a: 2, b: 1 }, { a: 3, b: 1 }, { a: 4, b: 1 }, { a: 5, b: 1 },
+        { a: 2, b: 2 }, { a: 3, b: 2 }, { a: 4, b: 2 }, { a: 5, b: 2 },
+        { a: 3, b: 3 }, { a: 4, b: 4 }, { a: 5, b: 5 }
+    ];
+
+    // --- GAME STATE ---
+    const totalStarsNeeded = 10;
+    let currentStars = 0;
+    let currentProblem = null;
+
+    // DOM Elements
+    const mathProblemEl = document.getElementById('math-problem');
+    const optionsContainerEl = document.getElementById('options-container');
+    const starsGridEl = document.getElementById('stars-grid');
+    const winScreenEl = document.getElementById('win-screen');
+
+    function shuffle(array) { return array.sort(() => Math.random() - 0.5); }
+
+    function initGame() {
+        // Build empty stars
+        starsGridEl.innerHTML = '';
+        for (let i = 0; i < totalStarsNeeded; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.innerText = '★';
+            star.id = `star-${i}`;
+            starsGridEl.appendChild(star);
+        }
+        currentStars = 0;
+        winScreenEl.style.display = 'none';
+        nextProblem();
+    }
+
+    function generateWrongAnswers(correctAnswer) {
+        let options = [correctAnswer];
+        while (options.length < 3) {
+            // Generate a plausible wrong answer (within +/- 2 of the real answer)
+            let wrong = correctAnswer + (Math.floor(Math.random() * 5) - 2);
+            // Don't allow the real answer, zero, or negatives
+            if (wrong !== correctAnswer && wrong > 0 && !options.includes(wrong)) {
+                options.push(wrong);
+            }
+        }
+        return shuffle(options);
+    }
+
+    function nextProblem() {
+        // Pick a random fact
+        const fact = coreFacts[Math.floor(Math.random() * coreFacts.length)];
+        // Randomize the order (e.g., 2+1 or 1+2)
+        const isFlipped = Math.random() > 0.5;
+        currentProblem = {
+            num1: isFlipped ? fact.b : fact.a,
+            num2: isFlipped ? fact.a : fact.b,
+            ans: fact.a + fact.b
+        };
+
+        // Update UI
+        mathProblemEl.innerText = `${currentProblem.num1} + ${currentProblem.num2} = ?`;
+        mathProblemEl.style.transform = "scale(0.8)";
+        setTimeout(() => mathProblemEl.style.transform = "scale(1)", 50);
+
+        // Build Buttons
+        const options = generateWrongAnswers(currentProblem.ans);
+        optionsContainerEl.innerHTML = '';
+        
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => handleGuess(opt, btn);
+            optionsContainerEl.appendChild(btn);
+        });
+    }
+
+    function handleGuess(guess, btnEl) {
+        initAudio();
+        
+        if (guess === currentProblem.ans) {
+            // CORRECT
+            playStarSound();
+            document.getElementById(`star-${currentStars}`).classList.add('filled');
+            currentStars++;
+            
+            if (currentStars >= totalStarsNeeded) {
+                setTimeout(() => {
+                    playWinChime();
+                    winScreenEl.style.display = 'flex';
+                }, 300);
+            } else {
+                setTimeout(nextProblem, 400); // Short delay before next problem
+            }
+        } else {
+            // WRONG
+            playErrorSound();
+            btnEl.classList.add('error-shake');
+            // Remove the shake class so it can be triggered again if needed
+            setTimeout(() => btnEl.classList.remove('error-shake'), 300);
+        }
+    }
+
+    window.onload = initGame;
+
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Advanced Word Family Machine</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #f3e5f5; padding: 20px; color: #4a148c;
+            margin: 0; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #7b1fa2; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 10px 0; }
+        p { font-size: 18px; color: #8e24aa; font-weight: bold; margin: 0 0 20px 0;}
+
+        /* --- CATEGORY MENUS --- */
+        .menu-container {
+            display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 900px;
+            margin-bottom: 30px;
+        }
+
+        .category-row {
+            background: #ffffff; padding: 15px 20px; border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 3px solid #e1bee7;
+            display: flex; align-items: center; gap: 15px; flex-wrap: wrap; justify-content: center;
+        }
+
+        .category-label {
+            font-size: 18px; font-weight: bold; color: #6a1b9a; 
+            background: #f3e5f5; padding: 5px 15px; border-radius: 10px;
+            margin-right: 10px; border: 2px dashed #ce93d8;
+        }
+
+        .family-btn {
+            background: #f3e5f5; color: #6a1b9a; border: 3px solid #ce93d8; border-radius: 15px;
+            padding: 8px 15px; font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 0 #ce93d8; transition: all 0.1s;
+        }
+        .family-btn:active, .family-btn.active { 
+            transform: translateY(4px); box-shadow: 0 0px 0 #ce93d8; 
+            background: #ab47bc; border-color: #8e24aa; color: #fff;
+        }
+
+        /* --- THE MAIN CARD --- */
+        .card {
+            background: white; padding: 40px; border-radius: 25px; 
+            border: 5px solid #ce93d8; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; gap: 30px;
+        }
+
+        /* --- WORD DISPLAY --- */
+        #word-display {
+            font-size: 110px; font-weight: bold; cursor: pointer;
+            display: flex; justify-content: center; align-items: center;
+            transition: transform 0.1s; user-select: none;
+            background: #fafafa; padding: 20px 40px; border-radius: 20px; border: 3px dashed #e0e0e0;
+        }
+        #word-display:active { transform: scale(0.95); }
+
+        .onset { color: #ff7043; } /* Blends/Digraphs/Letters (Orange) */
+        .rime { color: #5c6bc0; }  /* Advanced Endings (Purple/Blue) */
+
+        /* --- CONTROLS --- */
+        .next-btn {
+            background: #26a69a; color: white; border: none; border-radius: 20px;
+            padding: 20px 60px; font-size: 30px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 8px 0 #00897b; transition: all 0.1s; text-transform: uppercase;
+        }
+        .next-btn:active { transform: translateY(8px); box-shadow: 0 0px 0 #00897b; }
+        .locked { background-color: #bdbdbd !important; box-shadow: 0 8px 0 #9e9e9e !important; cursor: not-allowed !important;}
+
+        .hint-text { font-size: 16px; color: #9e9e9e; margin-top: -10px; }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position:fixed;top:12px;left:12px;z-index:999;background:white;color:#4a148c;border:3px solid #ce93d8;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS',cursive;font-size:15px;font-weight:bold;text-decoration:none;box-shadow:0 3px 0 #ce93d8;">🏠 Home</a>
+    <h1>🧩 Advanced Word Families 🧩</h1>
+    <p>Practice Blends, Vowel Teams, and the Magic E!</p>
+
+    <div class="menu-container" id="menu-container">
+        </div>
+
+    <div class="card">
+        
+        <div id="word-display" onclick="playCurrentWord()">
+            <span class="onset" id="onset-display">m</span><span class="rime" id="rime-display">ake</span>
+        </div>
+        <div class="hint-text">👆 Click the word to hear it out loud!</div>
+        
+        <button class="next-btn" id="next-btn" onclick="nextWord()">Next Word ➡️</button>
+
+    </div>
+
+<script>
+    // --- THE ADVANCED DICTIONARY ---
+    // Organized by phonetic rule for targeted practice
+    const advancedCategories = {
+        "Magic E (CVCe)": {
+            "ake": ["b", "c", "m", "t", "w", "sh", "sn", "fl", "br"],
+            "ide": ["h", "r", "s", "w", "ch", "gl", "sl", "str"],
+            "one": ["b", "c", "z", "ph", "st"],
+            "ate": ["d", "g", "l", "m", "r", "pl", "sk", "st"]
+        },
+        "Vowel Teams": {
+            "ail": ["f", "h", "j", "m", "n", "p", "s", "t", "sn", "tr"],
+            "eep": ["b", "d", "j", "k", "p", "w", "sh", "sl", "st"],
+            "ight": ["f", "l", "m", "n", "r", "s", "t", "br", "fl"],
+            "oat": ["b", "c", "g", "m", "fl", "thr"]
+        },
+        "Chunky Endings": {
+            "ack": ["b", "p", "s", "t", "bl", "cr", "sm", "sn", "tr"],
+            "ick": ["k", "p", "s", "t", "br", "ch", "cl", "st", "th"],
+            "ing": ["k", "r", "s", "w", "br", "fl", "st", "sw", "th"],
+            "ash": ["c", "d", "g", "m", "r", "cl", "cr", "fl", "sm", "tr"]
+        }
+    };
+
+    // --- STATE VARIABLES ---
+    let currentCategory = "Magic E (CVCe)";
+    let currentFamily = "ake";
+    let currentIndex = 0;
+    let currentAudio = null;
+
+    // DOM Elements
+    const menuContainerEl = document.getElementById('menu-container');
+    const onsetDisplayEl = document.getElementById('onset-display');
+    const rimeDisplayEl = document.getElementById('rime-display');
+    const wordDisplayEl = document.getElementById('word-display');
+    const nextBtn = document.getElementById('next-btn');
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        // Build the categorized menu dynamically
+        Object.keys(advancedCategories).forEach(catName => {
+            const row = document.createElement('div');
+            row.className = 'category-row';
+            
+            // Add Category Label
+            const label = document.createElement('div');
+            label.className = 'category-label';
+            label.innerText = catName;
+            row.appendChild(label);
+
+            // Add Family Buttons for this category
+            const families = advancedCategories[catName];
+            Object.keys(families).forEach(family => {
+                const btn = document.createElement('button');
+                btn.className = 'family-btn';
+                btn.innerText = `-${family}`;
+                btn.id = `btn-${family}`;
+                btn.onclick = () => selectFamily(catName, family);
+                row.appendChild(btn);
+            });
+
+            menuContainerEl.appendChild(row);
+        });
+        
+        // Load the first family by default
+        selectFamily("Magic E (CVCe)", "ake");
+    };
+
+    // --- LOGIC ---
+    function selectFamily(category, family) {
+        // Update UI styling for buttons
+        document.querySelectorAll('.family-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${family}`).classList.add('active');
+
+        // Update state
+        currentCategory = category;
+        currentFamily = family;
+        currentIndex = 0; // Reset to the first word
+        
+        renderWord();
+    }
+
+    function nextWord() {
+        const onsets = advancedCategories[currentCategory][currentFamily];
+        currentIndex++;
+        
+        // Loop back to the beginning
+        if (currentIndex >= onsets.length) {
+            currentIndex = 0;
+        }
+
+        renderWord();
+
+        // Visual bounce & lock
+        wordDisplayEl.style.transform = "scale(0.85)";
+        setTimeout(() => wordDisplayEl.style.transform = "scale(1)", 50);
+
+        nextBtn.classList.add('locked');
+        nextBtn.disabled = true;
+        setTimeout(() => {
+            nextBtn.classList.remove('locked');
+            nextBtn.disabled = false;
+        }, 200);
+    }
+
+    function renderWord() {
+        const onsets = advancedCategories[currentCategory][currentFamily];
+        const currentOnset = onsets[currentIndex];
+
+        onsetDisplayEl.innerText = currentOnset;
+        rimeDisplayEl.innerText = currentFamily;
+    }
+
+    // --- CLOUD AUDIO ---
+    function playCurrentWord() {
+        if (currentAudio) currentAudio.pause(); 
+        
+        const onsets = advancedCategories[currentCategory][currentFamily];
+        const fullWord = onsets[currentIndex] + currentFamily;
+        
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(fullWord)}`;
+        
+        currentAudio = new Audio(url);
+        currentAudio.play().catch(e => console.error("Audio block: Click the page first.", e));
+    }
+
+</script>
+</body>
+</html>

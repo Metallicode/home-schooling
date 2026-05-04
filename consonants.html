@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Consonant Crafter</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #e8f5e9; padding: 20px; color: #1b5e20;
+            margin: 0; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #2e7d32; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 10px 0; }
+        p { font-size: 18px; color: #388e3c; font-weight: bold; margin: 0 0 20px 0;}
+
+        /* --- MOUTH GROUP SELECTOR --- */
+        .menu-container {
+            display: flex; gap: 10px; max-width: 900px; flex-wrap: wrap; justify-content: center;
+            background: #ffffff; padding: 15px; border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 3px solid #a5d6a7;
+            margin-bottom: 30px;
+        }
+
+        .group-btn {
+            background: #e8f5e9; color: #2e7d32; border: 3px solid #81c784; border-radius: 15px;
+            padding: 10px 15px; font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 0 #81c784; transition: all 0.1s;
+        }
+        .group-btn:active, .group-btn.active { 
+            transform: translateY(4px); box-shadow: 0 0px 0 #81c784; 
+            background: #4caf50; border-color: #2e7d32; color: #fff;
+        }
+
+        /* --- THE MAIN CARD --- */
+        .card {
+            background: white; padding: 40px; border-radius: 25px; 
+            border: 5px solid #81c784; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 600px; display: flex; flex-direction: column; align-items: center; gap: 20px;
+        }
+
+        /* --- LETTER DISPLAY --- */
+        #target-letter {
+            font-size: 180px; font-weight: bold; color: #43a047;
+            text-shadow: 4px 4px 0 #c8e6c9; margin: 10px 0 0 0; line-height: 1;
+            transition: transform 0.1s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+        }
+
+        /* The Anchor Image/Word */
+        #anchor-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #f1f8e9; padding: 15px 30px; border-radius: 20px; border: 3px dashed #c5e1a5;
+            margin-bottom: 5px; min-width: 200px;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .hidden-anchor {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        #anchor-icon { font-size: 60px; line-height: 1; margin-bottom: 5px; }
+        #anchor-text { font-size: 24px; font-weight: bold; color: #558b2f; margin: 0;}
+
+        /* --- TOGGLE CONTROLS --- */
+        .toggle-container {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+            font-size: 18px; font-weight: bold; color: #388e3c; cursor: pointer;
+            background: #e8f5e9; padding: 10px 20px; border-radius: 15px; border: 2px solid #a5d6a7;
+        }
+        
+        .toggle-container input[type="checkbox"] {
+            width: 20px; height: 20px; accent-color: #4caf50; cursor: pointer;
+        }
+
+        /* --- CONTROLS --- */
+        .next-btn {
+            background: #ff9800; color: white; border: none; border-radius: 20px;
+            padding: 20px 60px; font-size: 30px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 8px 0 #f57c00; transition: all 0.1s;
+        }
+        .next-btn:active { transform: translateY(8px); box-shadow: 0 0px 0 #f57c00; }
+        
+        .locked { background-color: #bdbdbd !important; box-shadow: 0 8px 0 #9e9e9e !important; cursor: not-allowed !important;}
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position:fixed;top:12px;left:12px;z-index:999;background:white;color:#1b5e20;border:3px solid #a5d6a7;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS',cursive;font-size:15px;font-weight:bold;text-decoration:none;box-shadow:0 3px 0 #a5d6a7;">🏠 Home</a>
+    <h1>👄 The Consonant Crafter 👄</h1>
+    <p>Select a "Mouth Shape" group. Practice the sounds together!</p>
+
+    <div class="menu-container" id="menu-container">
+        </div>
+
+    <div class="card">
+        
+        <div id="target-letter">P</div>
+        
+        <div id="anchor-container">
+            <div id="anchor-icon">🍿</div>
+            <div id="anchor-text">Popcorn</div>
+        </div>
+
+        <label class="toggle-container">
+            <input type="checkbox" id="hide-images-cb" onchange="toggleImages()">
+            Hide Pictures (Test Mode)
+        </label>
+        
+        <button class="next-btn" id="next-btn" onclick="nextLetter()">Next Letter ➡️</button>
+
+    </div>
+
+<script>
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    
+    function playPop() {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.type = 'sine'; osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    // --- THE PHONETIC DICTIONARY ---
+    const mouthGroups = {
+        "Lip Poppers (P, B, M)": [
+            { letter: "P", icon: "🍿", word: "Popcorn" },
+            { letter: "B", icon: "🐻", word: "Bear" },
+            { letter: "M", icon: "🐒", word: "Monkey" }
+        ],
+        "Lip Biters (F, V)": [
+            { letter: "F", icon: "🐸", word: "Frog" },
+            { letter: "V", icon: "🌋", word: "Volcano" }
+        ],
+        "Tongue Tappers (T, D, N, L)": [
+            { letter: "T", icon: "🐯", word: "Tiger" },
+            { letter: "D", icon: "🐶", word: "Dog" },
+            { letter: "N", icon: "🥜", word: "Nut" },
+            { letter: "L", icon: "🦁", word: "Lion" }
+        ],
+        "Hissers & Buzzers (S, Z, C)": [
+            { letter: "S", icon: "🐍", word: "Snake" },
+            { letter: "Z", icon: "🦓", word: "Zebra" },
+            { letter: "C", icon: "🐱", word: "Cat" } 
+        ],
+        "Throat Catchers (K, G)": [
+            { letter: "K", icon: "🦘", word: "Kangaroo" },
+            { letter: "G", icon: "🦍", word: "Gorilla" }
+        ],
+        "Windy Gliders (H, W, Y, R, J)": [
+            { letter: "H", icon: "🚁", word: "Helicopter" },
+            { letter: "W", icon: "🍉", word: "Watermelon" },
+            { letter: "Y", icon: "🪀", word: "Yo-yo" },
+            { letter: "R", icon: "🚀", word: "Rocket" },
+            { letter: "J", icon: "🧃", word: "Juice" }
+        ]
+    };
+
+    // --- STATE VARIABLES ---
+    let currentGroupName = "Lip Poppers (P, B, M)";
+    let currentLetterData = null;
+    
+    // DOM Elements
+    const menuContainerEl = document.getElementById('menu-container');
+    const targetLetterEl = document.getElementById('target-letter');
+    const anchorContainerEl = document.getElementById('anchor-container');
+    const anchorIconEl = document.getElementById('anchor-icon');
+    const anchorTextEl = document.getElementById('anchor-text');
+    const nextBtn = document.getElementById('next-btn');
+    const hideImagesCb = document.getElementById('hide-images-cb');
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        Object.keys(mouthGroups).forEach(groupName => {
+            const btn = document.createElement('button');
+            btn.className = 'group-btn';
+            btn.innerText = groupName;
+            btn.id = `btn-${groupName.replace(/[^a-zA-Z]/g, "")}`;
+            btn.onclick = () => selectGroup(groupName);
+            menuContainerEl.appendChild(btn);
+        });
+        
+        selectGroup("Lip Poppers (P, B, M)");
+    };
+
+    // --- LOGIC ---
+    function selectGroup(groupName) {
+        document.querySelectorAll('.group-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`btn-${groupName.replace(/[^a-zA-Z]/g, "")}`).classList.add('active');
+
+        currentGroupName = groupName;
+        currentLetterData = null; 
+        
+        nextLetter();
+    }
+
+    function getRandomLetter() {
+        const letters = mouthGroups[currentGroupName];
+        if (letters.length === 1) return letters[0];
+
+        let availableLetters = letters;
+        if (currentLetterData) {
+            availableLetters = letters.filter(item => item.letter !== currentLetterData.letter);
+        }
+        
+        return availableLetters[Math.floor(Math.random() * availableLetters.length)];
+    }
+
+    function nextLetter() {
+        initAudio();
+        playPop();
+
+        currentLetterData = getRandomLetter();
+
+        targetLetterEl.innerText = currentLetterData.letter;
+        anchorIconEl.innerText = currentLetterData.icon;
+        anchorTextEl.innerText = currentLetterData.word;
+
+        targetLetterEl.style.transform = "scale(0.8)";
+        setTimeout(() => targetLetterEl.style.transform = "scale(1)", 50);
+
+        nextBtn.classList.add('locked');
+        nextBtn.disabled = true;
+        setTimeout(() => {
+            nextBtn.classList.remove('locked');
+            nextBtn.disabled = false;
+        }, 300);
+    }
+
+    function toggleImages() {
+        if (hideImagesCb.checked) {
+            anchorContainerEl.classList.add('hidden-anchor');
+        } else {
+            anchorContainerEl.classList.remove('hidden-anchor');
+        }
+    }
+
+</script>
+</body>
+</html>

@@ -90,7 +90,7 @@
 
     <a href="index.html" style="position:fixed;top:12px;left:12px;z-index:999;background:white;color:#1b5e20;border:3px solid #a5d6a7;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS',cursive;font-size:15px;font-weight:bold;text-decoration:none;box-shadow:0 3px 0 #a5d6a7;">🏠 Home</a>
     <h1>👄 The Consonant Crafter 👄</h1>
-    <p>Select a "Mouth Shape" group. Practice the sounds together!</p>
+    <p>Pick one or more groups — click to mix and match!</p>
 
     <div class="menu-container" id="menu-container">
         </div>
@@ -146,14 +146,16 @@
             { letter: "N", icon: "🥜", word: "Nut" },
             { letter: "L", icon: "🦁", word: "Lion" }
         ],
-        "Hissers & Buzzers (S, Z, C)": [
+        "Hissers & Buzzers (S, Z, C, X)": [
             { letter: "S", icon: "🐍", word: "Snake" },
             { letter: "Z", icon: "🦓", word: "Zebra" },
-            { letter: "C", icon: "🐱", word: "Cat" } 
+            { letter: "C", icon: "🐱", word: "Cat" },
+            { letter: "X", icon: "🦊", word: "Fox" }
         ],
-        "Throat Catchers (K, G)": [
+        "Throat Catchers (K, G, Q)": [
             { letter: "K", icon: "🦘", word: "Kangaroo" },
-            { letter: "G", icon: "🦍", word: "Gorilla" }
+            { letter: "G", icon: "🦍", word: "Gorilla" },
+            { letter: "Q", icon: "👑", word: "Queen" }
         ],
         "Windy Gliders (H, W, Y, R, J)": [
             { letter: "H", icon: "🚁", word: "Helicopter" },
@@ -165,7 +167,7 @@
     };
 
     // --- STATE VARIABLES ---
-    let currentGroupName = "Lip Poppers (P, B, M)";
+    let selectedGroupNames = ["Lip Poppers (P, B, M)"];
     let currentLetterData = null;
     
     // DOM Elements
@@ -193,24 +195,31 @@
 
     // --- LOGIC ---
     function selectGroup(groupName) {
-        document.querySelectorAll('.group-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`btn-${groupName.replace(/[^a-zA-Z]/g, "")}`).classList.add('active');
+        const idx = selectedGroupNames.indexOf(groupName);
+        if (idx === -1) {
+            selectedGroupNames.push(groupName);
+        } else if (selectedGroupNames.length > 1) {
+            selectedGroupNames.splice(idx, 1);
+        }
 
-        currentGroupName = groupName;
-        currentLetterData = null; 
-        
+        document.querySelectorAll('.group-btn').forEach(btn => btn.classList.remove('active'));
+        selectedGroupNames.forEach(name => {
+            document.getElementById(`btn-${name.replace(/[^a-zA-Z]/g, "")}`).classList.add('active');
+        });
+
+        currentLetterData = null;
         nextLetter();
     }
 
     function getRandomLetter() {
-        const letters = mouthGroups[currentGroupName];
-        if (letters.length === 1) return letters[0];
+        const allLetters = selectedGroupNames.flatMap(name => mouthGroups[name]);
+        if (allLetters.length === 1) return allLetters[0];
 
-        let availableLetters = letters;
+        let availableLetters = allLetters;
         if (currentLetterData) {
-            availableLetters = letters.filter(item => item.letter !== currentLetterData.letter);
+            availableLetters = allLetters.filter(item => item.letter !== currentLetterData.letter);
         }
-        
+
         return availableLetters[Math.floor(Math.random() * availableLetters.length)];
     }
 

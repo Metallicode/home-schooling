@@ -15,19 +15,22 @@
         h1 { color: #558b2f; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 5px 0; }
         p { font-size: 18px; color: #689f38; font-weight: bold; margin: 0 0 20px 0;}
 
+        /* --- LAYOUT --- */
         .app-container {
-            display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; width: 100%; max-width: 1000px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; width: 100%; max-width: 1400px;
         }
 
         .card {
-            background: white; padding: 30px; border-radius: 25px; 
+            background: white; padding: 20px; border-radius: 25px; 
             border: 5px solid #c5e1a5; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             display: flex; flex-direction: column; align-items: center;
         }
+        
+        .card h2 { margin: 0 0 15px 0; color: #558b2f; font-size: 20px; }
 
         /* --- DAY/NIGHT ANIMATION (THE SKY BOX) --- */
         #sky-box {
-            width: 300px; height: 300px; border-radius: 50%;
+            width: 250px; height: 250px; border-radius: 50%;
             background: #4FC3F7; border: 8px solid #e0e0e0;
             position: relative; overflow: hidden;
             box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
@@ -42,66 +45,69 @@
         }
 
         .celestial-body {
-            position: absolute; font-size: 70px;
+            position: absolute; font-size: 60px;
             left: 50%; transform: translateX(-50%);
             text-shadow: 0 0 20px rgba(255,255,255,0.8);
+            text-align: center;
         }
         #sun { top: 10px; }
-        #moon { bottom: 10px; transform: translateX(-50%) rotate(180deg); }
+        #stars { 
+            bottom: 20px; font-size: 30px; letter-spacing: 5px;
+            transform: translateX(-50%) rotate(180deg); 
+            color: #fff; text-shadow: 0 0 10px #fff; width: 150px;
+        }
 
-        /* Ground to cover the bottom half of the sky box */
         #ground {
             position: absolute; bottom: 0; left: 0; width: 100%; height: 35%;
             background: #81c784; border-top: 5px solid #66bb6a;
-            border-radius: 0 0 150px 150px;
+            border-radius: 0 0 125px 125px;
         }
 
-        /* --- ANALOG CLOCK --- */
-        #analog-clock {
-            width: 300px; height: 300px; border-radius: 50%;
+        /* --- ANALOG CLOCKS (Base Styles) --- */
+        .clock-face {
+            width: 250px; height: 250px; border-radius: 50%;
             background: #ffffff; border: 8px solid #37474f;
             position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
         .clock-center {
-            position: absolute; top: 50%; left: 50%; width: 16px; height: 16px;
+            position: absolute; top: 50%; left: 50%; width: 14px; height: 14px;
             background: #37474f; border-radius: 50%; transform: translate(-50%, -50%); z-index: 10;
         }
 
-        /* Hands */
         .hand {
             position: absolute; bottom: 50%; left: 50%;
             transform-origin: bottom center; border-radius: 10px;
             transition: transform 0.1s linear;
         }
-        #hour-hand { width: 8px; height: 70px; background: #1976d2; margin-left: -4px; z-index: 3; }
-        #minute-hand { width: 6px; height: 110px; background: #ff9800; margin-left: -3px; z-index: 2; }
-        
-        /* Numbers */
         .number {
             position: absolute; font-weight: bold;
             transform: translate(-50%, -50%);
         }
-        .num-12h { font-size: 24px; color: #1976d2; }
+
+        /* --- 12 HOUR CLOCK SPECIFICS --- */
+        #hour-hand-12 { width: 8px; height: 60px; background: #1976d2; margin-left: -4px; z-index: 3; }
+        #minute-hand-12 { width: 5px; height: 95px; background: #ff9800; margin-left: -2.5px; z-index: 2; }
+        .num-12h { font-size: 22px; color: #1976d2; }
+
+        /* --- 24 HOUR CLOCK SPECIFICS --- */
+        #hour-hand-24 { width: 8px; height: 85px; background: #d32f2f; margin-left: -4px; z-index: 3; }
         .num-24h { font-size: 14px; color: #d32f2f; }
 
-        /* --- DIGITAL CLOCKS (LED STYLE) --- */
-        .digital-clocks-container {
-            display: flex; gap: 20px; margin-top: 20px; flex-wrap: wrap; justify-content: center;
+        /* --- DIGITAL CLOCK (AM/PM) --- */
+        .digital-clock-container {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 250px;
         }
-
         .led-clock {
-            background: #111; padding: 15px 25px; border-radius: 10px;
-            font-family: 'Courier New', Courier, monospace; font-size: 40px; font-weight: bold;
-            border: 4px solid #333; box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
-            min-width: 180px; text-align: center; letter-spacing: 2px;
+            background: #111; padding: 25px 35px; border-radius: 15px;
+            font-family: 'Courier New', Courier, monospace; font-size: 45px; font-weight: bold;
+            border: 5px solid #333; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+            text-align: center; color: #00e676; text-shadow: 0 0 15px #00e676;
+            min-width: 200px;
         }
 
-        .led-12h { color: #00e676; text-shadow: 0 0 10px #00e676; }
-        .led-24h { color: #ff1744; text-shadow: 0 0 10px #ff1744; }
-        .led-label { font-size: 14px; color: #aaa; text-shadow: none; display: block; font-family: sans-serif; letter-spacing: 0; margin-bottom: 5px;}
-
-        /* --- THE TIME MACHINE SLIDER --- */
+        /* --- CONTROLS --- */
         .control-panel {
             background: white; padding: 30px; border-radius: 25px; 
             border: 5px solid #aed581; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -111,79 +117,81 @@
         .slider-container { width: 100%; }
         
         input[type="range"] {
-            width: 100%; height: 20px; border-radius: 10px;
+            width: 100%; height: 25px; border-radius: 12px;
             background: #e0e0e0; outline: none; -webkit-appearance: none;
         }
         
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
-            width: 40px; height: 40px; border-radius: 50%;
+            width: 45px; height: 45px; border-radius: 50%;
             background: #558b2f; cursor: pointer;
             box-shadow: 0 0 10px rgba(0,0,0,0.3); border: 4px solid #fff;
         }
 
-        .button-row { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+        .button-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 15px; margin-top: 20px; }
         
         .time-btn {
             background: #7cb342; color: white; border: none; border-radius: 15px;
-            padding: 10px 20px; font-size: 18px; font-weight: bold; cursor: pointer;
+            padding: 12px 25px; font-size: 18px; font-weight: bold; cursor: pointer;
             box-shadow: 0 5px 0 #558b2f; transition: all 0.1s;
         }
         .time-btn:active { transform: translateY(5px); box-shadow: 0 0px 0 #558b2f; }
-
-        .home-link {
-            display: inline-block; margin-bottom: 15px; text-decoration: none;
-            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; font-weight: bold;
-            color: #558b2f; background: #fff; padding: 8px 18px; border-radius: 50px;
-            border: 3px solid #aed581; box-shadow: 0 3px 0 #aed581; transition: all 0.1s;
-        }
-        .home-link:active { transform: translateY(3px); box-shadow: 0 0px 0 #aed581; }
 
     </style>
 </head>
 <body>
 
-    <a class="home-link" href="index.html">⬅ Back to Index</a>
+
+<a href="index.html" id="home-link" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.9);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Home">&#x1F3E0; Home</a>
+
     <h1>☀️ The Time Traveler 🌙</h1>
     <p>Move the big slider to travel through the day!</p>
 
     <div class="app-container">
         
-        <!-- DAY/NIGHT ANIMATION -->
+        <!-- 1. DAY/NIGHT ANIMATION -->
         <div class="card">
-            <h2 style="margin: 0 0 10px 0; color: #1976d2;">The Sky</h2>
+            <h2>The Sky</h2>
             <div id="sky-box">
                 <div id="celestial-pivot">
                     <div class="celestial-body" id="sun">☀️</div>
-                    <div class="celestial-body" id="moon">🌙</div>
+                    <div class="celestial-body" id="stars">✨ ⭐ ✨</div>
                 </div>
                 <div id="ground"></div>
             </div>
         </div>
 
-        <!-- ANALOG CLOCK -->
+        <!-- 2. REGULAR 12-HOUR CLOCK -->
         <div class="card">
-            <h2 style="margin: 0 0 10px 0; color: #1976d2;">Classic Clock</h2>
-            <div id="analog-clock">
+            <h2 style="color: #1976d2;">12h Clock</h2>
+            <div class="clock-face" id="clock-12">
                 <div class="clock-center"></div>
-                <div class="hand" id="hour-hand"></div>
-                <div class="hand" id="minute-hand"></div>
+                <div class="hand" id="hour-hand-12"></div>
+                <div class="hand" id="minute-hand-12"></div>
                 <!-- Numbers generated by JS -->
             </div>
         </div>
 
-    </div>
+        <!-- 3. 24-HOUR ANALOG CLOCK -->
+        <div class="card">
+            <h2 style="color: #d32f2f;">24h Clock</h2>
+            <div class="clock-face" id="clock-24">
+                <div class="clock-center"></div>
+                <div class="hand" id="hour-hand-24"></div>
+                <!-- Numbers generated by JS -->
+            </div>
+        </div>
 
-    <!-- DIGITAL CLOCKS -->
-    <div class="digital-clocks-container">
-        <div class="led-clock led-12h">
-            <span class="led-label">12-Hour Clock (AM/PM)</span>
-            <span id="digital-12h">12:00 AM</span>
+        <!-- 4. DIGITAL CLOCK -->
+        <div class="card">
+            <h2>Digital Clock</h2>
+            <div class="digital-clock-container">
+                <div class="led-clock" id="digital-12h">
+                    12:00 AM
+                </div>
+            </div>
         </div>
-        <div class="led-clock led-24h">
-            <span class="led-label">24-Hour Clock (Military)</span>
-            <span id="digital-24h">00:00</span>
-        </div>
+
     </div>
 
     <!-- CONTROLS -->
@@ -204,38 +212,43 @@
     // --- DOM Elements ---
     const skyBoxEl = document.getElementById('sky-box');
     const celestialPivotEl = document.getElementById('celestial-pivot');
-    const hourHandEl = document.getElementById('hour-hand');
-    const minuteHandEl = document.getElementById('minute-hand');
+    
+    const hourHand12El = document.getElementById('hour-hand-12');
+    const minuteHand12El = document.getElementById('minute-hand-12');
+    const hourHand24El = document.getElementById('hour-hand-24');
+    
     const digital12hEl = document.getElementById('digital-12h');
-    const digital24hEl = document.getElementById('digital-24h');
     const timeSliderEl = document.getElementById('time-slider');
-    const analogClockEl = document.getElementById('analog-clock');
+    
+    const clock12El = document.getElementById('clock-12');
+    const clock24El = document.getElementById('clock-24');
 
-    let currentMinutes = 540; // Starts at 9:00 AM (540 minutes into the day)
+    let currentMinutes = 540; // Starts at 9:00 AM 
 
-    // --- INITIALIZE CLOCK FACE ---
-    function buildClockFace() {
-        const radius12h = 120; // Outer ring
-        const radius24h = 80;  // Inner ring
+    // --- INITIALIZE CLOCK FACES ---
+    function buildClockFaces() {
+        const radius = 100; // Distance from center
 
+        // Build 12-Hour Clock (1 to 12)
         for (let i = 1; i <= 12; i++) {
-            // 1-12 Outer Ring (Blue)
             const angle = (i * 30) * (Math.PI / 180);
-            
-            const num12 = document.createElement('div');
-            num12.className = 'number num-12h';
-            num12.innerText = i;
-            num12.style.left = 150 + Math.sin(angle) * radius12h + 'px';
-            num12.style.top = 150 - Math.cos(angle) * radius12h + 'px';
-            analogClockEl.appendChild(num12);
+            const num = document.createElement('div');
+            num.className = 'number num-12h';
+            num.innerText = i;
+            num.style.left = 125 + Math.sin(angle) * radius + 'px';
+            num.style.top = 125 - Math.cos(angle) * radius + 'px';
+            clock12El.appendChild(num);
+        }
 
-            // 13-24 Inner Ring (Red)
-            const num24 = document.createElement('div');
-            num24.className = 'number num-24h';
-            num24.innerText = (i === 12) ? "00/24" : i + 12;
-            num24.style.left = 150 + Math.sin(angle) * radius24h + 'px';
-            num24.style.top = 150 - Math.cos(angle) * radius24h + 'px';
-            analogClockEl.appendChild(num24);
+        // Build 24-Hour Clock (1 to 24)
+        for (let i = 1; i <= 24; i++) {
+            const angle = (i * 15) * (Math.PI / 180); // 360 / 24 = 15 degrees per hour
+            const num = document.createElement('div');
+            num.className = 'number num-24h';
+            num.innerText = i;
+            num.style.left = 125 + Math.sin(angle) * 105 + 'px'; // slightly wider radius so they don't crowd
+            num.style.top = 125 - Math.cos(angle) * 105 + 'px';
+            clock24El.appendChild(num);
         }
     }
 
@@ -257,45 +270,45 @@
         const hours24 = Math.floor(currentMinutes / 60);
         const mins = currentMinutes % 60;
 
-        // 1. Update Digital Clocks
+        // 1. Digital Clock (AM/PM)
         const ampm = hours24 >= 12 ? 'PM' : 'AM';
         let hours12 = hours24 % 12;
-        if (hours12 === 0) hours12 = 12; // Midnight and Noon fix
+        if (hours12 === 0) hours12 = 12; 
 
         const strMins = mins.toString().padStart(2, '0');
-        const strHours24 = hours24.toString().padStart(2, '0');
-
         digital12hEl.innerText = `${hours12}:${strMins} ${ampm}`;
-        digital24hEl.innerText = `${strHours24}:${strMins}`;
 
-        // 2. Update Analog Clock Hands
-        const minuteAngle = mins * 6;
-        const hourAngle = (hours12 * 30) + (mins * 0.5);
+        // 2. Regular 12-Hour Analog Clock
+        const minuteAngle = mins * 6; // 360 / 60
+        const hourAngle12 = (hours12 * 30) + (mins * 0.5); // 30 degrees per hour
 
-        minuteHandEl.style.transform = `rotate(${minuteAngle}deg)`;
-        hourHandEl.style.transform = `rotate(${hourAngle}deg)`;
+        minuteHand12El.style.transform = `rotate(${minuteAngle}deg)`;
+        hourHand12El.style.transform = `rotate(${hourAngle12}deg)`;
 
-        // 3. Update Sky Animation
-        // ADDED 180 DEGREES HERE SO MOON IS UP AT MIDNIGHT (0 mins)
+        // 3. 24-Hour Analog Clock (Single Hand)
+        // Hand completes one full 360-degree rotation every 1440 minutes (24h)
+        const hourAngle24 = (currentMinutes / 1440) * 360;
+        hourHand24El.style.transform = `rotate(${hourAngle24}deg)`;
+
+        // 4. Sky Animation (Sun and Stars)
+        // 0 mins = Midnight = 180deg (Stars up). 720 mins = Noon = 360deg (Sun up)
         const skyRotation = ((currentMinutes / 1440) * 360) + 180;
         celestialPivotEl.style.transform = `translate(-50%, -50%) rotate(${skyRotation}deg)`;
 
-        // Change Sky Color based on time
+        // Sky Color based on time
         if (hours24 >= 20 || hours24 < 5) {
             skyBoxEl.style.background = "#0B1021"; // Deep Night
         } else if (hours24 >= 5 && hours24 < 7) {
-            skyBoxEl.style.background = "#FF8A65"; // Sunrise Orange
-        } else if (hours24 >= 7 && hours24 < 17) {
+            skyBoxEl.style.background = "#FF8A65"; // Sunrise
+        } else if (hours24 >= 7 && hours24 < 18) {
             skyBoxEl.style.background = "#4FC3F7"; // Day Blue
-        } else if (hours24 >= 17 && hours24 < 19) {
+        } else if (hours24 >= 18 && hours24 < 20) {
             skyBoxEl.style.background = "#FFB74D"; // Sunset
-        } else {
-            skyBoxEl.style.background = "#5E35B1"; // Dusk Purple
         }
     }
 
     // Initialize
-    buildClockFace();
+    buildClockFaces();
     updateAllClocks();
 
 </script>

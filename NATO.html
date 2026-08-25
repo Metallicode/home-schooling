@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secret Agent Communicator</title>
+    <style>
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #e0f7fa; padding: 20px; color: #006064;
+            margin: 0; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00838f; font-size: 2.5rem; text-shadow: 2px 2px 0px #fff; margin: 0 0 5px 0; }
+        p { font-size: 18px; color: #0097a7; font-weight: bold; margin: 0 0 30px 0;}
+
+        /* --- TOP SECTION: NAME TRANSLATOR --- */
+        .translator-panel {
+            background: white; padding: 30px; border-radius: 25px; 
+            border: 5px solid #4dd0e1; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 100%; max-width: 900px; margin-bottom: 40px;
+        }
+
+        .input-row {
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;
+        }
+
+        input[type="text"] {
+            padding: 15px 20px; font-size: 24px; border-radius: 15px; border: 3px solid #b2ebf2;
+            outline: none; font-family: inherit; color: #006064; text-transform: uppercase;
+            width: 300px; font-weight: bold; text-align: center;
+        }
+        input[type="text"]:focus { border-color: #00bcd4; }
+
+        .btn {
+            background: #00acc1; color: white; border: none; border-radius: 15px;
+            padding: 15px 30px; font-size: 20px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0 #00838f; transition: all 0.1s; display: flex; align-items: center; gap: 10px;
+        }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0px 0 #00838f; }
+        .btn:disabled { background: #b2ebf2; box-shadow: 0 6px 0 #80deea; cursor: wait; }
+
+        .btn-play { background: #ff9800; box-shadow: 0 6px 0 #ef6c00; }
+        .btn-play:active { box-shadow: 0 0px 0 #ef6c00; }
+
+        /* The Output Cards for the Translator */
+        #translation-output {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 15px;
+            min-height: 120px; align-items: center; padding: 20px; background: #e0f7fa; border-radius: 15px;
+            border: 3px dashed #80deea;
+        }
+
+        /* --- BOTTOM SECTION: A-Z BOARD --- */
+        .alphabet-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 15px; width: 100%; max-width: 1000px;
+        }
+
+        .nato-card {
+            background: white; border-radius: 20px; border: 4px solid #80deea;
+            padding: 15px 10px; cursor: pointer; transition: all 0.1s;
+            box-shadow: 0 5px 0 #b2ebf2; display: flex; flex-direction: column; align-items: center;
+        }
+        .nato-card:active { transform: translateY(5px); box-shadow: 0 0px 0 #b2ebf2; }
+        
+        .nato-card.playing {
+            background: #fff9c4; border-color: #fbc02d; transform: scale(1.05); box-shadow: 0 5px 15px rgba(251, 192, 45, 0.4);
+        }
+
+        .card-letter { font-size: 50px; font-weight: bold; color: #00838f; line-height: 1; margin-bottom: 5px; }
+        .card-word { font-size: 18px; font-weight: bold; color: #00acc1; }
+
+    </style>
+</head>
+<body>
+
+    <h1>📻 Secret Agent Communicator 📻</h1>
+    <p>Type a secret message, or click the buttons to learn the walkie-talkie code!</p>
+
+    <div class="translator-panel">
+        <h2 style="margin: 0 0 15px 0; color: #00838f;">Write a Secret Message:</h2>
+        <div class="input-row">
+            <input type="text" id="secret-input" placeholder="Type your name..." autocomplete="off" maxlength="15">
+            <button class="btn" onclick="translateText()">Decode 🕵️‍♀️</button>
+            <button class="btn btn-play" id="btn-transmit" onclick="transmitMessage()" style="display: none;">Transmit 🔊</button>
+        </div>
+        
+        <div id="translation-output">
+            <span style="color: #00acc1; font-size: 18px;">Your translated message will appear here!</span>
+        </div>
+    </div>
+
+    <div class="alphabet-grid" id="alphabet-grid">
+        </div>
+
+<script>
+    const natoAlphabet = {
+        'A': 'Alfa', 'B': 'Bravo', 'C': 'Charlie', 'D': 'Delta', 'E': 'Echo', 'F': 'Foxtrot',
+        'G': 'Golf', 'H': 'Hotel', 'I': 'India', 'J': 'Juliett', 'K': 'Kilo', 'L': 'Lima',
+        'M': 'Mike', 'N': 'November', 'O': 'Oscar', 'P': 'Papa', 'Q': 'Quebec', 'R': 'Romeo',
+        'S': 'Sierra', 'T': 'Tango', 'U': 'Uniform', 'V': 'Victor', 'W': 'Whiskey',
+        'X': 'X-ray', 'Y': 'Yankee', 'Z': 'Zulu'
+    };
+
+    let currentAudio = null;
+    let sequencePlaying = false;
+
+    // DOM Elements
+    const gridEl = document.getElementById('alphabet-grid');
+    const inputEl = document.getElementById('secret-input');
+    const outputEl = document.getElementById('translation-output');
+    const transmitBtn = document.getElementById('btn-transmit');
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        // Build the A-Z board
+        Object.keys(natoAlphabet).forEach(letter => {
+            const word = natoAlphabet[letter];
+            
+            const card = document.createElement('div');
+            card.className = 'nato-card';
+            card.id = `card-${letter}`;
+            card.onclick = () => playSingleWord(word, card);
+            
+            card.innerHTML = `
+                <div class="card-letter">${letter}</div>
+                <div class="card-word">${word}</div>
+            `;
+            
+            gridEl.appendChild(card);
+        });
+
+        // Trigger translation when pressing "Enter" in the text box
+        inputEl.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                translateText();
+            }
+        });
+    };
+
+    // --- AUDIO LOGIC ---
+    function playSingleWord(word, cardElement) {
+        if (sequencePlaying) return; // Prevent clicking around while a full message is transmitting
+        if (currentAudio) currentAudio.pause();
+
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(word)}`;
+        currentAudio = new Audio(url);
+        
+        // Visual highlight
+        if (cardElement) cardElement.classList.add('playing');
+
+        currentAudio.onended = () => {
+            if (cardElement) cardElement.classList.remove('playing');
+        };
+
+        currentAudio.play().catch(e => console.error("Audio blocked.", e));
+    }
+
+    // --- TRANSLATOR LOGIC ---
+    function translateText() {
+        const rawText = inputEl.value.toUpperCase();
+        // Filter out anything that isn't a letter A-Z
+        const cleanText = rawText.replace(/[^A-Z]/g, '');
+        
+        if (cleanText.length === 0) {
+            outputEl.innerHTML = '<span style="color: #00acc1; font-size: 18px;">Type some letters first!</span>';
+            transmitBtn.style.display = 'none';
+            return;
+        }
+
+        outputEl.innerHTML = '';
+        
+        // Generate the sequence of cards for the output box
+        for (let i = 0; i < cleanText.length; i++) {
+            const letter = cleanText[i];
+            const word = natoAlphabet[letter];
+            
+            const card = document.createElement('div');
+            card.className = 'nato-card translation-card';
+            card.id = `seq-${i}`;
+            card.style.transform = "scale(0.85)"; // Make them slightly smaller to fit
+            card.style.boxShadow = "none";
+            card.style.cursor = "default";
+            
+            card.innerHTML = `
+                <div class="card-letter" style="font-size: 35px;">${letter}</div>
+                <div class="card-word" style="font-size: 14px;">${word}</div>
+            `;
+            
+            outputEl.appendChild(card);
+        }
+
+        // Show the Transmit button now that there is a valid message
+        transmitBtn.style.display = 'flex';
+    }
+
+    // --- TRANSMISSION LOGIC (Plays sequence with timing) ---
+    async function transmitMessage() {
+        if (sequencePlaying) return;
+        
+        const rawText = inputEl.value.toUpperCase();
+        const cleanText = rawText.replace(/[^A-Z]/g, '');
+        if (cleanText.length === 0) return;
+
+        sequencePlaying = true;
+        transmitBtn.disabled = true;
+        transmitBtn.innerText = "Transmitting... ⏳";
+
+        for (let i = 0; i < cleanText.length; i++) {
+            const letter = cleanText[i];
+            const word = natoAlphabet[letter];
+            const cardEl = document.getElementById(`seq-${i}`);
+            
+            // Play the word and wait for it to finish
+            await playWordAsync(word, cardEl);
+            
+            // Tiny pause between words like a real radio transmission
+            await new Promise(resolve => setTimeout(resolve, 300)); 
+        }
+
+        sequencePlaying = false;
+        transmitBtn.disabled = false;
+        transmitBtn.innerHTML = "Transmit 🔊";
+    }
+
+    // Promise wrapper for the audio so we can use async/await in the loop
+    function playWordAsync(word, cardElement) {
+        return new Promise((resolve) => {
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(word)}`;
+            const audio = new Audio(url);
+            
+            cardElement.classList.add('playing');
+            
+            audio.onended = () => {
+                cardElement.classList.remove('playing');
+                resolve();
+            };
+            
+            audio.onerror = () => {
+                cardElement.classList.remove('playing');
+                resolve(); // resolve anyway so it doesn't break the loop
+            };
+
+            audio.play().catch(e => {
+                console.error("Audio blocked.", e);
+                cardElement.classList.remove('playing');
+                resolve();
+            });
+        });
+    }
+
+</script>
+</body>
+</html>

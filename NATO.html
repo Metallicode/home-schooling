@@ -113,7 +113,6 @@
         'X': 'X-ray', 'Y': 'Yankee', 'Z': 'Zulu'
     };
 
-    let currentAudio = null;
     let sequencePlaying = false;
 
     // DOM Elements
@@ -150,22 +149,38 @@
         });
     };
 
-    // --- AUDIO LOGIC ---
+    // --- AUDIO LOGIC (uses the browser's built-in speech synthesis) ---
+    function speakWord(word, cardElement) {
+        return new Promise((resolve) => {
+            if (!('speechSynthesis' in window)) {
+                console.error("Speech synthesis not supported in this browser.");
+                resolve();
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(word);
+            utterance.lang = 'en-US';
+            utterance.rate = 0.9;
+
+            if (cardElement) cardElement.classList.add('playing');
+
+            const finish = () => {
+                if (cardElement) cardElement.classList.remove('playing');
+                resolve();
+            };
+
+            utterance.onend = finish;
+            utterance.onerror = finish;
+
+            window.speechSynthesis.speak(utterance);
+        });
+    }
+
     function playSingleWord(word, cardElement) {
         if (sequencePlaying) return; // Prevent clicking around while a full message is transmitting
-        if (currentAudio) currentAudio.pause();
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(word)}`;
-        currentAudio = new Audio(url);
-        
-        // Visual highlight
-        if (cardElement) cardElement.classList.add('playing');
-
-        currentAudio.onended = () => {
-            if (cardElement) cardElement.classList.remove('playing');
-        };
-
-        currentAudio.play().catch(e => console.error("Audio blocked.", e));
+        speakWord(word, cardElement);
     }
 
     // --- TRANSLATOR LOGIC ---
@@ -235,30 +250,9 @@
         transmitBtn.innerHTML = "Transmit 🔊";
     }
 
-    // Promise wrapper for the audio so we can use async/await in the loop
+    // Wrapper for the transmit sequence loop
     function playWordAsync(word, cardElement) {
-        return new Promise((resolve) => {
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(word)}`;
-            const audio = new Audio(url);
-            
-            cardElement.classList.add('playing');
-            
-            audio.onended = () => {
-                cardElement.classList.remove('playing');
-                resolve();
-            };
-            
-            audio.onerror = () => {
-                cardElement.classList.remove('playing');
-                resolve(); // resolve anyway so it doesn't break the loop
-            };
-
-            audio.play().catch(e => {
-                console.error("Audio blocked.", e);
-                cardElement.classList.remove('playing');
-                resolve();
-            });
-        });
+        return speakWord(word, cardElement);
     }
 
 </script>

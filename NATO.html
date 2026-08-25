@@ -71,6 +71,14 @@
         .card-letter { font-size: 50px; font-weight: bold; color: #00838f; line-height: 1; margin-bottom: 5px; }
         .card-word { font-size: 18px; font-weight: bold; color: #00acc1; }
 
+        .back-link {
+            display: inline-block; margin-top: 40px; text-decoration: none;
+            background: #00acc1; color: white; font-weight: bold; font-size: 18px;
+            padding: 12px 28px; border-radius: 15px; box-shadow: 0 6px 0 #00838f;
+            transition: all 0.1s;
+        }
+        .back-link:active { transform: translateY(6px); box-shadow: 0 0px 0 #00838f; }
+
     </style>
 </head>
 <body>
@@ -93,6 +101,8 @@
 
     <div class="alphabet-grid" id="alphabet-grid">
         </div>
+
+    <a class="back-link" href="index.html">⬅ Back to Home</a>
 
 <script>
     const natoAlphabet = {

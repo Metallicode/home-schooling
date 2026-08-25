@@ -156,7 +156,7 @@
         return new Promise((resolve) => {
             if (currentAudio) currentAudio.pause();
 
-            const audio = new Audio(`sounds/nato/${letter.toLowerCase()}.wav`);
+            const audio = new Audio(`sounds/nato/${letter.toLowerCase()}.mp3`);
             currentAudio = audio;
 
             if (cardElement) cardElement.classList.add('playing');

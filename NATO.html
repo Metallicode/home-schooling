@@ -114,12 +114,6 @@
     };
 
     let sequencePlaying = false;
-    let preferredVoice = null;
-
-    function pickVoice() {
-        const voices = window.speechSynthesis.getVoices();
-        preferredVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang && v.lang.startsWith('en')) || voices[0] || null;
-    }
 
     // DOM Elements
     const gridEl = document.getElementById('alphabet-grid');
@@ -129,33 +123,15 @@
 
     // --- INITIALIZATION ---
     window.onload = () => {
-        // Voices load asynchronously in some browsers (esp. Chrome) -
-        // grab them now and again whenever the list changes.
-        if ('speechSynthesis' in window) {
-            pickVoice();
-            window.speechSynthesis.onvoiceschanged = pickVoice;
-
-            // Give voices a moment to load, then warn on-page if none showed up -
-            // this is what a silent (no error, no sound) failure usually means.
-            setTimeout(() => {
-                if (!preferredVoice) {
-                    const warning = document.createElement('p');
-                    warning.style.cssText = 'color:#c62828; font-weight:bold; font-size:14px; max-width:600px;';
-                    warning.textContent = '⚠️ No speech voices found on this device/browser, so words will play silently. This is a system limitation (common on Linux without a TTS engine installed), not a bug in the page.';
-                    document.querySelector('.translator-panel').insertBefore(warning, document.getElementById('translation-output'));
-                }
-            }, 1000);
-        }
-
         // Build the A-Z board
         Object.keys(natoAlphabet).forEach(letter => {
             const word = natoAlphabet[letter];
-            
+
             const card = document.createElement('div');
             card.className = 'nato-card';
             card.id = `card-${letter}`;
-            card.onclick = () => playSingleWord(word, card);
-            
+            card.onclick = () => playSingleWord(letter, card);
+
             card.innerHTML = `
                 <div class="card-letter">${letter}</div>
                 <div class="card-word">${word}</div>
@@ -173,52 +149,33 @@
         });
     };
 
-    // --- AUDIO LOGIC (uses the browser's built-in speech synthesis) ---
-    function speakWord(word, cardElement) {
-        return new Promise((resolve) => {
-            if (!('speechSynthesis' in window)) {
-                console.error("Speech synthesis not supported in this browser.");
-                resolve();
-                return;
-            }
+    // --- AUDIO LOGIC (static pre-recorded clips, one per letter) ---
+    let currentAudio = null;
 
-            const utterance = new SpeechSynthesisUtterance(word);
-            utterance.lang = 'en-US';
-            utterance.rate = 0.9;
-            if (preferredVoice) utterance.voice = preferredVoice;
+    function playAudio(letter, cardElement) {
+        return new Promise((resolve) => {
+            if (currentAudio) currentAudio.pause();
+
+            const audio = new Audio(`sounds/nato/${letter.toLowerCase()}.wav`);
+            currentAudio = audio;
 
             if (cardElement) cardElement.classList.add('playing');
 
-            let settled = false;
             const finish = () => {
-                if (settled) return;
-                settled = true;
                 if (cardElement) cardElement.classList.remove('playing');
                 resolve();
             };
 
-            utterance.onend = finish;
-            utterance.onerror = finish;
+            audio.onended = finish;
+            audio.onerror = finish;
 
-            // Safety net: some browsers silently drop an utterance without
-            // ever firing onend/onerror. Don't let that hang the sequence.
-            setTimeout(finish, 4000);
-
-            window.speechSynthesis.speak(utterance);
+            audio.play().catch(finish);
         });
     }
 
-    function playSingleWord(word, cardElement) {
+    function playSingleWord(letter, cardElement) {
         if (sequencePlaying) return; // Prevent clicking around while a full message is transmitting
-
-        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
-            // Calling speak() in the same tick as cancel() makes some
-            // browsers (notably Chrome) silently drop the new utterance.
-            window.speechSynthesis.cancel();
-            setTimeout(() => speakWord(word, cardElement), 50);
-        } else {
-            speakWord(word, cardElement);
-        }
+        playAudio(letter, cardElement);
     }
 
     // --- TRANSLATOR LOGIC ---
@@ -273,24 +230,18 @@
 
         for (let i = 0; i < cleanText.length; i++) {
             const letter = cleanText[i];
-            const word = natoAlphabet[letter];
             const cardEl = document.getElementById(`seq-${i}`);
-            
+
             // Play the word and wait for it to finish
-            await playWordAsync(word, cardEl);
-            
+            await playAudio(letter, cardEl);
+
             // Tiny pause between words like a real radio transmission
-            await new Promise(resolve => setTimeout(resolve, 300)); 
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
 
         sequencePlaying = false;
         transmitBtn.disabled = false;
         transmitBtn.innerHTML = "Transmit 🔊";
-    }
-
-    // Wrapper for the transmit sequence loop
-    function playWordAsync(word, cardElement) {
-        return speakWord(word, cardElement);
     }
 
 </script>

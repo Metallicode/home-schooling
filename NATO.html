@@ -134,6 +134,17 @@
         if ('speechSynthesis' in window) {
             pickVoice();
             window.speechSynthesis.onvoiceschanged = pickVoice;
+
+            // Give voices a moment to load, then warn on-page if none showed up -
+            // this is what a silent (no error, no sound) failure usually means.
+            setTimeout(() => {
+                if (!preferredVoice) {
+                    const warning = document.createElement('p');
+                    warning.style.cssText = 'color:#c62828; font-weight:bold; font-size:14px; max-width:600px;';
+                    warning.textContent = '⚠️ No speech voices found on this device/browser, so words will play silently. This is a system limitation (common on Linux without a TTS engine installed), not a bug in the page.';
+                    document.querySelector('.translator-panel').insertBefore(warning, document.getElementById('translation-output'));
+                }
+            }, 1000);
         }
 
         // Build the A-Z board

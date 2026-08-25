@@ -114,6 +114,12 @@
     };
 
     let sequencePlaying = false;
+    let preferredVoice = null;
+
+    function pickVoice() {
+        const voices = window.speechSynthesis.getVoices();
+        preferredVoice = voices.find(v => v.lang === 'en-US') || voices.find(v => v.lang && v.lang.startsWith('en')) || voices[0] || null;
+    }
 
     // DOM Elements
     const gridEl = document.getElementById('alphabet-grid');
@@ -123,6 +129,13 @@
 
     // --- INITIALIZATION ---
     window.onload = () => {
+        // Voices load asynchronously in some browsers (esp. Chrome) -
+        // grab them now and again whenever the list changes.
+        if ('speechSynthesis' in window) {
+            pickVoice();
+            window.speechSynthesis.onvoiceschanged = pickVoice;
+        }
+
         // Build the A-Z board
         Object.keys(natoAlphabet).forEach(letter => {
             const word = natoAlphabet[letter];
@@ -161,10 +174,14 @@
             const utterance = new SpeechSynthesisUtterance(word);
             utterance.lang = 'en-US';
             utterance.rate = 0.9;
+            if (preferredVoice) utterance.voice = preferredVoice;
 
             if (cardElement) cardElement.classList.add('playing');
 
+            let settled = false;
             const finish = () => {
+                if (settled) return;
+                settled = true;
                 if (cardElement) cardElement.classList.remove('playing');
                 resolve();
             };
@@ -172,15 +189,25 @@
             utterance.onend = finish;
             utterance.onerror = finish;
 
+            // Safety net: some browsers silently drop an utterance without
+            // ever firing onend/onerror. Don't let that hang the sequence.
+            setTimeout(finish, 4000);
+
             window.speechSynthesis.speak(utterance);
         });
     }
 
     function playSingleWord(word, cardElement) {
         if (sequencePlaying) return; // Prevent clicking around while a full message is transmitting
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
 
-        speakWord(word, cardElement);
+        if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+            // Calling speak() in the same tick as cancel() makes some
+            // browsers (notably Chrome) silently drop the new utterance.
+            window.speechSynthesis.cancel();
+            setTimeout(() => speakWord(word, cardElement), 50);
+        } else {
+            speakWord(word, cardElement);
+        }
     }
 
     // --- TRANSLATOR LOGIC ---

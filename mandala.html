@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Number Weaver: Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050505; color: #00e676;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+            overflow-x: hidden;
+        }
+        
+        h1 { color: #b388ff; font-size: 2.5rem; text-shadow: 0 0 15px rgba(179, 136, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #7c4dff; margin: 0 0 30px 0;}
+
+        /* --- DASHBOARD LAYOUT --- */
+        .dashboard {
+            display: flex; flex-direction: row; width: 100%; max-width: 1600px; 
+            gap: 20px; justify-content: center; align-items: stretch; height: 65vh; min-height: 500px;
+        }
+
+        /* --- THE CANVAS & READOUT --- */
+        .canvas-wrapper {
+            flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-width: 400px; margin: 0 20px;
+        }
+
+        .math-readout {
+            font-size: 32px; font-weight: bold; color: rgba(255,255,255,0.9);
+            text-shadow: 0 0 15px rgba(179, 136, 255, 0.8);
+            background: #111; padding: 10px 30px; border-radius: 15px; border: 1px solid #333;
+            margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        #canvas-container {
+            position: relative; background: #000; border-radius: 50%;
+            box-shadow: 0 0 50px rgba(124, 77, 255, 0.3), inset 0 0 50px rgba(0, 230, 118, 0.1);
+            border: 2px solid #222; display: flex; justify-content: center; align-items: center;
+        }
+        
+        canvas {
+            display: block; border-radius: 50%; width: 100%; 
+            max-width: 550px; max-height: 550px; aspect-ratio: 1 / 1;
+        }
+
+        /* --- DATA STREAMS (SIDE PANELS) --- */
+        .data-stream {
+            flex: 1; background: #0a0a0a; border: 1px solid #222; border-radius: 15px;
+            padding: 15px; overflow-y: auto; text-align: left; font-size: 14px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8); display: flex; flex-direction: column; gap: 4px;
+            min-width: 280px;
+        }
+
+        /* Custom Scrollbar */
+        .data-stream::-webkit-scrollbar { width: 8px; }
+        .data-stream::-webkit-scrollbar-track { background: #111; border-radius: 4px;}
+        .data-stream::-webkit-scrollbar-thumb { background: #7c4dff; border-radius: 4px; }
+
+        .eq-row {
+            padding: 4px 8px; border-radius: 4px; border-bottom: 1px solid #1a1a1a;
+            display: flex; justify-content: space-between; font-weight: bold;
+        }
+        .eq-row:hover { background: #1a1a1a; }
+
+        .c-start { color: #fff; }
+        .c-mult { color: #b388ff; }
+        .c-raw { color: #00e676; }
+        .c-mod { color: #ff4081; }
+
+        /* --- CONTROL PANEL --- */
+        .control-panel {
+            background: #111; padding: 25px; border-radius: 15px; 
+            border: 1px solid #222; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px;
+            margin-top: 30px;
+        }
+
+        .slider-group { display: flex; flex-direction: column; text-align: left; gap: 10px; }
+        .slider-header { display: flex; justify-content: space-between; color: #00e676; font-weight: bold; font-size: 18px;}
+        .val-display { color: #fff; text-shadow: 0 0 8px #fff; }
+
+        input[type="range"] {
+            width: 100%; height: 10px; border-radius: 5px;
+            background: #222; outline: none; -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #b388ff; cursor: pointer; border: 2px solid #fff;
+            box-shadow: 0 0 15px #b388ff;
+        }
+
+        .button-row { display: flex; justify-content: center; gap: 20px; margin-top: 10px; flex-wrap: wrap;}
+        
+        .btn {
+            background: transparent; color: #00e676; border: 2px solid #00e676; border-radius: 10px;
+            padding: 12px 25px; font-size: 18px; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 230, 118, 0.2);
+        }
+        .btn:hover { background: #00e676; color: #000; box-shadow: 0 0 20px rgba(0, 230, 118, 0.6); }
+        .btn.active { background: #b388ff; color: #000; border-color: #b388ff; box-shadow: 0 0 20px #b388ff; }
+
+        /* Responsive */
+        @media (max-width: 1000px) {
+            .dashboard { flex-direction: column; height: auto; align-items: center;}
+            .data-stream { height: 300px; width: 100%; max-width: 600px;}
+            .canvas-wrapper { margin: 20px 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position: fixed; top: 15px; left: 15px; z-index: 1000; font-family: 'Courier New', Courier, monospace; font-size: 13px; font-weight: bold; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: 8px 14px; border-radius: 8px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">← Back to Index</a>
+
+    <h1>✨ The Number Weaver ✨</h1>
+    <p>Watch the operations calculate in real-time as they draw the fractal.</p>
+
+    <div class="dashboard">
+        
+        <!-- LEFT PANEL (First half of equations) -->
+        <div class="data-stream" id="data-stream-left"></div>
+
+        <!-- CENTER CANVAS & READOUT -->
+        <div class="canvas-wrapper">
+            <div class="math-readout" id="math-readout">x 2.00</div>
+            <div id="canvas-container">
+                <canvas id="mathCanvas" width="800" height="800"></canvas>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL (Second half of equations) -->
+        <div class="data-stream" id="data-stream-right"></div>
+
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="control-panel">
+        
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>Number of Points (Modulo Circle)</span>
+                <span class="val-display" id="val-points">200</span>
+            </div>
+            <input type="range" id="slider-points" min="10" max="400" value="200" oninput="handlePointsChange()">
+        </div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span style="color: #b388ff;">Multiplier (The Times Table)</span>
+                <span class="val-display" id="val-multiplier">2.00</span>
+            </div>
+            <input type="range" id="slider-multiplier" min="1" max="100" step="0.01" value="2" oninput="manualUpdate()">
+        </div>
+
+        <div class="button-row">
+            <button class="btn" id="btn-animate" onclick="toggleAnimation()">Start Auto-Morph</button>
+            <button class="btn" onclick="randomizeColors()">Random Color Palette</button>
+        </div>
+
+    </div>
+
+<script>
+    const canvas = document.getElementById('mathCanvas');
+    const ctx = canvas.getContext('2d');
+    const pointsSlider = document.getElementById('slider-points');
+    const multiplierSlider = document.getElementById('slider-multiplier');
+    const valPointsEl = document.getElementById('val-points');
+    const valMultiplierEl = document.getElementById('val-multiplier');
+    const readoutEl = document.getElementById('math-readout');
+    const btnAnimate = document.getElementById('btn-animate');
+    
+    const streamLeft = document.getElementById('data-stream-left');
+    const streamRight = document.getElementById('data-stream-right');
+
+    // Canvas settings
+    const width = canvas.width;
+    const height = canvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+    const radius = 380; 
+
+    // Math State
+    let points = parseInt(pointsSlider.value);
+    let multiplier = parseFloat(multiplierSlider.value);
+    
+    // Animation & Optimization State
+    let isAnimating = false;
+    let animId;
+    let hueOffset = 0;
+    let colorMode = 1; 
+    let lastTextUpdateTime = 0;
+    let equationNodes = []; 
+
+    function randomizeColors() {
+        colorMode = Math.floor(Math.random() * 4);
+        draw();
+    }
+
+    // --- DOM MANAGEMENT FOR EQUATIONS ---
+    function buildEquationNodes() {
+        streamLeft.innerHTML = '';
+        streamRight.innerHTML = '';
+        equationNodes = [];
+
+        const half = Math.ceil(points / 2);
+
+        for (let i = 0; i < points; i++) {
+            const row = document.createElement('div');
+            row.className = 'eq-row';
+            
+            row.innerHTML = `
+                <span><span class="c-start">${i}</span> x <span class="c-mult mult-val">2.00</span> = <span class="c-raw raw-val">0</span></span>
+                <span>➜ <span class="c-mod mod-val">Point 0</span></span>
+            `;
+
+            const nodeRefs = {
+                mult: row.querySelector('.mult-val'),
+                raw: row.querySelector('.raw-val'),
+                mod: row.querySelector('.mod-val')
+            };
+            
+            equationNodes.push(nodeRefs);
+
+            if (i < half) streamLeft.appendChild(row);
+            else streamRight.appendChild(row);
+        }
+    }
+
+    function updateEquationText() {
+        const strMult = multiplier.toFixed(2);
+        
+        for (let i = 0; i < points; i++) {
+            const exactRaw = i * multiplier;
+            const endNode = exactRaw % points;
+
+            const nodes = equationNodes[i];
+            if(nodes) {
+                nodes.mult.innerText = strMult;
+                nodes.raw.innerText = exactRaw.toFixed(1);
+                nodes.mod.innerText = `Pt ${endNode.toFixed(1)}`;
+            }
+        }
+    }
+
+    // --- INTERACTION LOGIC ---
+    function handlePointsChange() {
+        if (isAnimating) toggleAnimation(); 
+        points = parseInt(pointsSlider.value);
+        valPointsEl.innerText = points;
+        
+        buildEquationNodes();
+        updateEquationText();
+        draw();
+    }
+
+    function manualUpdate() {
+        if (isAnimating) toggleAnimation(); 
+        multiplier = parseFloat(multiplierSlider.value);
+        updateReadouts();
+        updateEquationText();
+        draw();
+    }
+
+    function updateReadouts() {
+        valMultiplierEl.innerText = multiplier.toFixed(2);
+        readoutEl.innerText = `Multiplier: x ${multiplier.toFixed(2)}`;
+    }
+
+    // --- DRAWING & MATH ---
+    function getCoordinates(index, totalPoints) {
+        const angle = (Math.PI * 2 * index) / totalPoints + Math.PI; 
+        return {
+            x: cx + Math.cos(angle) * radius,
+            y: cy + Math.sin(angle) * radius
+        };
+    }
+
+    function draw() {
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw Outer Ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.lineWidth = 1.5;
+
+        for (let i = 0; i < points; i++) {
+            const startNode = i;
+            const endNode = (i * multiplier) % points;
+
+            const startPos = getCoordinates(startNode, points);
+            const endPos = getCoordinates(endNode, points);
+
+            ctx.beginPath();
+            ctx.moveTo(startPos.x, startPos.y);
+            ctx.lineTo(endPos.x, endPos.y);
+
+            // Synesthesia Colors
+            let hue;
+            if (colorMode === 0) hue = (i / points) * 360 + hueOffset;                 
+            else if (colorMode === 1) hue = (multiplier * 10) + (i / points * 50) + hueOffset; 
+            else if (colorMode === 2) hue = 160 + (i % 50) + hueOffset;                
+            else hue = 280 + (endNode / points * 80) + hueOffset;                      
+
+            ctx.strokeStyle = `hsla(${hue}, 100%, 65%, 0.7)`;
+            ctx.stroke();
+        }
+        
+        hueOffset += 0.5; 
+    }
+
+    function animate(timestamp) {
+        if (!isAnimating) return;
+        
+        multiplier += 0.01;
+        if (multiplier > 100) multiplier = 1;
+        
+        multiplierSlider.value = multiplier;
+        updateReadouts();
+        
+        if (timestamp - lastTextUpdateTime > 100) {
+            updateEquationText();
+            lastTextUpdateTime = timestamp;
+        }
+        
+        draw();
+        animId = requestAnimationFrame(animate);
+    }
+
+    function toggleAnimation() {
+        isAnimating = !isAnimating;
+        if (isAnimating) {
+            btnAnimate.classList.add('active');
+            btnAnimate.innerText = "Stop Auto-Morph";
+            animId = requestAnimationFrame(animate);
+        } else {
+            btnAnimate.classList.remove('active');
+            btnAnimate.innerText = "Start Auto-Morph";
+            cancelAnimationFrame(animId);
+            updateEquationText(); 
+        }
+    }
+
+    // Initialize
+    buildEquationNodes();
+    updateEquationText();
+    updateReadouts();
+    draw();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Automata Loom</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #0d0e15; color: #ff4081;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #ff4081; font-size: 2.5rem; text-shadow: 0 0 15px rgba(255, 64, 129, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #f48fb1; margin: 0 0 20px 0;}
+
+        /* --- DASHBOARD --- */
+        .dashboard {
+            display: flex; flex-wrap: wrap; width: 100%; max-width: 1400px; 
+            gap: 20px; justify-content: center; align-items: flex-start;
+        }
+
+        /* --- LEFT PANEL: CONTROLS --- */
+        .control-panel {
+            flex: 1; min-width: 350px; max-width: 450px; background: #151722; padding: 25px; border-radius: 15px; 
+            border: 1px solid #2a2d3e; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; gap: 20px;
+        }
+
+        .panel-title { color: #fff; font-size: 20px; font-weight: bold; border-bottom: 2px solid #ff4081; padding-bottom: 10px;}
+
+        /* Rule Slider & Display */
+        .rule-display-container {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+            background: #000; padding: 15px; border-radius: 10px; border: 1px solid #333;
+        }
+        .rule-number { font-size: 40px; font-weight: bold; color: #00e5ff; text-shadow: 0 0 15px #00e5ff; margin: 0;}
+        
+        input[type="range"] {
+            width: 100%; height: 10px; border-radius: 5px; background: #222; outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 25px; height: 25px; border-radius: 50%;
+            background: #00e5ff; cursor: pointer; border: 2px solid #fff; box-shadow: 0 0 15px #00e5ff;
+        }
+
+        /* The 8 Binary Switches */
+        .binary-builder {
+            display: flex; justify-content: space-between; margin-top: 10px; width: 100%;
+        }
+        .bit-column { display: flex; flex-direction: column; align-items: center; gap: 5px;}
+        .bit-pattern { display: flex; gap: 2px; }
+        .bit-box { width: 12px; height: 12px; border: 1px solid #555; background: #000;}
+        .bit-box.on { background: #b388ff; border-color: #b388ff; box-shadow: 0 0 5px #b388ff;}
+        
+        .bit-toggle {
+            width: 25px; height: 25px; background: #000; border: 2px solid #555; border-radius: 5px;
+            cursor: pointer; display: flex; justify-content: center; align-items: center;
+            font-weight: bold; color: #333; transition: all 0.1s;
+        }
+        .bit-toggle.active {
+            background: #00e5ff; border-color: #00e5ff; color: #000; box-shadow: 0 0 10px #00e5ff;
+        }
+
+        /* Settings & Presets */
+        .presets { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .btn {
+            background: transparent; color: #f48fb1; border: 2px solid #f48fb1; border-radius: 8px;
+            padding: 8px 15px; font-size: 14px; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { background: #f48fb1; color: #000; box-shadow: 0 0 15px rgba(244, 143, 177, 0.6); }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: space-between;
+            color: #b388ff; font-weight: bold; cursor: pointer; padding: 10px 15px;
+            background: #222; border-radius: 10px; border: 1px solid #333;
+        }
+        .toggle-container input { width: 20px; height: 20px; accent-color: #b388ff; cursor: pointer; }
+
+        /* --- RIGHT PANEL: CANVAS --- */
+        .canvas-wrapper {
+            flex: 2; display: flex; flex-direction: column; align-items: center;
+            background: #000; border-radius: 15px; padding: 15px; border: 2px solid #2a2d3e;
+            box-shadow: 0 0 40px rgba(0, 229, 255, 0.1); min-width: 500px;
+        }
+
+        canvas {
+            width: 100%; aspect-ratio: 16 / 9;
+            background: #000; image-rendering: pixelated; /* Keeps the math looking crisp */
+            border-radius: 8px; border: 1px solid #333;
+        }
+
+        .canvas-controls {
+            display: flex; gap: 15px; margin-top: 15px;
+        }
+        .btn-play { background: #00e5ff; color: #000; border-color: #00e5ff; box-shadow: 0 0 15px #00e5ff;}
+        .btn-play:hover { background: #fff; border-color: #fff; box-shadow: 0 0 20px #fff;}
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position: fixed; top: 15px; left: 15px; z-index: 1000; font-family: 'Courier New', Courier, monospace; font-size: 13px; font-weight: bold; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: 8px 14px; border-radius: 8px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">← Back to Index</a>
+
+    <h1>🧬 The Automata Loom 🧬</h1>
+    <p>Change the numbers to weave simple fractals or chaotic alien landscapes.</p>
+
+    <div class="dashboard">
+        
+        <!-- LEFT PANEL -->
+        <div class="control-panel">
+            <div class="panel-title">The Math Engine</div>
+            
+            <div class="rule-display-container">
+                <span style="color: #757575;">Current Rule:</span>
+                <h2 class="rule-number" id="rule-display">Rule 30</h2>
+                <input type="range" id="rule-slider" min="0" max="255" value="30" oninput="handleSliderChange()">
+                
+                <!-- The Visual Binary Rule Builder -->
+                <div class="binary-builder" id="binary-builder">
+                    <!-- Generated by JS -->
+                </div>
+                <div style="font-size: 11px; color: #555; margin-top: 5px;">Click the boxes to change the math!</div>
+            </div>
+
+            <div class="panel-title">Favorites</div>
+            <div class="presets">
+                <button class="btn" onclick="setRule(90)">Triangles (90)</button>
+                <button class="btn" onclick="setRule(30)">Chaos (30)</button>
+                <button class="btn" onclick="setRule(110)">Alien Ships (110)</button>
+                <button class="btn" onclick="setRule(73)">Mazes (73)</button>
+                <button class="btn" onclick="setRule(182)">ZigZags (182)</button>
+            </div>
+
+            <div class="panel-title">Environment</div>
+            <label class="toggle-container">
+                <span>🌱 Starting Seed:</span>
+                <select id="seed-selector" style="background: #111; color: #b388ff; border: 1px solid #555; padding: 5px; border-radius: 5px; font-family: inherit;">
+                    <option value="center">Single Dot</option>
+                    <option value="random">Random Dust</option>
+                </select>
+            </label>
+            
+            <label class="toggle-container" style="border-color: #ff4081; color: #ff4081;">
+                <span>🎵 Generative Music:</span>
+                <input type="checkbox" id="toggle-sound" onchange="initAudio()">
+            </label>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="canvas-wrapper">
+            <!-- Increased grid resolution from 400x225 to 800x450 for much more intricate patterns! -->
+            <canvas id="automataCanvas" width="800" height="450"></canvas>
+            <div class="canvas-controls">
+                <button class="btn btn-play" id="btn-toggle-run" onclick="toggleRun()">Pause Weaving</button>
+                <button class="btn" onclick="resetCanvas()">Clear & Restart</button>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- CA LOGIC & STATE ---
+    let currentRule = 30;
+    let ruleBinaryArray = [];
+    
+    const canvas = document.getElementById('automataCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // We get the resolution directly from the canvas attributes
+    const cols = canvas.width;
+    const rows = canvas.height;
+    
+    let cells = new Array(cols).fill(0);
+    let isRunning = true;
+    let animId;
+    let hueCycle = 0; 
+
+    const ruleDisplay = document.getElementById('rule-display');
+    const ruleSlider = document.getElementById('rule-slider');
+    const binaryBuilder = document.getElementById('binary-builder');
+    const btnToggleRun = document.getElementById('btn-toggle-run');
+    const seedSelector = document.getElementById('seed-selector');
+
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    let masterCompressor;
+    let masterGain;
+
+    function initAudio() {
+        if (document.getElementById('toggle-sound').checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterCompressor = audioCtx.createDynamicsCompressor();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.2; 
+            masterCompressor.connect(masterGain);
+            masterGain.connect(audioCtx.destination);
+        }
+    }
+
+    function playGenerativeNote(population) {
+        if (!audioCtx || !document.getElementById('toggle-sound').checked) return;
+        
+        const density = population / cols; 
+        const noteIndex = Math.floor(density * 25) % 15; 
+
+        const rootFreq = 196.00; // G3
+        const scaleOffsets = [0, 2, 4, 7, 9]; 
+        const octave = Math.floor(noteIndex / 5);
+        const semitones = (octave * 12) + scaleOffsets[noteIndex % 5];
+        const freq = rootFreq * Math.pow(2, semitones / 12);
+
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+        
+        osc.type = 'triangle'; 
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        osc.connect(noteGain);
+        noteGain.connect(masterCompressor);
+
+        noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+        noteGain.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // --- INITIALIZATION & UI ---
+    function buildBinaryUI() {
+        binaryBuilder.innerHTML = '';
+        
+        const patterns = [
+            [1,1,1], [1,1,0], [1,0,1], [1,0,0], 
+            [0,1,1], [0,1,0], [0,0,1], [0,0,0]
+        ];
+
+        for (let i = 0; i < 8; i++) {
+            const col = document.createElement('div');
+            col.className = 'bit-column';
+            
+            const patternDiv = document.createElement('div');
+            patternDiv.className = 'bit-pattern';
+            patterns[i].forEach(bit => {
+                const box = document.createElement('div');
+                box.className = `bit-box ${bit ? 'on' : ''}`;
+                patternDiv.appendChild(box);
+            });
+
+            const toggleBtn = document.createElement('div');
+            const isActive = ruleBinaryArray[i] === 1;
+            toggleBtn.className = `bit-toggle ${isActive ? 'active' : ''}`;
+            toggleBtn.innerText = isActive ? '1' : '0';
+            
+            toggleBtn.onclick = () => {
+                ruleBinaryArray[i] = ruleBinaryArray[i] === 1 ? 0 : 1;
+                updateRuleFromBinary(); 
+            };
+
+            col.appendChild(patternDiv);
+            col.appendChild(toggleBtn);
+            binaryBuilder.appendChild(col);
+        }
+    }
+
+    function setRule(number) {
+        currentRule = number;
+        ruleSlider.value = number;
+        ruleDisplay.innerText = `Rule ${number}`;
+        
+        let binaryStr = currentRule.toString(2).padStart(8, '0');
+        ruleBinaryArray = binaryStr.split('').map(Number);
+        
+        buildBinaryUI();
+        resetCanvas();
+    }
+
+    function handleSliderChange() {
+        setRule(parseInt(ruleSlider.value));
+    }
+
+    function updateRuleFromBinary() {
+        const binaryStr = ruleBinaryArray.join('');
+        currentRule = parseInt(binaryStr, 2);
+        
+        ruleSlider.value = currentRule;
+        ruleDisplay.innerText = `Rule ${currentRule}`;
+        buildBinaryUI(); 
+    }
+
+    // --- CANVAS DRAWING ---
+    function resetCanvas() {
+        ctx.fillStyle = '#000000';
+        // FIXED BUG: using cols and rows instead of undefined width/height
+        ctx.fillRect(0, 0, cols, rows);
+        
+        cells = new Array(cols).fill(0);
+        if (seedSelector.value === 'center') {
+            cells[Math.floor(cols / 2)] = 1; 
+        } else {
+            for (let i = 0; i < cols; i++) {
+                cells[i] = Math.random() > 0.5 ? 1 : 0;
+            }
+        }
+        
+        hueCycle = 0;
+        
+        if (!isRunning) drawNextGeneration(); 
+    }
+
+    function toggleRun() {
+        isRunning = !isRunning;
+        if (isRunning) {
+            btnToggleRun.innerText = "Pause Weaving";
+            btnToggleRun.classList.add('btn-play');
+            loop();
+        } else {
+            btnToggleRun.innerText = "Start Weaving";
+            btnToggleRun.classList.remove('btn-play');
+            cancelAnimationFrame(animId);
+        }
+    }
+
+    function drawNextGeneration() {
+        const imgData = ctx.getImageData(0, 1, cols, rows - 1);
+        ctx.putImageData(imgData, 0, 0);
+
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, rows - 1, cols, 1);
+
+        let nextCells = new Array(cols).fill(0);
+        let population = 0;
+
+        for (let i = 0; i < cols; i++) {
+            let left = cells[(i - 1 + cols) % cols];
+            let center = cells[i];
+            let right = cells[(i + 1) % cols];
+            
+            let stateIndex = (left << 2) | (center << 1) | right;
+            
+            let outcome = ruleBinaryArray[7 - stateIndex];
+            nextCells[i] = outcome;
+            
+            if (outcome === 1) population++;
+        }
+
+        for (let i = 0; i < cols; i++) {
+            if (nextCells[i] === 1) {
+                ctx.fillStyle = `hsl(${hueCycle}, 100%, 60%)`;
+                ctx.fillRect(i, rows - 1, 1, 1);
+            }
+        }
+
+        cells = nextCells;
+        hueCycle = (hueCycle + 0.2) % 360;
+
+        return population;
+    }
+
+    let frameSkip = 0;
+    function loop() {
+        if (!isRunning) return;
+        
+        const pop = drawNextGeneration();
+
+        frameSkip++;
+        if (frameSkip >= 4) { 
+            if (pop > 0) playGenerativeNote(pop);
+            frameSkip = 0;
+        }
+        
+        animId = requestAnimationFrame(loop);
+    }
+
+    // Event listener for seed changes to trigger immediate restart
+    seedSelector.addEventListener('change', resetCanvas);
+
+    // Start everything up!
+    setRule(30);
+    loop();
+
+</script>
+</body>
+</html>

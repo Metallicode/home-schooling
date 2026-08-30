@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Orbit Weaver</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #030305; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #fff; font-size: 2.5rem; text-shadow: 0 0 15px rgba(255, 255, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #aaa; margin: 0 0 20px 0;}
+
+        /* --- DASHBOARD LAYOUT --- */
+        .dashboard {
+            display: flex; flex-wrap: wrap; width: 100%; max-width: 1400px; 
+            gap: 20px; justify-content: center; align-items: stretch;
+        }
+
+        /* --- LEFT PANEL: CONTROLS --- */
+        .control-panel {
+            flex: 1; min-width: 350px; max-width: 450px; background: #0a0a0d; padding: 25px; border-radius: 15px; 
+            border: 1px solid #222; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; gap: 15px; text-align: left;
+        }
+        
+        .panel-title { color: #fff; font-size: 18px; font-weight: bold; border-bottom: 1px solid #333; padding-bottom: 10px; margin-bottom: 10px;}
+
+        /* Circle Controls */
+        .circle-control {
+            background: #111; border: 1px solid #333; padding: 15px; border-radius: 10px;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .c-title { font-weight: bold; font-size: 16px; text-transform: uppercase; text-shadow: 0 0 10px currentColor;}
+        
+        .slider-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 12px; color: #888;}
+        
+        input[type="range"] {
+            flex: 1; height: 6px; border-radius: 3px; background: #222; outline: none; -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            cursor: pointer; border: 2px solid #fff;
+        }
+
+        /* Color Coding */
+        .c1 { color: #00e5ff; } .c1 input::-webkit-slider-thumb { background: #00e5ff; box-shadow: 0 0 10px #00e5ff;}
+        .c2 { color: #ff4081; } .c2 input::-webkit-slider-thumb { background: #ff4081; box-shadow: 0 0 10px #ff4081;}
+        .c3 { color: #ffeb3b; } .c3 input::-webkit-slider-thumb { background: #ffeb3b; box-shadow: 0 0 10px #ffeb3b;}
+        .c4 { color: #b388ff; } .c4 input::-webkit-slider-thumb { background: #b388ff; box-shadow: 0 0 10px #b388ff;}
+
+        /* Presets & Audio */
+        .presets { display: flex; flex-wrap: wrap; gap: 10px; }
+        .btn {
+            background: #111; color: #fff; border: 1px solid #555; border-radius: 8px;
+            padding: 8px 12px; font-size: 12px; font-family: inherit;
+            font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { background: #333; border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+        
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #fff; font-weight: bold; cursor: pointer; padding: 12px;
+            background: #1a1a1a; border-radius: 8px; border: 1px solid #555; margin-top: 10px;
+        }
+        .toggle-container input { width: 20px; height: 20px; cursor: pointer; }
+
+        /* --- RIGHT PANEL: CANVAS --- */
+        .canvas-wrapper {
+            flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: #000; border-radius: 15px; padding: 15px; border: 2px solid #222;
+            box-shadow: 0 0 40px rgba(0, 229, 255, 0.05); min-width: 500px;
+        }
+        
+        canvas {
+            width: 100%; aspect-ratio: 1 / 1; max-width: 800px;
+            border-radius: 8px; border: 1px solid #111; background: #030305;
+        }
+        
+        @media (max-width: 1000px) {
+            .canvas-wrapper { min-width: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position: fixed; top: 15px; left: 15px; z-index: 1000; font-family: 'Courier New', Courier, monospace; font-size: 13px; font-weight: bold; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: 8px 14px; border-radius: 8px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">← Back to Index</a>
+
+    <h1>🪐 The Orbit Weaver 🪐</h1>
+    <p>Circles spinning inside of circles. Build cosmic mandalas and listen to their frequency.</p>
+
+    <div class="dashboard">
+        
+        <!-- LEFT PANEL -->
+        <div class="control-panel">
+            
+            <div class="panel-title">The Engine</div>
+            
+            <div class="circle-control c1">
+                <div class="c-title">Circle 1 (Core)</div>
+                <div class="slider-row">
+                    <span>Size</span>
+                    <input type="range" id="r0" min="0" max="150" value="80" oninput="updateSettings()">
+                    <span id="val-r0" style="width: 30px; text-align: right;">80</span>
+                </div>
+                <div class="slider-row">
+                    <span>Speed</span>
+                    <input type="range" id="s0" min="-10" max="10" step="0.1" value="1" oninput="updateSettings()">
+                    <span id="val-s0" style="width: 30px; text-align: right;">1.0</span>
+                </div>
+            </div>
+
+            <div class="circle-control c2">
+                <div class="c-title">Circle 2 (Arm)</div>
+                <div class="slider-row">
+                    <span>Size</span>
+                    <input type="range" id="r1" min="0" max="150" value="50" oninput="updateSettings()">
+                    <span id="val-r1" style="width: 30px; text-align: right;">50</span>
+                </div>
+                <div class="slider-row">
+                    <span>Speed</span>
+                    <input type="range" id="s1" min="-10" max="10" step="0.1" value="-3" oninput="updateSettings()">
+                    <span id="val-s1" style="width: 30px; text-align: right;">-3.0</span>
+                </div>
+            </div>
+
+            <div class="circle-control c3">
+                <div class="c-title">Circle 3 (Wrist)</div>
+                <div class="slider-row">
+                    <span>Size</span>
+                    <input type="range" id="r2" min="0" max="150" value="20" oninput="updateSettings()">
+                    <span id="val-r2" style="width: 30px; text-align: right;">20</span>
+                </div>
+                <div class="slider-row">
+                    <span>Speed</span>
+                    <input type="range" id="s2" min="-10" max="10" step="0.1" value="5" oninput="updateSettings()">
+                    <span id="val-s2" style="width: 30px; text-align: right;">5.0</span>
+                </div>
+            </div>
+
+            <div class="circle-control c4">
+                <div class="c-title">Circle 4 (Finger)</div>
+                <div class="slider-row">
+                    <span>Size</span>
+                    <input type="range" id="r3" min="0" max="150" value="0" oninput="updateSettings()">
+                    <span id="val-r3" style="width: 30px; text-align: right;">0</span>
+                </div>
+                <div class="slider-row">
+                    <span>Speed</span>
+                    <input type="range" id="s3" min="-10" max="10" step="0.1" value="0" oninput="updateSettings()">
+                    <span id="val-s3" style="width: 30px; text-align: right;">0.0</span>
+                </div>
+            </div>
+
+            <div class="panel-title" style="margin-top: 10px;">Cosmic Presets</div>
+            <div class="presets">
+                <button class="btn" onclick="loadPreset([80, 50, 0, 0], [1, -4, 0, 0])">The 5-Point Star</button>
+                <button class="btn" onclick="loadPreset([80, 50, 0, 0], [1, 2, 0, 0])">The Loop</button>
+                <button class="btn" onclick="loadPreset([70, 50, 30, 0], [1, -3, 5, 0])">The Rose</button>
+                <button class="btn" onclick="loadPreset([60, 45, 30, 15], [0.5, -2.1, 3.7, -7])">The Drifting Nebula</button>
+                <button class="btn" onclick="clearTrail()">🧹 Clear Trail</button>
+            </div>
+
+            <label class="toggle-container">
+                <input type="checkbox" id="toggle-sound" onchange="initAudio()">
+                🎵 Enable Harmonic Drone
+            </label>
+
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="canvas-wrapper">
+            <canvas id="orbitCanvas" width="800" height="800"></canvas>
+        </div>
+
+    </div>
+
+<script>
+    // --- STATE VARIABLES ---
+    let circles = [
+        { r: 80, s: 1, color: '#00e5ff' },
+        { r: 50, s: -3, color: '#ff4081' },
+        { r: 20, s: 5, color: '#ffeb3b' },
+        { r: 0, s: 0, color: '#b388ff' }
+    ];
+    
+    let trail = [];
+    const MAX_TRAIL = 1200; // How long the glowing line stays on screen
+    let time = 0;
+    let hueOffset = 0; // Shifts the trail color over time
+
+    const canvas = document.getElementById('orbitCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    let masterCompressor;
+    let synths = [];
+
+    function initAudio() {
+        const toggle = document.getElementById('toggle-sound');
+        
+        if (toggle.checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterCompressor = audioCtx.createDynamicsCompressor();
+            masterCompressor.connect(audioCtx.destination);
+            
+            // Create one oscillator per circle!
+            for(let i=0; i<4; i++) {
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                
+                osc.type = 'sine'; // Pure, spacey tone
+                gain.gain.value = 0;
+                
+                osc.connect(gain);
+                gain.connect(masterCompressor);
+                osc.start();
+                
+                synths.push({ osc: osc, gain: gain });
+            }
+            updateAudio();
+        } else if (!toggle.checked && audioCtx) {
+            // Fade out
+            synths.forEach(s => s.gain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1));
+        }
+    }
+
+    function updateAudio() {
+        if (!audioCtx || !document.getElementById('toggle-sound').checked) return;
+        
+        const baseFreq = 110; // A2 note
+        
+        circles.forEach((circle, i) => {
+            const synth = synths[i];
+            
+            // Speed determines Pitch (Negative speed is just absolute frequency)
+            let freq = baseFreq * Math.abs(circle.s);
+            if (freq === 0) freq = 0.01; // Avoid crashing WebAudio
+            
+            // Radius determines Volume (Bigger circles are louder)
+            let vol = circle.r / 300; // Normalized roughly
+            
+            // Glide smoothly
+            synth.osc.frequency.setTargetAtTime(freq, audioCtx.currentTime, 0.1);
+            synth.gain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.1);
+        });
+    }
+
+    // --- UI UPDATES ---
+    function updateSettings() {
+        let changed = false;
+        
+        for (let i = 0; i < 4; i++) {
+            let newR = parseInt(document.getElementById(`r${i}`).value);
+            let newS = parseFloat(document.getElementById(`s${i}`).value);
+            
+            document.getElementById(`val-r${i}`).innerText = newR;
+            document.getElementById(`val-s${i}`).innerText = newS.toFixed(1);
+            
+            if (circles[i].r !== newR || circles[i].s !== newS) changed = true;
+            
+            circles[i].r = newR;
+            circles[i].s = newS;
+        }
+
+        // If the math changed, we must clear the trail so it doesn't draw an ugly glitch line across the screen
+        if (changed) {
+            trail = [];
+            updateAudio();
+        }
+    }
+
+    function loadPreset(radii, speeds) {
+        for (let i = 0; i < 4; i++) {
+            document.getElementById(`r${i}`).value = radii[i];
+            document.getElementById(`s${i}`).value = speeds[i];
+        }
+        updateSettings();
+    }
+
+    function clearTrail() {
+        trail = [];
+    }
+
+    // --- RENDER ENGINE ---
+    function draw() {
+        ctx.fillStyle = '#030305';
+        ctx.fillRect(0, 0, width, height);
+
+        let x = cx;
+        let y = cy;
+
+        // 1. Calculate and Draw the Mechanical Arms (Epicycles)
+        for (let i = 0; i < 4; i++) {
+            const circle = circles[i];
+            if (circle.r === 0) continue; // Skip dead circles
+
+            const prevX = x;
+            const prevY = y;
+            
+            // Math: Calculate angle based on Speed and Time
+            const angle = time * circle.s;
+            
+            x += circle.r * Math.cos(angle);
+            y += circle.r * Math.sin(angle);
+
+            // Draw the faint orbit guideline
+            ctx.beginPath();
+            ctx.arc(prevX, prevY, circle.r, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw the structural arm connecting the centers
+            ctx.beginPath();
+            ctx.moveTo(prevX, prevY);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw the glowing joint/node
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = circle.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = circle.color;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // 2. Manage the Trail
+        // Only push to trail if at least one circle has a radius (is moving)
+        if (circles.some(c => c.r > 0)) {
+            trail.push({ x: x, y: y });
+            if (trail.length > MAX_TRAIL) {
+                trail.shift(); // Remove oldest point
+            }
+        }
+
+        // 3. Draw the Glowing Trail
+        if (trail.length > 1) {
+            ctx.beginPath();
+            ctx.moveTo(trail[0].x, trail[0].y);
+            
+            for (let i = 1; i < trail.length; i++) {
+                ctx.lineTo(trail[i].x, trail[i].y);
+            }
+            
+            // The trail slowly shifts colors based on time
+            ctx.strokeStyle = `hsla(${hueOffset}, 100%, 70%, 0.8)`;
+            ctx.lineWidth = 2.5;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = `hsla(${hueOffset}, 100%, 70%, 0.8)`;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        
+        // Draw the final "Drawing Spark"
+        if (trail.length > 0) {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = "#fff";
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        // Advance Physics
+        time += 0.02; // Global rotation speed
+        hueOffset = (hueOffset + 0.5) % 360; // Rainbow shifting
+
+        requestAnimationFrame(draw);
+    }
+
+    // Start everything
+    updateSettings();
+    draw();
+
+</script>
+</body>
+</html>

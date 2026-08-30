@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Prime Kaleidoscope</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #00e5ff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+            overflow-x: hidden;
+        }
+        
+        h1 { color: #b388ff; font-size: 2.5rem; text-shadow: 0 0 15px rgba(179, 136, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        /* --- DASHBOARD LAYOUT --- */
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 1000px; 
+            gap: 20px; justify-content: center; align-items: center;
+        }
+
+        /* --- THE CANVAS & READOUT --- */
+        .canvas-wrapper {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            width: 100%;
+        }
+
+        /* The dynamic math equation readout */
+        .math-readout {
+            font-size: 35px; font-weight: bold; color: rgba(255,255,255,0.9);
+            background: #111; padding: 15px 40px; border-radius: 15px; border: 1px solid #333;
+            margin-bottom: 20px; box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+            display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+        }
+
+        .math-readout span { padding: 0 5px; text-shadow: 0 0 15px currentColor; }
+        
+        #canvas-container {
+            position: relative; background: #000; border-radius: 20px;
+            box-shadow: 0 0 50px rgba(0, 229, 255, 0.1), inset 0 0 50px rgba(179, 136, 255, 0.05);
+            border: 2px solid #222; display: flex; justify-content: center; align-items: center;
+            overflow: hidden; padding: 20px;
+        }
+        
+        canvas {
+            display: block; width: 100%; max-width: 700px; aspect-ratio: 1 / 1;
+            border-radius: 50%;
+        }
+
+        /* --- CONTROL PANEL --- */
+        .control-panel {
+            background: #111; padding: 25px; border-radius: 15px; 
+            border: 1px solid #222; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            width: 100%; max-width: 800px; display: flex; flex-direction: column; gap: 20px;
+            margin-top: 10px;
+        }
+
+        .slider-group { display: flex; flex-direction: column; text-align: left; gap: 10px; }
+        .slider-header { display: flex; justify-content: space-between; color: #b2ebf2; font-weight: bold; font-size: 18px;}
+        
+        input[type="range"] {
+            width: 100%; height: 12px; border-radius: 6px;
+            background: #222; outline: none; -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 35px; height: 35px; border-radius: 50%;
+            background: #b388ff; cursor: pointer; border: 3px solid #fff;
+            box-shadow: 0 0 15px #b388ff;
+        }
+
+        .button-row { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;}
+        
+        .btn {
+            background: transparent; color: #00e5ff; border: 2px solid #00e5ff; border-radius: 10px;
+            padding: 12px 25px; font-size: 18px; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.2);
+        }
+        .btn:hover { background: #00e5ff; color: #000; box-shadow: 0 0 20px rgba(0, 229, 255, 0.6); }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #b388ff; font-weight: bold; cursor: pointer; padding: 10px 20px;
+            background: #222; border-radius: 10px; border: 1px solid #b388ff;
+        }
+        .toggle-container input { width: 22px; height: 22px; accent-color: #b388ff; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+    <a href="index.html" style="position: fixed; top: 15px; left: 15px; z-index: 1000; font-family: 'Courier New', Courier, monospace; font-size: 13px; font-weight: bold; color: #fff; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.25); padding: 8px 14px; border-radius: 8px; text-decoration: none; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">← Back to Index</a>
+
+    <h1>✨ The Prime Kaleidoscope ✨</h1>
+    <p>Every number is made of Prime "DNA". Watch the math spin!</p>
+
+    <div class="dashboard">
+        
+        <div class="canvas-wrapper">
+            <div class="math-readout" id="math-readout">
+                </div>
+            
+            <div id="canvas-container">
+                <canvas id="fractalCanvas" width="800" height="800"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            
+            <div class="slider-group">
+                <div class="slider-header">
+                    <span>Number Explorer</span>
+                </div>
+                <input type="range" id="number-slider" min="1" max="250" value="12" oninput="handleSliderChange()">
+            </div>
+
+            <div class="button-row">
+                <button class="btn" onclick="stepNumber(-1)">⬅️ Prev (-1)</button>
+                <button class="btn" onclick="stepNumber(1)">Next (+1) ➡️</button>
+                <label class="toggle-container">
+                    <input type="checkbox" id="toggle-sound" onchange="initAudio()">
+                    🎵 Synthesizer
+                </label>
+            </div>
+
+        </div>
+
+    </div>
+
+<script>
+    // --- SYNTHESIA MAPPING ---
+    // Maps prime numbers to specific colors for visual consistency
+    const primeColors = {
+        2: "#00e5ff", // Cyan
+        3: "#ff4081", // Pink
+        5: "#ffea00", // Yellow
+        7: "#b388ff", // Purple
+        11: "#00e676", // Green
+        13: "#ff9800", // Orange
+        17: "#ff5252", // Red
+        19: "#69f0ae", // Mint
+        23: "#e040fb"  // Violet
+    };
+    
+    // Fallback color for giant primes
+    function getPrimeColor(p) {
+        return primeColors[p] || `hsl(${(p * 37) % 360}, 100%, 60%)`;
+    }
+
+    // --- MATH ENGINE ---
+    // Breaks a number down into its prime factors (e.g., 12 -> [3, 2, 2])
+    // We sort descending so the largest shape forms the outer boundary!
+    function getPrimeFactors(n) {
+        if (n <= 1) return [];
+        const factors = [];
+        let divisor = 2;
+        while (n >= 2) {
+            if (n % divisor === 0) {
+                factors.push(divisor);
+                n = n / divisor;
+            } else {
+                divisor++;
+            }
+        }
+        return factors.sort((a, b) => b - a); 
+    }
+
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    let masterCompressor;
+    let masterGain;
+
+    function initAudio() {
+        if (document.getElementById('toggle-sound').checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterCompressor = audioCtx.createDynamicsCompressor();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.3; 
+            masterCompressor.connect(masterGain);
+            masterGain.connect(audioCtx.destination);
+        }
+    }
+
+    // Plays a chord where every prime factor is a note in the scale
+    function playPrimeChord(factors) {
+        if (!audioCtx || !document.getElementById('toggle-sound').checked) return;
+        
+        const rootFreq = 110.0; // A2
+        
+        factors.forEach((p, index) => {
+            // Prevent ear destruction if a number has 10 factors (like 128)
+            if (index > 5) return; 
+
+            // Map the prime number to a musical interval
+            // Primes naturally scatter across the scale creating alien chords
+            const interval = (p * 2) % 15; 
+            const freq = rootFreq * Math.pow(2, interval / 12);
+
+            const osc = audioCtx.createOscillator();
+            const noteGain = audioCtx.createGain();
+            
+            osc.type = 'sine'; // Smooth glass-like sound
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            
+            osc.connect(noteGain);
+            noteGain.connect(masterCompressor);
+
+            noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            noteGain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.05);
+            noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 1.5);
+        });
+    }
+
+    // --- STATE & UI ---
+    const canvas = document.getElementById('fractalCanvas');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const cx = width / 2;
+    const cy = height / 2;
+    
+    const slider = document.getElementById('number-slider');
+    const readout = document.getElementById('math-readout');
+    
+    let currentNumber = 12;
+    let currentFactors = [3, 2, 2];
+    let time = 0; // Animation driver
+
+    function updateNumber(num) {
+        if (num < 1 || num > 1000) return;
+        currentNumber = num;
+        slider.value = num;
+        currentFactors = getPrimeFactors(num);
+        
+        // Update the Equation Readout with synesthetic colors!
+        let eqHTML = `<span style="color: #fff;">${num} = </span>`;
+        if (currentFactors.length === 0) {
+            eqHTML += `<span style="color: #888;">1</span>`;
+        } else if (currentFactors.length === 1) {
+            const p = currentFactors[0];
+            eqHTML += `<span style="color: ${getPrimeColor(p)};">${p} (PRIME)</span>`;
+        } else {
+            const coloredFactors = currentFactors.map(p => 
+                `<span style="color: ${getPrimeColor(p)};">${p}</span>`
+            );
+            eqHTML += coloredFactors.join('<span style="color: #555;"> × </span>');
+        }
+        readout.innerHTML = eqHTML;
+
+        playPrimeChord(currentFactors);
+    }
+
+    function handleSliderChange() {
+        updateNumber(parseInt(slider.value));
+    }
+
+    function stepNumber(dir) {
+        updateNumber(currentNumber + dir);
+    }
+
+    // --- FRACTAL DRAWING ALGORITHM ---
+    function drawFractalNode(x, y, radius, depth, globalAngle) {
+        // Base Case: We ran out of prime factors. Draw the glowing dot!
+        if (depth >= currentFactors.length) {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff";
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = "#fff";
+            ctx.fill();
+            ctx.shadowBlur = 0; // reset
+            return;
+        }
+
+        const p = currentFactors[depth];
+        const color = getPrimeColor(p);
+        
+        // The rotation spins in opposite directions as we go deeper into the fractal
+        const spinDirection = depth % 2 === 0 ? 1 : -1;
+        // Speeds up the deeper it goes
+        const localSpin = time * 0.02 * (depth + 1) * spinDirection; 
+        const totalAngle = globalAngle + localSpin;
+
+        // Calculate the positions for this Prime's polygon
+        const points = [];
+        for (let i = 0; i < p; i++) {
+            const angle = totalAngle + (Math.PI * 2 * i) / p;
+            points.push({
+                x: x + Math.cos(angle) * radius,
+                y: y + Math.sin(angle) * radius
+            });
+        }
+
+        // 1. Draw the geometric connections (The Polygon/Lines)
+        if (p > 1) {
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            if (p > 2) ctx.closePath(); // Close shapes like triangles and squares
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = Math.max(1, 4 - depth); // Thinner lines for inner details
+            
+            // Add a slight glow to the macro shapes
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = color;
+            ctx.globalAlpha = 0.6;
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+            ctx.shadowBlur = 0;
+        }
+
+        // 2. Recursion: Draw the next inner shape at every single corner we just calculated!
+        // We shrink the radius dynamically so massive primes don't overlap into a mess
+        let scaleFactor = 0.45;
+        if (p > 4) scaleFactor = 2.0 / p; // Shrink fast for big numbers like 17
+        
+        for (let i = 0; i < p; i++) {
+            drawFractalNode(points[i].x, points[i].y, radius * scaleFactor, depth + 1, totalAngle);
+        }
+    }
+
+    // --- ANIMATION LOOP ---
+    function animate() {
+        // Clear frame
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        if (currentNumber === 1) {
+            // Draw a single quiet dot for the number 1
+            ctx.beginPath();
+            ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+            ctx.fillStyle = "#888";
+            ctx.fill();
+        } else {
+            // Start the recursive fractal drawing from the exact center
+            // Initial radius is 300 to fit inside the 800x800 canvas
+            drawFractalNode(cx, cy, 280, 0, 0);
+        }
+
+        time++;
+        requestAnimationFrame(animate);
+    }
+
+    // Initialize
+    updateNumber(12); // Start with 12 (a beautiful 3x2x2)
+    animate();
+
+</script>
+</body>
+</html>

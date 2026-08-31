@@ -240,15 +240,18 @@
         return fullWords.reverse().join(", ");
     }
 
-    // --- TEXT TO SPEECH (SEQUENTIAL ENGINE) ---
+    // --- TEXT TO SPEECH (BULLETPROOF SEQUENTIAL ENGINE) ---
     let availableVoices = [];
     let chunksToSpeak = [];
     let currentChunkIndex = 0;
 
-    // Load voices safely
-    window.speechSynthesis.onvoiceschanged = () => {
-        availableVoices = window.speechSynthesis.getVoices();
-    };
+    // Force aggressive voice loading
+    function loadVoices() {
+        let voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) availableVoices = voices;
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices(); // Try immediately just in case
 
     function sayNumberOutLoud() {
         if (!('speechSynthesis' in window)) {
@@ -266,46 +269,56 @@
         chunksToSpeak = textToRead.split(', ');
         currentChunkIndex = 0;
 
-        if (availableVoices.length === 0) {
-            availableVoices = window.speechSynthesis.getVoices();
-        }
-
         statusText.innerText = "Speaking...";
         statusText.style.color = "#fff";
 
-        // 3. Kick off the sequence
-        speakNextChunk();
+        // 3. Delay slightly before starting to avoid Chrome's cancel() bug
+        setTimeout(speakNextChunk, 100);
     }
 
     function speakNextChunk() {
-        // Base case: We finished the array!
         if (currentChunkIndex >= chunksToSpeak.length) {
             document.getElementById('speak-status').innerText = "Click to read";
             return; 
         }
 
+        // Failsafe voice check
+        if (availableVoices.length === 0) {
+            loadVoices();
+        }
+
         const chunkText = chunksToSpeak[currentChunkIndex];
         let utterance = new SpeechSynthesisUtterance(chunkText);
         
-        utterance.lang = 'en-US';
-        const engVoice = availableVoices.find(v => v.lang.startsWith('en'));
-        if (engVoice) utterance.voice = engVoice;
+        // AGGRESSIVE VOICE ASSIGNMENT to prevent 'voice: null' crashes
+        if (availableVoices.length > 0) {
+            // Look for English first
+            let voiceToUse = availableVoices.find(v => v.lang.toLowerCase().includes('en'));
+            // If no English voice is found, literally just grab the first voice that exists
+            if (!voiceToUse) {
+                voiceToUse = availableVoices[0];
+            }
+            utterance.voice = voiceToUse;
+        }
 
         utterance.rate = 0.85; 
         
-        // When this chunk finishes, wait 50ms and trigger the next one!
         utterance.onend = () => {
             currentChunkIndex++;
-            setTimeout(speakNextChunk, 50); 
+            setTimeout(speakNextChunk, 50); // Small breath between chunks
         };
 
         utterance.onerror = (event) => {
-            console.error("Speech error:", event);
+            console.error("Speech error on chunk:", event);
             document.getElementById('speak-status').innerText = "Error: Sequence crashed.";
             document.getElementById('speak-status').style.color = "#ff5252";
+            
+            // Try to keep going even if one chunk failed
+            currentChunkIndex++;
+            setTimeout(speakNextChunk, 50);
         };
 
-        // Anti-Garbage Collection Hack: Bind it to the global window object
+        // Anti-Garbage Collection Hack
         window.activeUtterance = utterance; 
 
         window.speechSynthesis.speak(utterance);

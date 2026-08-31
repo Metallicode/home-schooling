@@ -152,7 +152,7 @@
 
 <script>
     let currentNumberString = "0";
-    const MAX_DIGITS = 105; // Maximum length the dictionary supports
+    const MAX_DIGITS = 105; 
 
     // --- MAGNITUDE DICTIONARY ---
     const magnitudeNames = [
@@ -174,33 +174,24 @@
     // --- LOGIC ---
     function addDigit(digit) {
         if (currentNumberString.length >= MAX_DIGITS) return;
-        
-        // Prevent leading zeros
-        if (currentNumberString === "0") {
-            currentNumberString = digit;
-        } else {
-            currentNumberString += digit;
-        }
+        if (currentNumberString === "0") currentNumberString = digit;
+        else currentNumberString += digit;
         updateDisplay();
     }
 
     function backspace() {
-        if (currentNumberString.length > 1) {
-            currentNumberString = currentNumberString.slice(0, -1);
-        } else {
-            currentNumberString = "0";
-        }
+        if (currentNumberString.length > 1) currentNumberString = currentNumberString.slice(0, -1);
+        else currentNumberString = "0";
         updateDisplay();
     }
 
     function clearAll() {
         currentNumberString = "0";
-        window.speechSynthesis.cancel(); // Stop speaking if cleared
+        window.speechSynthesis.cancel(); 
         document.getElementById('speak-status').innerText = "Click to read";
         updateDisplay();
     }
 
-    // Translates 1 to 3 digits into English words (e.g. "904" -> "Nine Hundred Four")
     function chunkToWords(chunkStr) {
         let num = parseInt(chunkStr, 10);
         if (num === 0) return "";
@@ -210,9 +201,7 @@
         let tens = Math.floor((num % 100) / 10);
         let ones = num % 10;
 
-        if (hundreds > 0) {
-            words.push(onesWords[hundreds] + " Hundred");
-        }
+        if (hundreds > 0) words.push(onesWords[hundreds] + " Hundred");
         
         if (tens === 1) {
             words.push(teensWords[ones]);
@@ -224,14 +213,12 @@
         return words.join(" ");
     }
 
-    // Breaks the massive string into chunks and appends Millions, Billions, etc.
     function getFullNumberName(numStr) {
         if (numStr === "0") return "Zero";
 
         let chunks = [];
         let reversedStr = numStr.split('').reverse().join('');
         
-        // Split into groups of 3
         for (let i = 0; i < reversedStr.length; i += 3) {
             let chunk = reversedStr.substring(i, i + 3).split('').reverse().join('');
             chunks.push(chunk);
@@ -245,22 +232,20 @@
             
             if (words !== "") {
                 let magnitude = magnitudeNames[i];
-                if (magnitude) {
-                    fullWords.push(words + " " + magnitude);
-                } else {
-                    fullWords.push(words);
-                }
+                if (magnitude) fullWords.push(words + " " + magnitude);
+                else fullWords.push(words);
             }
         }
         
         return fullWords.reverse().join(", ");
     }
 
-// --- TEXT TO SPEECH (BULLETPROOFED) ---
-    let utteranceQueue = []; 
+    // --- TEXT TO SPEECH (SEQUENTIAL ENGINE) ---
     let availableVoices = [];
+    let chunksToSpeak = [];
+    let currentChunkIndex = 0;
 
-    // Force the browser to load voices into memory
+    // Load voices safely
     window.speechSynthesis.onvoiceschanged = () => {
         availableVoices = window.speechSynthesis.getVoices();
     };
@@ -271,81 +256,80 @@
             return;
         }
 
-        const textToRead = getFullNumberName(currentNumberString);
         const statusText = document.getElementById('speak-status');
         
+        // 1. Hard stop any current talking
         window.speechSynthesis.cancel();
-        utteranceQueue = [];
 
-        const chunks = textToRead.split(', ');
-        let chunksFinished = 0;
+        // 2. Prepare the sequence array
+        const textToRead = getFullNumberName(currentNumberString);
+        chunksToSpeak = textToRead.split(', ');
+        currentChunkIndex = 0;
 
-        statusText.innerText = "Speaking...";
-        statusText.style.color = "#fff";
-
-        // Backup voice fetch if the event listener didn't fire in time
         if (availableVoices.length === 0) {
             availableVoices = window.speechSynthesis.getVoices();
         }
 
-        chunks.forEach((chunk) => {
-            let utterance = new SpeechSynthesisUtterance(chunk);
-            
-            // THE FIX: Explicitly tell the browser what language to use
-            utterance.lang = 'en-US'; 
-            
-            // THE FIX: Explicitly assign a voice so it isn't 'null'
-            const engVoice = availableVoices.find(v => v.lang.startsWith('en'));
-            if (engVoice) {
-                utterance.voice = engVoice;
-            }
+        statusText.innerText = "Speaking...";
+        statusText.style.color = "#fff";
 
-            utterance.rate = 0.85; 
-            utterance.pitch = 1.1; 
-            
-            utterance.onend = () => {
-                chunksFinished++;
-                if (chunksFinished === chunks.length) {
-                    statusText.innerText = "Click to read";
-                }
-            };
+        // 3. Kick off the sequence
+        speakNextChunk();
+    }
 
-            utterance.onerror = (event) => {
-                console.error("Speech error:", event);
-                statusText.innerText = "Error: Browser voice engine crashed";
-                statusText.style.color = "#ff5252";
-            };
+    function speakNextChunk() {
+        // Base case: We finished the array!
+        if (currentChunkIndex >= chunksToSpeak.length) {
+            document.getElementById('speak-status').innerText = "Click to read";
+            return; 
+        }
 
-            utteranceQueue.push(utterance);
-            window.speechSynthesis.speak(utterance);
-        });
+        const chunkText = chunksToSpeak[currentChunkIndex];
+        let utterance = new SpeechSynthesisUtterance(chunkText);
+        
+        utterance.lang = 'en-US';
+        const engVoice = availableVoices.find(v => v.lang.startsWith('en'));
+        if (engVoice) utterance.voice = engVoice;
+
+        utterance.rate = 0.85; 
+        
+        // When this chunk finishes, wait 50ms and trigger the next one!
+        utterance.onend = () => {
+            currentChunkIndex++;
+            setTimeout(speakNextChunk, 50); 
+        };
+
+        utterance.onerror = (event) => {
+            console.error("Speech error:", event);
+            document.getElementById('speak-status').innerText = "Error: Sequence crashed.";
+            document.getElementById('speak-status').style.color = "#ff5252";
+        };
+
+        // Anti-Garbage Collection Hack: Bind it to the global window object
+        window.activeUtterance = utterance; 
+
+        window.speechSynthesis.speak(utterance);
     }
 
     // --- RENDER ---
     function updateDisplay() {
-        // 1. Update the Words
         document.getElementById('name-display').innerText = getFullNumberName(currentNumberString);
-
-        // 2. Update the Digits visually
         const displayDiv = document.getElementById('number-display');
         displayDiv.innerHTML = ''; 
 
-        // Split into chunks of 3 from the right for commas
         let reversedStr = currentNumberString.split('').reverse().join('');
         let chunks = [];
         for (let i = 0; i < reversedStr.length; i += 3) {
             chunks.push(reversedStr.substring(i, i + 3).split('').reverse().join(''));
         }
-        chunks.reverse(); // Put back in left-to-right order
+        chunks.reverse(); 
 
         for (let i = 0; i < chunks.length; i++) {
-            // Add the chunk of numbers
             const block = document.createElement('span');
             block.className = 'digit-block';
             block.innerText = chunks[i];
             displayDiv.appendChild(block);
 
-            // Add comma if not the last chunk
             if (i < chunks.length - 1) {
                 const comma = document.createElement('span');
                 comma.className = 'comma';
@@ -355,9 +339,7 @@
         }
     }
 
-    // Initial render
     updateDisplay();
-
 </script>
 </body>
 </html>

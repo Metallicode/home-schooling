@@ -256,8 +256,9 @@
         return fullWords.reverse().join(", ");
     }
 
-// --- TEXT TO SPEECH ---
-    let activeUtterance = null; // Store globally to prevent Chrome bug
+// --- TEXT TO SPEECH (CHUNKED) ---
+    // Store utterances in an array so Chrome's garbage collector doesn't delete them
+    let utteranceQueue = []; 
 
     function sayNumberOutLoud() {
         if (!('speechSynthesis' in window)) {
@@ -266,33 +267,45 @@
         }
 
         const textToRead = getFullNumberName(currentNumberString);
-        
-        // Stop any current talking
-        window.speechSynthesis.cancel();
-
-        // Create the voice command and store it globally
-        activeUtterance = new SpeechSynthesisUtterance(textToRead);
-        activeUtterance.rate = 0.85; 
-        activeUtterance.pitch = 1.1; 
-        
         const statusText = document.getElementById('speak-status');
         
-        activeUtterance.onstart = () => {
-            statusText.innerText = "Speaking...";
-        };
-        
-        activeUtterance.onend = () => {
-            statusText.innerText = "Click to read";
-        };
+        // Stop any current talking and clear the queue
+        window.speechSynthesis.cancel();
+        utteranceQueue = [];
 
-        // Error handling just in case the browser blocks it
-        activeUtterance.onerror = (event) => {
-            console.error("Speech error:", event);
-            statusText.innerText = "Error: Browser blocked audio";
-            statusText.style.color = "#ff5252";
-        };
+        // Break the massive string into an array of smaller phrases (split by commas)
+        // e.g., ["Nine Hundred Billion", "Four Hundred Million", "Two"]
+        const chunks = textToRead.split(', ');
+        let chunksFinished = 0;
 
-        window.speechSynthesis.speak(activeUtterance);
+        statusText.innerText = "Speaking...";
+        statusText.style.color = "#fff";
+
+        chunks.forEach((chunk, index) => {
+            let utterance = new SpeechSynthesisUtterance(chunk);
+            utterance.rate = 0.85; 
+            utterance.pitch = 1.1; 
+            
+            // When the very last chunk finishes speaking, reset the UI
+            utterance.onend = () => {
+                chunksFinished++;
+                if (chunksFinished === chunks.length) {
+                    statusText.innerText = "Click to read";
+                }
+            };
+
+            utterance.onerror = (event) => {
+                console.error("Speech error on chunk:", event);
+                statusText.innerText = "Error: Browser choked on the math!";
+                statusText.style.color = "#ff5252";
+            };
+
+            // Save to our global array to prevent Chrome from deleting it mid-sentence
+            utteranceQueue.push(utterance);
+
+            // Add the chunk to the browser's vocal queue
+            window.speechSynthesis.speak(utterance);
+        });
     }
 
     // --- RENDER ---

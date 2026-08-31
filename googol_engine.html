@@ -256,9 +256,14 @@
         return fullWords.reverse().join(", ");
     }
 
-// --- TEXT TO SPEECH (CHUNKED) ---
-    // Store utterances in an array so Chrome's garbage collector doesn't delete them
+// --- TEXT TO SPEECH (BULLETPROOFED) ---
     let utteranceQueue = []; 
+    let availableVoices = [];
+
+    // Force the browser to load voices into memory
+    window.speechSynthesis.onvoiceschanged = () => {
+        availableVoices = window.speechSynthesis.getVoices();
+    };
 
     function sayNumberOutLoud() {
         if (!('speechSynthesis' in window)) {
@@ -269,24 +274,35 @@
         const textToRead = getFullNumberName(currentNumberString);
         const statusText = document.getElementById('speak-status');
         
-        // Stop any current talking and clear the queue
         window.speechSynthesis.cancel();
         utteranceQueue = [];
 
-        // Break the massive string into an array of smaller phrases (split by commas)
-        // e.g., ["Nine Hundred Billion", "Four Hundred Million", "Two"]
         const chunks = textToRead.split(', ');
         let chunksFinished = 0;
 
         statusText.innerText = "Speaking...";
         statusText.style.color = "#fff";
 
-        chunks.forEach((chunk, index) => {
+        // Backup voice fetch if the event listener didn't fire in time
+        if (availableVoices.length === 0) {
+            availableVoices = window.speechSynthesis.getVoices();
+        }
+
+        chunks.forEach((chunk) => {
             let utterance = new SpeechSynthesisUtterance(chunk);
+            
+            // THE FIX: Explicitly tell the browser what language to use
+            utterance.lang = 'en-US'; 
+            
+            // THE FIX: Explicitly assign a voice so it isn't 'null'
+            const engVoice = availableVoices.find(v => v.lang.startsWith('en'));
+            if (engVoice) {
+                utterance.voice = engVoice;
+            }
+
             utterance.rate = 0.85; 
             utterance.pitch = 1.1; 
             
-            // When the very last chunk finishes speaking, reset the UI
             utterance.onend = () => {
                 chunksFinished++;
                 if (chunksFinished === chunks.length) {
@@ -295,15 +311,12 @@
             };
 
             utterance.onerror = (event) => {
-                console.error("Speech error on chunk:", event);
-                statusText.innerText = "Error: Browser choked on the math!";
+                console.error("Speech error:", event);
+                statusText.innerText = "Error: Browser voice engine crashed";
                 statusText.style.color = "#ff5252";
             };
 
-            // Save to our global array to prevent Chrome from deleting it mid-sentence
             utteranceQueue.push(utterance);
-
-            // Add the chunk to the browser's vocal queue
             window.speechSynthesis.speak(utterance);
         });
     }

@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Quantum Conductor v4</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 0; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; min-height: 100vh;
+            overflow: hidden; 
+        }
+
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 10px 0 5px 0; z-index: 10;}
+        p { color: #b388ff; margin: 0 0 15px 0; z-index: 10; text-align: center;}
+
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(5, 5, 8, 0.9); z-index: 20; backdrop-filter: blur(5px);
+        }
+
+        .btn-start {
+            background: transparent; color: #00e5ff; border: 2px solid #00e5ff; border-radius: 15px;
+            padding: 15px 40px; font-size: 24px; font-family: inherit;
+            font-weight: bold; cursor: pointer; transition: all 0.2s; text-transform: uppercase;
+        }
+        .btn-start:hover { background: #00e5ff; color: #000; box-shadow: 0 0 40px rgba(0, 229, 255, 0.8); }
+
+        .video-container {
+            position: relative; width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .input_video { display: none; }
+        .output_canvas {
+            width: 100%; height: 100%; object-fit: cover;
+            transform: scaleX(-1); /* Mirror mode */
+        }
+
+        .hud-panel {
+            position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6);
+            padding: 15px; border-radius: 10px; border: 1px solid #333;
+            color: #fff; z-index: 10; display: flex; flex-direction: column; gap: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px;
+        }
+        .hud-status { color: #00e676; font-weight: bold; font-size: 16px; margin-bottom: 5px;}
+        .hud-modifier { color: #ffeb3b; }
+
+        select {
+            background: #111; color: #00e5ff; border: 1px solid #00e5ff; padding: 5px;
+            font-family: inherit; font-weight: bold; font-size: 14px; border-radius: 5px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="hud-panel">
+        <div class="hud-status" id="status">Waiting to Start...</div>
+        <div>
+            Scale: 
+            <select id="scale-selector" onchange="updateScale()">
+                <option value="pentatonic">Pentatonic (Dreamy)</option>
+                <option value="major">Major (Happy)</option>
+                <option value="minor">Harmonic Minor (Moody)</option>
+                <option value="wholetone">Whole Tone (Sci-Fi)</option>
+            </select>
+        </div>
+        <div>Left Pinch (Arp Speed): <span class="hud-modifier" id="mod-audio">MEDIUM</span></div>
+        <div>Right Pinch (Geometry): <span class="hud-modifier" id="mod-visual">MANDALA</span></div>
+    </div>
+
+    <div class="video-container">
+        <video class="input_video"></video>
+        <canvas class="output_canvas" id="canvas" width="1280" height="720"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <h1 style="font-size: 3rem;">✨ The Quantum Harp ✨</h1>
+        <p style="font-size: 1.2rem;">Cross the glowing strings to pluck notes. Touch hands together to Arpeggiate.</p>
+        <button class="btn-start" onclick="initializeSystem()">Start AI Engine</button>
+    </div>
+
+<script>
+    let videoElement, canvasElement, canvasCtx, statusText, uiLayer;
+    let modAudioText, modVisualText;
+
+    document.addEventListener("DOMContentLoaded", () => {
+        videoElement = document.querySelector('.input_video');
+        canvasElement = document.querySelector('.output_canvas');
+        canvasCtx = canvasElement.getContext('2d');
+        statusText = document.getElementById('status');
+        uiLayer = document.getElementById('ui-layer');
+        modAudioText = document.getElementById('mod-audio');
+        modVisualText = document.getElementById('mod-visual');
+    });
+
+    // --- SCALES & AUDIO ENGINE ---
+    let audioCtx, masterCompressor;
+    
+    // Semitone offsets for different musical scales
+    const scaleBlueprints = {
+        'pentatonic': [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24, 26, 28, 31, 33],
+        'major':      [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17, 19, 21, 23, 24],
+        'minor':      [0, 2, 3, 5, 7, 8, 11, 12, 14, 15, 17, 19, 20, 23, 24],
+        'wholetone':  [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28]
+    };
+    
+    let currentScaleFrequencies = [];
+    
+    function updateScale() {
+        const type = document.getElementById('scale-selector').value;
+        const blueprint = scaleBlueprints[type];
+        const baseFreq = 130.81; // C3 (Bass note)
+        
+        currentScaleFrequencies = blueprint.map(semitone => {
+            return baseFreq * Math.pow(2, semitone / 12);
+        });
+    }
+
+    function initAudio() {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        masterCompressor = audioCtx.createDynamicsCompressor();
+        masterCompressor.connect(audioCtx.destination);
+        updateScale();
+    }
+
+    // TRUE POLYPHONY: Spawns a brand new fading sound wave for every pluck
+    function pluckString(freq, pan = 0) {
+        if (!audioCtx) return;
+        
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        let panner = audioCtx.createStereoPanner(); // Pan left/right based on hand!
+        
+        osc.type = 'sine'; // Pure harp tone
+        osc.frequency.value = freq;
+        panner.pan.value = pan;
+        
+        // Envelope: Instant attack, smooth decay
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
+        
+        osc.connect(gain);
+        gain.connect(panner);
+        panner.connect(masterCompressor);
+        
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + 1.5); // Garbage collect after it fades
+    }
+
+
+    // --- STATE & MODIFIERS ---
+    const visualTypes = ['mandala', 'polygon', 'star'];
+    let visualIndex = 0;
+
+    const arpSpeeds = [300, 150, 75]; // MS per bounce
+    const arpLabels = ['SLOW', 'MEDIUM', 'FAST'];
+    let arpIndex = 1;
+
+    let leftIsPinching = false;
+    let rightIsPinching = false;
+
+    // Track which "string" each hand is currently resting on
+    let lastLeftString = -1;
+    let lastRightString = -1;
+
+    // --- ARPEGGIATOR ENGINE (Clock Driven) ---
+    let arpTimer = null;
+    let arpStep = 0;
+    let isTouching = false;
+    let currentLeftFreq = 0;
+    let currentRightFreq = 0;
+
+    function restartArpEngine() {
+        if (arpTimer) clearInterval(arpTimer);
+        
+        arpTimer = setInterval(() => {
+            if (isTouching) {
+                // Bounce back and forth
+                if (arpStep === 0 && currentLeftFreq > 0) {
+                    pluckString(currentLeftFreq, -0.5); // Pan left
+                } else if (arpStep === 1 && currentRightFreq > 0) {
+                    pluckString(currentRightFreq, 0.5); // Pan right
+                }
+                arpStep = 1 - arpStep; // Toggle 0 and 1
+            } else {
+                arpStep = 0; // Reset when pulled apart
+            }
+        }, arpSpeeds[arpIndex]);
+    }
+
+    function updateArpSpeed() {
+        arpIndex = (arpIndex + 1) % arpSpeeds.length;
+        modAudioText.innerText = arpLabels[arpIndex];
+        restartArpEngine(); // Apply new speed
+    }
+
+    function updateVisualMode() {
+        visualIndex = (visualIndex + 1) % visualTypes.length;
+        modVisualText.innerText = visualTypes[visualIndex].toUpperCase();
+    }
+
+
+    // --- MATH & GEOMETRY ---
+    function getDistance(x1, y1, x2, y2) {
+        return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    }
+
+    function checkPinch(landmarks) {
+        const thumbX = landmarks[4].x * canvasElement.width;
+        const thumbY = landmarks[4].y * canvasElement.height;
+        const indexX = landmarks[8].x * canvasElement.width;
+        const indexY = landmarks[8].y * canvasElement.height;
+        return getDistance(thumbX, thumbY, indexX, indexY) < 40;
+    }
+
+    // Maps the Y-coordinate on the screen to an exact string index
+    function getStringIndex(yPos) {
+        const numStrings = currentScaleFrequencies.length;
+        const stringHeight = canvasElement.height / numStrings;
+        // Invert Y so high notes are at the top of the screen
+        let index = Math.floor((canvasElement.height - yPos) / stringHeight);
+        return Math.max(0, Math.min(numStrings - 1, index));
+    }
+
+    function drawVisualStrings(ctx) {
+        const numStrings = currentScaleFrequencies.length;
+        const stringHeight = canvasElement.height / numStrings;
+        
+        ctx.beginPath();
+        for(let i = 1; i <= numStrings; i++) {
+            const y = canvasElement.height - (i * stringHeight);
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvasElement.width, y);
+        }
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    }
+
+    function drawDynamicShape(ctx, centerX, centerY, radius, points, touching) {
+        if (points < 3) return; 
+        const timeRotation = performance.now() / 2000; 
+        const mode = visualTypes[visualIndex];
+        const drawColor = touching ? "#00e676" : "#ffeb3b";
+
+        ctx.beginPath();
+        for (let i = 0; i < points; i++) {
+            const angle = (Math.PI * 2 * i) / points;
+            const x = centerX + Math.cos(angle + timeRotation) * radius;
+            const y = centerY + Math.sin(angle + timeRotation) * radius;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        
+        ctx.strokeStyle = drawColor;
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = touching ? 30 : 15;
+        ctx.shadowColor = drawColor;
+        ctx.stroke();
+
+        if (mode === 'mandala' && points >= 5) {
+            ctx.beginPath();
+            for (let i = 0; i < points; i++) {
+                const angle = (Math.PI * 2 * i) / points;
+                const skip = Math.floor(points / 2); 
+                const targetAngle = (Math.PI * 2 * ((i + skip) % points)) / points;
+                ctx.moveTo(centerX + Math.cos(angle + timeRotation) * radius, centerY + Math.sin(angle + timeRotation) * radius);
+                ctx.lineTo(centerX + Math.cos(targetAngle + timeRotation) * radius, centerY + Math.sin(targetAngle + timeRotation) * radius);
+            }
+            ctx.strokeStyle = touching ? "rgba(0, 230, 118, 0.5)" : "rgba(255, 235, 59, 0.4)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        } else if (mode === 'star' && points >= 3) {
+            ctx.beginPath();
+            for (let i = 0; i < points; i++) {
+                const angle = (Math.PI * 2 * i) / points;
+                ctx.moveTo(centerX, centerY); 
+                ctx.lineTo(centerX + Math.cos(angle + timeRotation) * radius, centerY + Math.sin(angle + timeRotation) * radius);
+            }
+            ctx.strokeStyle = "rgba(0, 229, 255, 0.6)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+        ctx.shadowBlur = 0; 
+    }
+
+    // --- MAIN TRACKING LOOP ---
+    function onResults(results) {
+        // Clear frame with a faster fade to reduce visual clutter
+        canvasCtx.fillStyle = 'rgba(5, 5, 8, 0.4)'; 
+        canvasCtx.fillRect(0, 0, canvasElement.width, canvasElement.height);
+
+        drawVisualStrings(canvasCtx);
+
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+            
+            let handPositions = []; 
+
+            // 1. Process Hands, Draw Skeletons, Check Pinches
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const landmarks = results.multiHandLandmarks[i];
+                const indexX = landmarks[8].x * canvasElement.width;
+                const indexY = landmarks[8].y * canvasElement.height;
+                const isLeftHand = landmarks[9].x > 0.5; // Mirrored
+
+                handPositions.push({x: indexX, y: indexY, isLeft: isLeftHand});
+
+                const pinching = checkPinch(landmarks);
+                const color = pinching ? "#ffeb3b" : (isLeftHand ? '#00e5ff' : '#ff4081');
+
+                if (isLeftHand) {
+                    if (pinching && !leftIsPinching) updateArpSpeed();
+                    leftIsPinching = pinching;
+                } else {
+                    if (pinching && !rightIsPinching) updateVisualMode();
+                    rightIsPinching = pinching;
+                }
+                
+                canvasCtx.shadowBlur = pinching ? 20 : 5;
+                canvasCtx.shadowColor = color;
+                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: color, lineWidth: 2});
+                
+                for (let j = 0; j < landmarks.length; j++) {
+                    const x = landmarks[j].x * canvasElement.width;
+                    const y = landmarks[j].y * canvasElement.height;
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(x, y, 3, 0, 2 * Math.PI);
+                    canvasCtx.fillStyle = "#fff";
+                    canvasCtx.fill();
+                }
+                canvasCtx.shadowBlur = 0;
+            }
+
+            // Sort left-to-right on screen for consistency
+            handPositions.sort((a, b) => a.x - b.x);
+
+            if (handPositions.length === 1) {
+                // SINGLE HAND HARP
+                statusText.innerText = "Solo Harp Mode";
+                statusText.style.color = "#00e5ff";
+                isTouching = false;
+                
+                const pt = handPositions[0];
+                const stringIdx = getStringIndex(pt.y);
+                
+                // If crossed a string, PLUCK!
+                if (stringIdx !== lastLeftString) {
+                    pluckString(currentScaleFrequencies[stringIdx], 0);
+                    lastLeftString = stringIdx;
+                }
+
+            } else if (handPositions.length >= 2) {
+                // TWO HAND HARP / ARP
+                const leftPt = handPositions[0];
+                const rightPt = handPositions[1];
+
+                const distance = getDistance(leftPt.x, leftPt.y, rightPt.x, rightPt.y);
+                isTouching = distance < 80; 
+
+                // Update current target frequencies for the Arp engine
+                const leftIdx = getStringIndex(leftPt.y);
+                const rightIdx = getStringIndex(rightPt.y);
+                currentLeftFreq = currentScaleFrequencies[leftIdx];
+                currentRightFreq = currentScaleFrequencies[rightIdx];
+
+                if (isTouching) {
+                    statusText.innerText = "Arpeggiator Active!";
+                    statusText.style.color = "#00e676";
+                } else {
+                    statusText.innerText = "Dual Harp Active";
+                    statusText.style.color = "#ffeb3b";
+                    
+                    // Independent Plucking when apart
+                    if (leftIdx !== lastLeftString) {
+                        pluckString(currentLeftFreq, -0.7); // Hard pan left
+                        lastLeftString = leftIdx;
+                    }
+                    if (rightIdx !== lastRightString) {
+                        pluckString(currentRightFreq, 0.7); // Hard pan right
+                        lastRightString = rightIdx;
+                    }
+                }
+
+                // Visuals
+                const midX = (leftPt.x + rightPt.x) / 2;
+                const midY = (leftPt.y + rightPt.y) / 2;
+
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(leftPt.x, leftPt.y);
+                canvasCtx.lineTo(rightPt.x, rightPt.y);
+                canvasCtx.strokeStyle = isTouching ? "rgba(0, 230, 118, 0.8)" : "rgba(255, 255, 255, 0.3)";
+                canvasCtx.lineWidth = isTouching ? 4 : 2;
+                canvasCtx.stroke();
+
+                const maxDistance = canvasElement.width * 0.7; 
+                const normalizedDistance = Math.min(Math.max(distance / maxDistance, 0), 1); 
+                const geometryPoints = Math.floor(3 + (normalizedDistance * 9)); 
+                drawDynamicShape(canvasCtx, midX, midY, distance / 2, geometryPoints, isTouching);
+            }
+
+        } else {
+            statusText.innerText = "Raise your hands!";
+            statusText.style.color = "#ff5252";
+            isTouching = false;
+        }
+    }
+
+    // --- INITIALIZATION ---
+    async function initializeSystem() {
+        uiLayer.style.display = 'none';
+        statusText.innerText = "Checking Hardware...";
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            statusText.innerText = "ERROR: Camera blocked! Run on localhost or HTTPS.";
+            statusText.style.color = "#ff5252";
+            return;
+        }
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => track.stop());
+        } catch (err) {
+            statusText.innerText = "ERROR: Camera not found or permission denied.";
+            statusText.style.color = "#ff5252";
+            return;
+        }
+
+        statusText.innerText = "Booting AI...";
+        
+        initAudio(); 
+        restartArpEngine(); // Boot the independent clock
+
+        const hands = new Hands({locateFile: (file) => {
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+        }});
+        
+        hands.setOptions({
+            maxNumHands: 2, 
+            modelComplexity: 1, 
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+        });
+        
+        hands.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => {
+                await hands.send({image: videoElement});
+            },
+            width: 1280,
+            height: 720
+        });
+        
+        camera.start();
+    }
+</script>
+</body>
+</html>

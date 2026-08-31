@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Infinite Number Reader</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 1000px; 
+            gap: 20px; justify-content: center; align-items: center;
+        }
+
+        /* --- THE WRITTEN NAME DISPLAY --- */
+        .name-panel {
+            background: #111; padding: 20px 30px; border-radius: 15px; 
+            border: 2px solid #333; box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+            width: 100%; box-sizing: border-box; display: flex; flex-direction: column;
+            align-items: center; gap: 10px; min-height: 120px; justify-content: center;
+        }
+        
+        .name-label { color: #888; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;}
+        .name-value { 
+            font-size: 24px; font-weight: bold; color: #ffeb3b; 
+            text-shadow: 0 0 15px rgba(255, 235, 59, 0.4); text-transform: capitalize;
+            line-height: 1.4;
+        }
+
+        /* --- THE DIGIT DISPLAY --- */
+        .number-display {
+            display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start;
+            background: #0a0a0d; border-radius: 15px; padding: 20px; border: 1px solid #222;
+            width: 100%; min-height: 150px; box-sizing: border-box;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); gap: 4px; line-height: 1.2;
+        }
+
+        .digit-block {
+            font-size: 42px; font-weight: bold; color: #00e5ff;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+            display: inline-block;
+        }
+        .comma {
+            font-size: 42px; font-weight: bold; color: #ff4081;
+            text-shadow: 0 0 10px rgba(255, 64, 129, 0.5);
+            margin-right: 8px;
+        }
+
+        /* --- CONTROLS --- */
+        .controls-wrapper {
+            display: flex; gap: 20px; width: 100%; flex-wrap: wrap; justify-content: center;
+        }
+
+        .keypad {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+            background: #111; padding: 20px; border-radius: 15px; border: 1px solid #222;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 350px; flex: 1;
+        }
+
+        .btn {
+            background: #222; color: #fff; border: 2px solid #444; border-radius: 10px;
+            padding: 15px; font-size: 28px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.1s;
+        }
+        .btn:hover { background: #333; transform: translateY(-2px); }
+        .btn:active { transform: translateY(2px); }
+
+        .btn-zero { grid-column: span 3; color: #ff4081; border-color: #ff4081; }
+        .btn-action { color: #ff5252; border-color: #ff5252; font-size: 20px; }
+
+        .action-panel {
+            display: flex; flex-direction: column; gap: 15px; flex: 1; min-width: 250px;
+        }
+
+        .btn-speak {
+            background: #00e5ff; color: #000; border: none; border-radius: 15px;
+            padding: 20px; font-size: 24px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.2s; box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .btn-speak:hover { background: #fff; box-shadow: 0 0 30px #fff; transform: translateY(-3px);}
+        .btn-speak:active { transform: translateY(2px); }
+
+        .btn-speak-sub { font-size: 14px; opacity: 0.8; margin-top: 5px; font-weight: normal; text-transform: uppercase; letter-spacing: 1px;}
+
+        .home-link {
+            display: inline-block; margin-top: 25px; color: #888; text-decoration: none;
+            font-size: 14px; border: 1px solid #333; padding: 8px 18px; border-radius: 50px;
+            transition: all 0.2s ease;
+        }
+        .home-link:hover { color: #00e5ff; border-color: #00e5ff; }
+    </style>
+</head>
+<body>
+
+    <h1>🎙️ The Number Reader 🎙️</h1>
+    <p>Type any massive number. The engine will figure out how to say it.</p>
+
+    <div class="dashboard">
+        
+        <!-- WRITTEN WORDS -->
+        <div class="name-panel">
+            <div class="name-label">Translation</div>
+            <div class="name-value" id="name-display">Zero</div>
+        </div>
+
+        <!-- DIGITS -->
+        <div class="number-display" id="number-display">
+            <span class="digit-block">0</span>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="controls-wrapper">
+            <!-- Keypad -->
+            <div class="keypad">
+                <button class="btn" onclick="addDigit('1')">1</button>
+                <button class="btn" onclick="addDigit('2')">2</button>
+                <button class="btn" onclick="addDigit('3')">3</button>
+                <button class="btn" onclick="addDigit('4')">4</button>
+                <button class="btn" onclick="addDigit('5')">5</button>
+                <button class="btn" onclick="addDigit('6')">6</button>
+                <button class="btn" onclick="addDigit('7')">7</button>
+                <button class="btn" onclick="addDigit('8')">8</button>
+                <button class="btn" onclick="addDigit('9')">9</button>
+                <button class="btn btn-zero" onclick="addDigit('0')">0</button>
+            </div>
+
+            <!-- Actions -->
+            <div class="action-panel">
+                <button class="btn-speak" onclick="sayNumberOutLoud()">
+                    📢 SAY IT LOUD
+                    <span class="btn-speak-sub" id="speak-status">Click to read</span>
+                </button>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-action" style="flex: 1;" onclick="backspace()">⌫ DEL</button>
+                    <button class="btn btn-action" style="flex: 1;" onclick="clearAll()">AC CLEAR</button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <a class="home-link" href="index.html">⬅ Back to Home</a>
+
+<script>
+    let currentNumberString = "0";
+    const MAX_DIGITS = 105; // Maximum length the dictionary supports
+
+    // --- MAGNITUDE DICTIONARY ---
+    const magnitudeNames = [
+        "", "Thousand", "Million", "Billion", "Trillion", "Quadrillion", 
+        "Quintillion", "Sextillion", "Septillion", "Octillion", "Nonillion", 
+        "Decillion", "Undecillion", "Duodecillion", "Tredecillion", 
+        "Quattuordecillion", "Quindecillion", "Sexdecillion", "Septendecillion", 
+        "Octodecillion", "Novemdecillion", "Vigintillion", "Unvigintillion", 
+        "Duovigintillion", "Trevigintillion", "Quattuorvigintillion", 
+        "Quinvigintillion", "Sexvigintillion", "Septenvigintillion", 
+        "Octovigintillion", "Novemvigintillion", "Trigintillion", "Untrigintillion", 
+        "Duotrigintillion", "Trestrigintillion"
+    ];
+
+    const onesWords = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+    const teensWords = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+    const tensWords = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+    // --- LOGIC ---
+    function addDigit(digit) {
+        if (currentNumberString.length >= MAX_DIGITS) return;
+        
+        // Prevent leading zeros
+        if (currentNumberString === "0") {
+            currentNumberString = digit;
+        } else {
+            currentNumberString += digit;
+        }
+        updateDisplay();
+    }
+
+    function backspace() {
+        if (currentNumberString.length > 1) {
+            currentNumberString = currentNumberString.slice(0, -1);
+        } else {
+            currentNumberString = "0";
+        }
+        updateDisplay();
+    }
+
+    function clearAll() {
+        currentNumberString = "0";
+        window.speechSynthesis.cancel(); // Stop speaking if cleared
+        document.getElementById('speak-status').innerText = "Click to read";
+        updateDisplay();
+    }
+
+    // Translates 1 to 3 digits into English words (e.g. "904" -> "Nine Hundred Four")
+    function chunkToWords(chunkStr) {
+        let num = parseInt(chunkStr, 10);
+        if (num === 0) return "";
+        
+        let words = [];
+        let hundreds = Math.floor(num / 100);
+        let tens = Math.floor((num % 100) / 10);
+        let ones = num % 10;
+
+        if (hundreds > 0) {
+            words.push(onesWords[hundreds] + " Hundred");
+        }
+        
+        if (tens === 1) {
+            words.push(teensWords[ones]);
+        } else {
+            if (tens > 1) words.push(tensWords[tens]);
+            if (ones > 0) words.push(onesWords[ones]);
+        }
+        
+        return words.join(" ");
+    }
+
+    // Breaks the massive string into chunks and appends Millions, Billions, etc.
+    function getFullNumberName(numStr) {
+        if (numStr === "0") return "Zero";
+
+        let chunks = [];
+        let reversedStr = numStr.split('').reverse().join('');
+        
+        // Split into groups of 3
+        for (let i = 0; i < reversedStr.length; i += 3) {
+            let chunk = reversedStr.substring(i, i + 3).split('').reverse().join('');
+            chunks.push(chunk);
+        }
+
+        let fullWords = [];
+        
+        for (let i = 0; i < chunks.length; i++) {
+            let chunkStr = chunks[i];
+            let words = chunkToWords(chunkStr);
+            
+            if (words !== "") {
+                let magnitude = magnitudeNames[i];
+                if (magnitude) {
+                    fullWords.push(words + " " + magnitude);
+                } else {
+                    fullWords.push(words);
+                }
+            }
+        }
+        
+        return fullWords.reverse().join(", ");
+    }
+
+    // --- TEXT TO SPEECH ---
+    function sayNumberOutLoud() {
+        if (!('speechSynthesis' in window)) {
+            alert("Sorry, your browser does not support Text-to-Speech.");
+            return;
+        }
+
+        const textToRead = getFullNumberName(currentNumberString);
+        
+        // Stop any current talking
+        window.speechSynthesis.cancel();
+
+        const utterance = new SpeechSynthesisUtterance(textToRead);
+        utterance.rate = 0.85; // Read slightly slower so she can hear the magnitudes
+        utterance.pitch = 1.1; 
+        
+        const statusText = document.getElementById('speak-status');
+        
+        utterance.onstart = () => {
+            statusText.innerText = "Speaking...";
+        };
+        
+        utterance.onend = () => {
+            statusText.innerText = "Click to read";
+        };
+
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // --- RENDER ---
+    function updateDisplay() {
+        // 1. Update the Words
+        document.getElementById('name-display').innerText = getFullNumberName(currentNumberString);
+
+        // 2. Update the Digits visually
+        const displayDiv = document.getElementById('number-display');
+        displayDiv.innerHTML = ''; 
+
+        // Split into chunks of 3 from the right for commas
+        let reversedStr = currentNumberString.split('').reverse().join('');
+        let chunks = [];
+        for (let i = 0; i < reversedStr.length; i += 3) {
+            chunks.push(reversedStr.substring(i, i + 3).split('').reverse().join(''));
+        }
+        chunks.reverse(); // Put back in left-to-right order
+
+        for (let i = 0; i < chunks.length; i++) {
+            // Add the chunk of numbers
+            const block = document.createElement('span');
+            block.className = 'digit-block';
+            block.innerText = chunks[i];
+            displayDiv.appendChild(block);
+
+            // Add comma if not the last chunk
+            if (i < chunks.length - 1) {
+                const comma = document.createElement('span');
+                comma.className = 'comma';
+                comma.innerText = ',';
+                displayDiv.appendChild(comma);
+            }
+        }
+    }
+
+    // Initial render
+    updateDisplay();
+
+</script>
+</body>
+</html>

@@ -256,7 +256,9 @@
         return fullWords.reverse().join(", ");
     }
 
-    // --- TEXT TO SPEECH ---
+// --- TEXT TO SPEECH ---
+    let activeUtterance = null; // Store globally to prevent Chrome bug
+
     function sayNumberOutLoud() {
         if (!('speechSynthesis' in window)) {
             alert("Sorry, your browser does not support Text-to-Speech.");
@@ -268,21 +270,29 @@
         // Stop any current talking
         window.speechSynthesis.cancel();
 
-        const utterance = new SpeechSynthesisUtterance(textToRead);
-        utterance.rate = 0.85; // Read slightly slower so she can hear the magnitudes
-        utterance.pitch = 1.1; 
+        // Create the voice command and store it globally
+        activeUtterance = new SpeechSynthesisUtterance(textToRead);
+        activeUtterance.rate = 0.85; 
+        activeUtterance.pitch = 1.1; 
         
         const statusText = document.getElementById('speak-status');
         
-        utterance.onstart = () => {
+        activeUtterance.onstart = () => {
             statusText.innerText = "Speaking...";
         };
         
-        utterance.onend = () => {
+        activeUtterance.onend = () => {
             statusText.innerText = "Click to read";
         };
 
-        window.speechSynthesis.speak(utterance);
+        // Error handling just in case the browser blocks it
+        activeUtterance.onerror = (event) => {
+            console.error("Speech error:", event);
+            statusText.innerText = "Error: Browser blocked audio";
+            statusText.style.color = "#ff5252";
+        };
+
+        window.speechSynthesis.speak(activeUtterance);
     }
 
     // --- RENDER ---

@@ -187,7 +187,8 @@
 
     function clearAll() {
         currentNumberString = "0";
-        window.speechSynthesis.cancel(); 
+        if (currentAudio) currentAudio.pause();
+        sequencePlaying = false;
         document.getElementById('speak-status').innerText = "Click to read";
         updateDisplay();
     }
@@ -195,21 +196,21 @@
     function chunkToWords(chunkStr) {
         let num = parseInt(chunkStr, 10);
         if (num === 0) return "";
-        
+
         let words = [];
         let hundreds = Math.floor(num / 100);
         let tens = Math.floor((num % 100) / 10);
         let ones = num % 10;
 
         if (hundreds > 0) words.push(onesWords[hundreds] + " Hundred");
-        
+
         if (tens === 1) {
             words.push(teensWords[ones]);
         } else {
             if (tens > 1) words.push(tensWords[tens]);
             if (ones > 0) words.push(onesWords[ones]);
         }
-        
+
         return words.join(" ");
     }
 
@@ -218,110 +219,120 @@
 
         let chunks = [];
         let reversedStr = numStr.split('').reverse().join('');
-        
+
         for (let i = 0; i < reversedStr.length; i += 3) {
             let chunk = reversedStr.substring(i, i + 3).split('').reverse().join('');
             chunks.push(chunk);
         }
 
         let fullWords = [];
-        
+
         for (let i = 0; i < chunks.length; i++) {
             let chunkStr = chunks[i];
             let words = chunkToWords(chunkStr);
-            
+
             if (words !== "") {
                 let magnitude = magnitudeNames[i];
                 if (magnitude) fullWords.push(words + " " + magnitude);
                 else fullWords.push(words);
             }
         }
-        
+
         return fullWords.reverse().join(", ");
     }
 
-    // --- TEXT TO SPEECH (BULLETPROOF SEQUENTIAL ENGINE) ---
-    let availableVoices = [];
-    let chunksToSpeak = [];
-    let currentChunkIndex = 0;
+    // --- TEXT TO SPEECH (bundled static audio clips, same pattern as NATO.html) ---
+    // speechSynthesis proved unreliable on this machine/browser (silent
+    // 'synthesis-failed' errors from an unset voice) - since the vocabulary
+    // for reading numbers is small and closed, every word is pre-recorded
+    // with edge-tts and played back with plain <audio>, in sequence.
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    let currentAudio = null;
+    let sequencePlaying = false;
 
-    // Force aggressive voice loading
-    function loadVoices() {
-        let voices = window.speechSynthesis.getVoices();
-        if (voices.length > 0) availableVoices = voices;
-    }
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices(); // Try immediately just in case
+    // Same chunk math as chunkToWords, but returns word tokens instead of a
+    // joined string so each one can be mapped straight to an audio file.
+    function chunkToTokens(chunkStr) {
+        let num = parseInt(chunkStr, 10);
+        if (num === 0) return [];
 
-    function sayNumberOutLoud() {
-        if (!('speechSynthesis' in window)) {
-            alert("Sorry, your browser does not support Text-to-Speech.");
-            return;
+        let tokens = [];
+        let hundreds = Math.floor(num / 100);
+        let tens = Math.floor((num % 100) / 10);
+        let ones = num % 10;
+
+        if (hundreds > 0) tokens.push(onesWords[hundreds], "Hundred");
+
+        if (tens === 1) {
+            tokens.push(teensWords[ones]);
+        } else {
+            if (tens > 1) tokens.push(tensWords[tens]);
+            if (ones > 0) tokens.push(onesWords[ones]);
         }
 
+        return tokens;
+    }
+
+    // Groups of word tokens, most-significant chunk first - one group per
+    // comma in the written name, so playback can pause between groups.
+    function getWordTokenGroups(numStr) {
+        if (numStr === "0") return [["Zero"]];
+
+        let chunks = [];
+        let reversedStr = numStr.split('').reverse().join('');
+        for (let i = 0; i < reversedStr.length; i += 3) {
+            chunks.push(reversedStr.substring(i, i + 3).split('').reverse().join(''));
+        }
+
+        let groups = [];
+        for (let i = 0; i < chunks.length; i++) {
+            let tokens = chunkToTokens(chunks[i]);
+            if (tokens.length > 0) {
+                let magnitude = magnitudeNames[i];
+                if (magnitude) tokens.push(magnitude);
+                groups.push(tokens);
+            }
+        }
+
+        return groups.reverse();
+    }
+
+    function playWordAudio(word) {
+        return new Promise((resolve) => {
+            if (currentAudio) currentAudio.pause();
+
+            const audio = new Audio(`sounds/googol/${word.toLowerCase()}.mp3`);
+            currentAudio = audio;
+
+            const finish = () => resolve();
+            audio.onended = finish;
+            audio.onerror = finish;
+
+            audio.play().catch(finish);
+        });
+    }
+
+    async function sayNumberOutLoud() {
+        if (sequencePlaying) return;
+        sequencePlaying = true;
+
         const statusText = document.getElementById('speak-status');
-        
-        // 1. Hard stop any current talking
-        window.speechSynthesis.cancel();
-
-        // 2. Prepare the sequence array
-        const textToRead = getFullNumberName(currentNumberString);
-        chunksToSpeak = textToRead.split(', ');
-        currentChunkIndex = 0;
-
         statusText.innerText = "Speaking...";
         statusText.style.color = "#fff";
 
-        // 3. Delay slightly before starting to avoid Chrome's cancel() bug
-        setTimeout(speakNextChunk, 100);
-    }
+        const groups = getWordTokenGroups(currentNumberString);
 
-    function speakNextChunk() {
-        if (currentChunkIndex >= chunksToSpeak.length) {
-            document.getElementById('speak-status').innerText = "Click to read";
-            return; 
-        }
-
-        // Failsafe voice check
-        if (availableVoices.length === 0) {
-            loadVoices();
-        }
-
-        const chunkText = chunksToSpeak[currentChunkIndex];
-        let utterance = new SpeechSynthesisUtterance(chunkText);
-        
-        // AGGRESSIVE VOICE ASSIGNMENT to prevent 'voice: null' crashes
-        if (availableVoices.length > 0) {
-            // Look for English first
-            let voiceToUse = availableVoices.find(v => v.lang.toLowerCase().includes('en'));
-            // If no English voice is found, literally just grab the first voice that exists
-            if (!voiceToUse) {
-                voiceToUse = availableVoices[0];
+        for (let g = 0; g < groups.length; g++) {
+            const tokens = groups[g];
+            for (let t = 0; t < tokens.length; t++) {
+                await playWordAudio(tokens[t]);
+                await sleep(20); // tiny breath between words
             }
-            utterance.voice = voiceToUse;
+            if (g < groups.length - 1) await sleep(120); // longer pause at each comma
         }
 
-        utterance.rate = 0.85; 
-        
-        utterance.onend = () => {
-            currentChunkIndex++;
-            setTimeout(speakNextChunk, 50); // Small breath between chunks
-        };
-
-        utterance.onerror = (event) => {
-            console.error("Speech error on chunk:", event);
-            document.getElementById('speak-status').innerText = "Error: Sequence crashed.";
-            document.getElementById('speak-status').style.color = "#ff5252";
-            
-            // Try to keep going even if one chunk failed
-            currentChunkIndex++;
-            setTimeout(speakNextChunk, 50);
-        };
-
-        // Anti-Garbage Collection Hack
-        window.activeUtterance = utterance; 
-
-        window.speechSynthesis.speak(utterance);
+        sequencePlaying = false;
+        statusText.innerText = "Click to read";
     }
 
     // --- RENDER ---

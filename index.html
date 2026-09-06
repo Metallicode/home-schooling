@@ -27,7 +27,7 @@
             background-size: 300% 300%;
             animation: gradientShift 8s ease infinite;
             text-align: center;
-            padding: 36px 20px 28px;
+            padding: 32px 20px 24px;
             color: white;
             text-shadow: 2px 3px 0 rgba(0,0,0,0.18);
         }
@@ -55,9 +55,7 @@
             animation: bounce 1.2s ease-in-out infinite;
         }
 
-        header h1 img:last-child {
-            animation-delay: 0.6s;
-        }
+        header h1 img:last-child { animation-delay: 0.6s; }
 
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
@@ -69,69 +67,136 @@
             opacity: 0.95;
         }
 
-        /* ── AGE FILTER BAR ── */
-        .filter-bar {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-            padding: 22px 16px 10px;
-            background: #fff;
-            border-bottom: 3px solid #ffe4b5;
+        /* ── CONTROLS (sticky) ── */
+        .controls {
             position: sticky;
             top: 0;
             z-index: 100;
+            background: #fff;
+            border-bottom: 3px solid #ffe4b5;
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            padding: 10px 14px 12px;
         }
 
-        .filter-bar span {
-            font-size: 1rem;
-            font-family: var(--font);
-            color: #555;
+        .ctrl-row {
             display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
             align-items: center;
-            margin-right: 4px;
+            gap: 8px;
+            margin: 5px 0;
         }
 
-        .age-btn {
-            font-family: var(--font);
-            font-size: 0.95rem;
+        .ctrl-label {
+            font-size: 0.9rem;
+            color: #888;
             font-weight: bold;
-            padding: 8px 18px;
+            margin-right: 2px;
+        }
+
+        .age-btn, .subj-btn {
+            font-family: var(--font);
+            font-size: 0.9rem;
+            font-weight: bold;
+            padding: 6px 15px;
             border-radius: 50px;
             border: 2px solid transparent;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
             background: #f0f0f0;
-            color: #444;
+            color: #555;
         }
 
-        .age-btn:hover { transform: translateY(-2px); box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
-
-        .age-btn.active, .age-btn:focus {
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        .age-btn:hover, .subj-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.15);
         }
 
-        .age-btn[data-age="all"].active    { background: #888; }
-        .age-btn[data-age="4-5"].active    { background: #ff6b9d; }
-        .age-btn[data-age="5-6"].active    { background: #ff922b; }
-        .age-btn[data-age="6-8"].active    { background: #2f9e44; }
-        .age-btn[data-age="8+"].active     { background: #1971c2; }
+        .age-btn:focus-visible, .subj-btn:focus-visible,
+        .section-title:focus-visible, .play-btn:focus-visible,
+        .search-box:focus-visible, .recent-card:focus-visible {
+            outline: 3px solid #4dabf7;
+            outline-offset: 2px;
+        }
+
+        .age-btn.active, .subj-btn.active { color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        .age-btn[data-age="all"].active { background: #868e96; }
+        .age-btn[data-age="4-5"].active { background: #ff6b9d; }
+        .age-btn[data-age="5-6"].active { background: #ff922b; }
+        .age-btn[data-age="6-8"].active { background: #2f9e44; }
+        .age-btn[data-age="8+"].active  { background: #1971c2; }
+
+        .subj-btn[data-subject="all"].active     { background: #495057; }
+        .subj-btn[data-subject="math"].active     { background: #f08c00; }
+        .subj-btn[data-subject="shapes"].active   { background: #4dabf7; }
+        .subj-btn[data-subject="reading"].active  { background: #12b886; }
+        .subj-btn[data-subject="logic"].active    { background: #7048e8; }
+        .subj-btn[data-subject="music"].active    { background: #cc5de8; }
+        .subj-btn[data-subject="creative"].active { background: #ff6b6b; }
+        .subj-btn[data-subject="mathlab"].active  { background: #7c4dff; }
+
+        .search-box {
+            font-family: var(--font);
+            font-size: 0.95rem;
+            padding: 8px 16px;
+            border-radius: 50px;
+            border: 2px solid #e3e3e3;
+            width: min(360px, 90vw);
+            background: #fafafa;
+        }
+        .search-box:focus { border-color: #4dabf7; background: #fff; outline: none; }
+
+        #results-count {
+            font-size: 0.85rem;
+            color: #999;
+            min-width: 90px;
+        }
 
         /* ── MAIN CONTENT ── */
         main {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 28px 16px 60px;
+            padding: 26px 16px 60px;
         }
+
+        /* ── RECENTLY PLAYED ── */
+        .recent-strip { margin-bottom: 40px; }
+
+        .recent-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .recent-card {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            border-radius: 50px;
+            border-left: 6px solid #ccc;
+            box-shadow: var(--shadow);
+            padding: 9px 18px 9px 14px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            font-size: 0.95rem;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .recent-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.16); }
+        .recent-emoji { font-size: 1.5rem; line-height: 1; }
+
+        .recent-card.subject-math     { border-left-color: #ffa94d; }
+        .recent-card.subject-shapes   { border-left-color: #74c0fc; }
+        .recent-card.subject-reading  { border-left-color: #69db7c; }
+        .recent-card.subject-logic    { border-left-color: #845ef7; }
+        .recent-card.subject-music    { border-left-color: #cc5de8; }
+        .recent-card.subject-creative { border-left-color: #ff6b6b; }
+        .recent-card.subject-mathlab  { border-left-color: #7c4dff; }
 
         /* ── SUBJECT SECTIONS ── */
-        .subject-section {
-            margin-bottom: 44px;
-        }
-
+        .subject-section { margin-bottom: 44px; }
         .subject-section.hidden { display: none; }
 
         .section-title {
@@ -143,11 +208,42 @@
             padding-bottom: 10px;
             border-bottom: 3px dotted #ddd;
             color: #333;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .section-icon {
-            font-size: 2rem;
-            line-height: 1;
+        .section-icon { font-size: 2rem; line-height: 1; }
+        .section-name { flex: 1; }
+
+        .sec-count {
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: #888;
+            background: #f1f1f1;
+            border-radius: 50px;
+            padding: 2px 11px;
+        }
+
+        .chev {
+            font-size: 1rem;
+            color: #bbb;
+            transition: transform 0.2s ease;
+        }
+        .subject-section.collapsed .chev { transform: rotate(-90deg); }
+        .subject-section.collapsed .card-grid,
+        .subject-section.collapsed .card-subgroup { display: none; }
+
+        /* ── SUBGROUPS ── */
+        .card-subgroup { margin-bottom: 24px; }
+        .card-subgroup.hidden { display: none; }
+
+        .subgroup-title {
+            font-size: 1rem;
+            color: #999;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
         }
 
         /* ── CARD GRID ── */
@@ -188,9 +284,7 @@
             flex-shrink: 0;
         }
 
-        .card-titles {
-            flex: 1;
-        }
+        .card-titles { flex: 1; }
 
         .card-name {
             font-size: 1.05rem;
@@ -223,9 +317,7 @@
             flex: 1;
         }
 
-        .card-footer {
-            padding: 0 16px 16px;
-        }
+        .card-footer { padding: 0 16px 16px; }
 
         .play-btn {
             display: block;
@@ -247,29 +339,21 @@
         }
 
         /* Subject colour themes */
-        .subject-math    .play-btn { background: linear-gradient(90deg, #ff922b, #ffd43b); }
-        .subject-shapes  .play-btn { background: linear-gradient(90deg, #4dabf7, #9775fa); }
-        .subject-reading .play-btn { background: linear-gradient(90deg, #69db7c, #20c997); }
-        .subject-logic   .play-btn { background: linear-gradient(90deg, #339af0, #845ef7); }
+        .subject-math     .play-btn { background: linear-gradient(90deg, #ff922b, #ffd43b); }
+        .subject-shapes   .play-btn { background: linear-gradient(90deg, #4dabf7, #9775fa); }
+        .subject-reading  .play-btn { background: linear-gradient(90deg, #69db7c, #20c997); }
+        .subject-logic    .play-btn { background: linear-gradient(90deg, #339af0, #845ef7); }
+        .subject-music    .play-btn { background: linear-gradient(90deg, #845ef7, #cc5de8); }
         .subject-creative .play-btn { background: linear-gradient(90deg, #ff6b6b, #f06595); }
-        .subject-music   .play-btn { background: linear-gradient(90deg, #845ef7, #cc5de8); }
-        .subject-visualizer .play-btn { background: linear-gradient(90deg, #7c4dff, #00e5ff); }
-        .subject-machines .play-btn { background: linear-gradient(90deg, #00e5ff, #ff4081); }
-        .subject-focus    .play-btn { background: linear-gradient(90deg, #00e5ff, #304ffe); }
-        .subject-lab     .play-btn { background: linear-gradient(90deg, #12b886, #82c91e); }
-        .subject-theory  .play-btn { background: linear-gradient(90deg, #5f3dc4, #f06595); }
+        .subject-mathlab  .play-btn { background: linear-gradient(90deg, #7c4dff, #00e5ff); }
 
-        .subject-math    .card-header  { border-top: 5px solid #ffa94d; }
-        .subject-shapes  .card-header  { border-top: 5px solid #74c0fc; }
-        .subject-reading .card-header  { border-top: 5px solid #69db7c; }
-        .subject-logic   .card-header  { border-top: 5px solid #845ef7; }
+        .subject-math     .card-header { border-top: 5px solid #ffa94d; }
+        .subject-shapes   .card-header { border-top: 5px solid #74c0fc; }
+        .subject-reading  .card-header { border-top: 5px solid #69db7c; }
+        .subject-logic    .card-header { border-top: 5px solid #845ef7; }
+        .subject-music    .card-header { border-top: 5px solid #cc5de8; }
         .subject-creative .card-header { border-top: 5px solid #ff6b6b; }
-        .subject-music   .card-header  { border-top: 5px solid #cc5de8; }
-        .subject-visualizer .card-header { border-top: 5px solid #7c4dff; }
-        .subject-machines .card-header { border-top: 5px solid #00e5ff; }
-        .subject-focus    .card-header { border-top: 5px solid #304ffe; }
-        .subject-lab     .card-header { border-top: 5px solid #12b886; }
-        .subject-theory  .card-header { border-top: 5px solid #5f3dc4; }
+        .subject-mathlab  .card-header { border-top: 5px solid #7c4dff; }
 
         /* ── EMPTY STATE ── */
         .empty-state {
@@ -279,7 +363,6 @@
             font-size: 1.2rem;
             display: none;
         }
-
         .empty-state.visible { display: block; }
 
         /* ── FOOTER ── */
@@ -300,23 +383,51 @@
     <p>Pick a game and start exploring!</p>
 </header>
 
-<!-- Age filter bar -->
-<nav class="filter-bar">
-    <span>Show me:</span>
-    <button class="age-btn active" data-age="all">⭐ All Ages</button>
-    <button class="age-btn" data-age="4-5">🐣 Ages 4–5</button>
-    <button class="age-btn" data-age="5-6">🐥 Ages 5–6</button>
-    <button class="age-btn" data-age="6-8">🐦 Ages 6–8</button>
-    <button class="age-btn" data-age="8+">🦅 Ages 8+</button>
-</nav>
+<!-- Controls: age + subject + search -->
+<div class="controls">
+    <div class="ctrl-row">
+        <span class="ctrl-label">Age</span>
+        <button class="age-btn active" data-age="all">⭐ All</button>
+        <button class="age-btn" data-age="4-5">🐣 4–5</button>
+        <button class="age-btn" data-age="5-6">🐥 5–6</button>
+        <button class="age-btn" data-age="6-8">🐦 6–8</button>
+        <button class="age-btn" data-age="8+">🦅 8+</button>
+    </div>
+    <div class="ctrl-row">
+        <span class="ctrl-label">Subject</span>
+        <button class="subj-btn active" data-subject="all">All</button>
+        <button class="subj-btn" data-subject="math">🔢 Maths</button>
+        <button class="subj-btn" data-subject="shapes">🔷 Shapes</button>
+        <button class="subj-btn" data-subject="reading">📚 Reading</button>
+        <button class="subj-btn" data-subject="logic">🧠 Logic</button>
+        <button class="subj-btn" data-subject="music">🎵 Music</button>
+        <button class="subj-btn" data-subject="creative">🎨 Creative</button>
+        <button class="subj-btn" data-subject="mathlab">🔬 Math Lab</button>
+    </div>
+    <div class="ctrl-row">
+        <input type="search" class="search-box" id="search" placeholder="🔍 Search games…" autocomplete="off">
+        <span id="results-count"></span>
+    </div>
+</div>
 
 <main>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- RECENTLY PLAYED                           -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="recent-strip" id="recent" hidden>
+        <h2 class="section-title" style="cursor:default">
+            <span class="section-icon">🕘</span>
+            <span class="section-name">Jump back in</span>
+        </h2>
+        <div class="recent-grid" id="recent-grid"></div>
+    </section>
 
     <!-- ══════════════════════════════════════════ -->
     <!-- NUMBERS & MATHS                           -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-math" data-subject="math">
-        <h2 class="section-title"><span class="section-icon">🔢</span> Numbers &amp; Maths</h2>
+        <h2 class="section-title"><span class="section-icon">🔢</span><span class="section-name">Numbers &amp; Maths</span><span class="sec-count">12</span><span class="chev">▾</span></h2>
         <div class="card-grid">
 
             <div class="tool-card subject-math" data-ages="4-5">
@@ -470,7 +581,7 @@
     <!-- SHAPES & SPACE                            -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-shapes" data-subject="shapes">
-        <h2 class="section-title"><span class="section-icon">🔷</span> Shapes &amp; Space</h2>
+        <h2 class="section-title"><span class="section-icon">🔷</span><span class="section-name">Shapes &amp; Space</span><span class="sec-count">4</span><span class="chev">▾</span></h2>
         <div class="card-grid">
 
             <div class="tool-card subject-shapes" data-ages="4-5">
@@ -528,213 +639,231 @@
     <!-- READING & WRITING                         -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-reading" data-subject="reading">
-        <h2 class="section-title"><span class="section-icon">📚</span> Reading &amp; Writing</h2>
-        <div class="card-grid">
+        <h2 class="section-title"><span class="section-icon">📚</span><span class="section-name">Reading &amp; Writing</span><span class="sec-count">17</span><span class="chev">▾</span></h2>
 
-            <div class="tool-card subject-reading" data-ages="4-5">
-                <div class="card-header">
-                    <span class="card-emoji">🔤</span>
-                    <div class="card-titles">
-                        <div class="card-name">Letter Listener</div>
-                        <span class="age-badge age-4-5">Ages 4–5</span>
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Letters &amp; Phonics</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-reading" data-ages="4-5">
+                    <div class="card-header">
+                        <span class="card-emoji">🔤</span>
+                        <div class="card-titles">
+                            <div class="card-name">Letter Listener</div>
+                            <span class="age-badge age-4-5">Ages 4–5</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Listen to a letter sound and tap the right letter. Learn the alphabet with your ears!</div>
+                    <div class="card-footer"><a class="play-btn" href="letters.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Listen to a letter sound and tap the right letter. Learn the alphabet with your ears!</div>
-                <div class="card-footer"><a class="play-btn" href="letters.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="4-5">
-                <div class="card-header">
-                    <span class="card-emoji">📝</span>
-                    <div class="card-titles">
-                        <div class="card-name">Word Explorer</div>
-                        <span class="age-badge age-4-5">Ages 4–5</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🚀</span>
+                        <div class="card-titles">
+                            <div class="card-name">Astro Letters</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Hover over falling letters to zap your target! Race against the clock to spot the right letter among the stars.</div>
+                    <div class="card-footer"><a class="play-btn" href="astro_letters.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Look at the picture and find the word that matches. Build your first reading vocabulary!</div>
-                <div class="card-footer"><a class="play-btn" href="read.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🕵️</span>
-                    <div class="card-titles">
-                        <div class="card-name">Reading Detective</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🫧</span>
+                        <div class="card-titles">
+                            <div class="card-name">Bubble Pop Phonics</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Pop the bubble to practise vowel sounds! Watch for the Shouting Star — it means the vowel says its own name!</div>
+                    <div class="card-footer"><a class="play-btn" href="pop_phonics.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Read the question and click the picture that answers it. Great for early comprehension!</div>
-                <div class="card-footer"><a class="play-btn" href="comprehension.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🕹️</span>
-                    <div class="card-titles">
-                        <div class="card-name">Action Reader</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="4-5">
+                    <div class="card-header">
+                        <span class="card-emoji">🎤</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Vowel Validator</div>
+                            <span class="age-badge age-4-5">Ages 4–5</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Look at the picture anchor and say the vowel sound out loud. Click Next when you've got it — hide the hint to test yourself!</div>
+                    <div class="card-footer"><a class="play-btn" href="vowel_validator.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Read the sentence and drag or click to do exactly what it says. Can you follow every instruction?</div>
-                <div class="card-footer"><a class="play-btn" href="comprehension2.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🎭</span>
-                    <div class="card-titles">
-                        <div class="card-name">Action Theater</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="4-5">
+                    <div class="card-header">
+                        <span class="card-emoji">👄</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Consonant Crafter</div>
+                            <span class="age-badge age-4-5">Ages 4–5</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Pick a mouth-shape group and practise consonant sounds together. Hide the pictures to test yourself!</div>
+                    <div class="card-footer"><a class="play-btn" href="consonants.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Watch the actor and name what they are doing. Learn action words (verbs) through performance!</div>
-                <div class="card-footer"><a class="play-btn" href="verbs.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">⌨️</span>
-                    <div class="card-titles">
-                        <div class="card-name">Keyboard Explorer</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🧩</span>
+                        <div class="card-titles">
+                            <div class="card-name">Word Family Machine</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Pick an ending chunk like -at or -ig and watch how swapping the first letter builds new words. Click to hear each one!</div>
+                    <div class="card-footer"><a class="play-btn" href="word_families.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Type the letters on your keyboard to spell the words. Get comfortable with the keys!</div>
-                <div class="card-footer"><a class="play-btn" href="type.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">🧱</span>
-                    <div class="card-titles">
-                        <div class="card-name">Sentence Architect</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
+                <div class="tool-card subject-reading" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">🧩</span>
+                        <div class="card-titles">
+                            <div class="card-name">Advanced Word Families</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Tackle Magic E, Vowel Teams and Chunky Endings. Blends and digraphs included — click to hear each word!</div>
+                    <div class="card-footer"><a class="play-btn" href="word_families_2.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Read the question and build the exact answer by placing words in the right order. Master sentence structure!</div>
-                <div class="card-footer"><a class="play-btn" href="master_read.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">📜</span>
-                    <div class="card-titles">
-                        <div class="card-name">Quest Log</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
+            </div>
+        </div>
+
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Reading</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-reading" data-ages="4-5">
+                    <div class="card-header">
+                        <span class="card-emoji">📝</span>
+                        <div class="card-titles">
+                            <div class="card-name">Word Explorer</div>
+                            <span class="age-badge age-4-5">Ages 4–5</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Look at the picture and find the word that matches. Build your first reading vocabulary!</div>
+                    <div class="card-footer"><a class="play-btn" href="read.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Follow multi-step written instructions carefully to unlock the hidden treasure. Reading with a purpose!</div>
-                <div class="card-footer"><a class="play-btn" href="scripts.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🚀</span>
-                    <div class="card-titles">
-                        <div class="card-name">Astro Letters</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🕵️</span>
+                        <div class="card-titles">
+                            <div class="card-name">Reading Detective</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Read the question and click the picture that answers it. Great for early comprehension!</div>
+                    <div class="card-footer"><a class="play-btn" href="comprehension.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Hover over falling letters to zap your target! Race against the clock to spot the right letter among the stars.</div>
-                <div class="card-footer"><a class="play-btn" href="astro_letters.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🫧</span>
-                    <div class="card-titles">
-                        <div class="card-name">Bubble Pop Phonics</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🕹️</span>
+                        <div class="card-titles">
+                            <div class="card-name">Action Reader</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Read the sentence and drag or click to do exactly what it says. Can you follow every instruction?</div>
+                    <div class="card-footer"><a class="play-btn" href="comprehension2.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Pop the bubble to practise vowel sounds! Watch for the Shouting Star — it means the vowel says its own name!</div>
-                <div class="card-footer"><a class="play-btn" href="pop_phonics.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">⚡</span>
-                    <div class="card-titles">
-                        <div class="card-name">Flashcard Dynamo</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">📚</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Sentence Reader</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Hover over any word to hear it, or press Read to Me for the whole sentence. A huge library of beginner sentences!</div>
+                    <div class="card-footer"><a class="play-btn" href="first_reading.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Read 3, 4 and 5-letter words as fast as you can. Speed-read your way through the top 50 high-frequency words!</div>
-                <div class="card-footer"><a class="play-btn" href="flashcard_words.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="4-5">
-                <div class="card-header">
-                    <span class="card-emoji">🎤</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Vowel Validator</div>
-                        <span class="age-badge age-4-5">Ages 4–5</span>
+                <div class="tool-card subject-reading" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">⚡</span>
+                        <div class="card-titles">
+                            <div class="card-name">Flashcard Dynamo</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Read 3, 4 and 5-letter words as fast as you can. Speed-read your way through the top 50 high-frequency words!</div>
+                    <div class="card-footer"><a class="play-btn" href="flashcard_words.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Look at the picture anchor and say the vowel sound out loud. Click Next when you've got it — hide the hint to test yourself!</div>
-                <div class="card-footer"><a class="play-btn" href="vowel_validator.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="4-5">
-                <div class="card-header">
-                    <span class="card-emoji">👄</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Consonant Crafter</div>
-                        <span class="age-badge age-4-5">Ages 4–5</span>
+            </div>
+        </div>
+
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Writing &amp; Language</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">🎭</span>
+                        <div class="card-titles">
+                            <div class="card-name">Action Theater</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Watch the actor and name what they are doing. Learn action words (verbs) through performance!</div>
+                    <div class="card-footer"><a class="play-btn" href="verbs.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Pick a mouth-shape group and practise consonant sounds together. Hide the pictures to test yourself!</div>
-                <div class="card-footer"><a class="play-btn" href="consonants.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">📚</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Sentence Reader</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="5-6">
+                    <div class="card-header">
+                        <span class="card-emoji">⌨️</span>
+                        <div class="card-titles">
+                            <div class="card-name">Keyboard Explorer</div>
+                            <span class="age-badge age-5-6">Ages 5–6</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Type the letters on your keyboard to spell the words. Get comfortable with the keys!</div>
+                    <div class="card-footer"><a class="play-btn" href="type.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Hover over any word to hear it, or press Read to Me for the whole sentence. A huge library of beginner sentences!</div>
-                <div class="card-footer"><a class="play-btn" href="first_reading.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="5-6">
-                <div class="card-header">
-                    <span class="card-emoji">🧩</span>
-                    <div class="card-titles">
-                        <div class="card-name">Word Family Machine</div>
-                        <span class="age-badge age-5-6">Ages 5–6</span>
+                <div class="tool-card subject-reading" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">🧱</span>
+                        <div class="card-titles">
+                            <div class="card-name">Sentence Architect</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Read the question and build the exact answer by placing words in the right order. Master sentence structure!</div>
+                    <div class="card-footer"><a class="play-btn" href="master_read.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Pick an ending chunk like -at or -ig and watch how swapping the first letter builds new words. Click to hear each one!</div>
-                <div class="card-footer"><a class="play-btn" href="word_families.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">🧩</span>
-                    <div class="card-titles">
-                        <div class="card-name">Advanced Word Families</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
+                <div class="tool-card subject-reading" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">📜</span>
+                        <div class="card-titles">
+                            <div class="card-name">Quest Log</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Follow multi-step written instructions carefully to unlock the hidden treasure. Reading with a purpose!</div>
+                    <div class="card-footer"><a class="play-btn" href="scripts.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Tackle Magic E, Vowel Teams and Chunky Endings. Blends and digraphs included — click to hear each word!</div>
-                <div class="card-footer"><a class="play-btn" href="word_families_2.html">▶ Play!</a></div>
-            </div>
 
-            <div class="tool-card subject-reading" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">📻</span>
-                    <div class="card-titles">
-                        <div class="card-name">Secret Agent Communicator</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
+                <div class="tool-card subject-reading" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">📻</span>
+                        <div class="card-titles">
+                            <div class="card-name">Secret Agent Communicator</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
                     </div>
+                    <div class="card-desc">Type a secret message and decode it into the NATO phonetic alphabet. Transmit it out loud like a real radio operator!</div>
+                    <div class="card-footer"><a class="play-btn" href="NATO.html">▶ Play!</a></div>
                 </div>
-                <div class="card-desc">Type a secret message and decode it into the NATO phonetic alphabet. Transmit it out loud like a real radio operator!</div>
-                <div class="card-footer"><a class="play-btn" href="NATO.html">▶ Play!</a></div>
-            </div>
 
+            </div>
         </div>
     </section>
 
@@ -742,7 +871,7 @@
     <!-- LOGIC & CODING                            -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-logic" data-subject="logic">
-        <h2 class="section-title"><span class="section-icon">🧠</span> Logic &amp; Coding</h2>
+        <h2 class="section-title"><span class="section-icon">🧠</span><span class="section-name">Logic &amp; Coding</span><span class="sec-count">2</span><span class="chev">▾</span></h2>
         <div class="card-grid">
 
             <div class="tool-card subject-logic" data-ages="6-8">
@@ -776,7 +905,7 @@
     <!-- MUSIC                                     -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-music" data-subject="music">
-        <h2 class="section-title"><span class="section-icon">🎵</span> Music</h2>
+        <h2 class="section-title"><span class="section-icon">🎵</span><span class="section-name">Music</span><span class="sec-count">5</span><span class="chev">▾</span></h2>
         <div class="card-grid">
 
             <div class="tool-card subject-music" data-ages="5-6">
@@ -791,34 +920,48 @@
                 <div class="card-footer"><a class="play-btn" href="midi.html">▶ Play!</a></div>
             </div>
 
-        </div>
-    </section>
+            <div class="tool-card subject-music" data-ages="all">
+                <div class="card-header">
+                    <span class="card-emoji">🌍</span>
+                    <div class="card-titles">
+                        <div class="card-name">The World Harp</div>
+                        <span class="age-badge age-all">All Ages</span>
+                    </div>
+                </div>
+                <div class="card-desc">Pick a culture or musical mode, then sweep your mouse across the strings to play scales from around the world.</div>
+                <div class="card-footer"><a class="play-btn" href="harp.html">▶ Play!</a></div>
+            </div>
 
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MUSIC THEORY LAB                          -->
-    <!-- ══════════════════════════════════════════ -->
-    <section class="subject-section subject-theory" data-subject="theory">
-        <h2 class="section-title"><span class="section-icon">🎼</span> Music Theory Lab</h2>
-        <div class="card-grid">
+            <div class="tool-card subject-music" data-ages="6-8">
+                <div class="card-header">
+                    <span class="card-emoji">🧱</span>
+                    <div class="card-titles">
+                        <div class="card-name">The Rhythm Blocks</div>
+                        <span class="age-badge age-6-8">Ages 6–8</span>
+                    </div>
+                </div>
+                <div class="card-desc">Drag blocks into the tracks, reorder them and tune their pitches. Fill all 16 slots to build your own looping beat.</div>
+                <div class="card-footer"><a class="play-btn" href="rhythm_blocks.html">▶ Play!</a></div>
+            </div>
 
-            <div class="tool-card subject-theory" data-ages="8+">
+            <div class="tool-card subject-music" data-ages="8+">
                 <div class="card-header">
                     <span class="card-emoji">🧶</span>
                     <div class="card-titles">
                         <div class="card-name">The Sonic Loom</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
+                        <span class="age-badge age-8+">Ages 8+</span>
                     </div>
                 </div>
                 <div class="card-desc">Toggle keys to pick your notes, then watch the math weave them into arpeggiated melodies you can hear.</div>
                 <div class="card-footer"><a class="play-btn" href="arp.html">▶ Play!</a></div>
             </div>
 
-            <div class="tool-card subject-theory" data-ages="8+">
+            <div class="tool-card subject-music" data-ages="8+">
                 <div class="card-header">
                     <span class="card-emoji">✨</span>
                     <div class="card-titles">
                         <div class="card-name">The Harmonic Glider</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
+                        <span class="age-badge age-8+">Ages 8+</span>
                     </div>
                 </div>
                 <div class="card-desc">Glide over the colours to build chords and hear the difference between major, minor and diminished.</div>
@@ -829,10 +972,10 @@
     </section>
 
     <!-- ══════════════════════════════════════════ -->
-    <!-- CREATIVE                                  -->
+    <!-- CREATIVE & FOCUS                          -->
     <!-- ══════════════════════════════════════════ -->
     <section class="subject-section subject-creative" data-subject="creative">
-        <h2 class="section-title"><span class="section-icon">🎨</span> Creative Play</h2>
+        <h2 class="section-title"><span class="section-icon">🎨</span><span class="section-name">Creative &amp; Focus</span><span class="sec-count">3</span><span class="chev">▾</span></h2>
         <div class="card-grid">
 
             <div class="tool-card subject-creative" data-ages="5-6">
@@ -859,191 +1002,7 @@
                 <div class="card-footer"><a class="play-btn" href="other/index.html">▶ Play!</a></div>
             </div>
 
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MATH ART & VISUALIZERS                    -->
-    <!-- ══════════════════════════════════════════ -->
-    <section class="subject-section subject-visualizer" data-subject="visualizer">
-        <h2 class="section-title"><span class="section-icon">🌀</span> Math Art &amp; Visualizers</h2>
-        <div class="card-grid">
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">✨</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Number Weaver</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Watch multiplication tables draw stunning geometric patterns around a circle of numbers, live.</div>
-                <div class="card-footer"><a class="play-btn" href="mandala.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">🎶</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Resonance Chamber</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Swinging pendulums drift in and out of sync, chiming musical notes as they cross the middle.</div>
-                <div class="card-footer"><a class="play-btn" href="resonance.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">🧬</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Automata Loom</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Flip binary switches to weave cellular automata patterns — from tidy triangles to total chaos.</div>
-                <div class="card-footer"><a class="play-btn" href="cellular_automata.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">🔮</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Prime Kaleidoscope</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Every number is built from prime number "DNA" — watch the math spin into a kaleidoscope.</div>
-                <div class="card-footer"><a class="play-btn" href="prime_kaleidoscope.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">⚡</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Collatz Spire</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Watch the famous Collatz conjecture unfold node-by-node into a glowing data spire.</div>
-                <div class="card-footer"><a class="play-btn" href="collatz_conjecture.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-visualizer" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">🪐</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Orbit Weaver</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Circles spinning inside circles build cosmic mandalas you can listen to as well as see.</div>
-                <div class="card-footer"><a class="play-btn" href="orbit_weaver.html">▶ Play!</a></div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- MATH MACHINES                             -->
-    <!-- ══════════════════════════════════════════ -->
-    <section class="subject-section subject-machines" data-subject="machines">
-        <h2 class="section-title"><span class="section-icon">⚙️</span> Math Machines</h2>
-        <div class="card-grid">
-
-            <div class="tool-card subject-machines" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">⛓️</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Chain Reactor</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Build a chain of numbers and operators, then watch order of operations collapse it step by step with sound.</div>
-                <div class="card-footer"><a class="play-btn" href="chain_reactor.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-machines" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">🎙️</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Infinite Number Reader</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Type any massive number and see — and hear — its full written name, from thousands all the way to decillions.</div>
-                <div class="card-footer"><a class="play-btn" href="googol_engine.html">▶ Play!</a></div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- HANDS-ON MATH LAB                         -->
-    <!-- ══════════════════════════════════════════ -->
-    <section class="subject-section subject-lab" data-subject="lab">
-        <h2 class="section-title"><span class="section-icon">🧪</span> Hands-On Math Lab</h2>
-        <div class="card-grid">
-
-            <div class="tool-card subject-lab" data-ages="4-5">
-                <div class="card-header">
-                    <span class="card-emoji">🌳</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Harvest Counter</div>
-                        <span class="age-badge age-4-5">Ages 4–5</span>
-                    </div>
-                </div>
-                <div class="card-desc">Tap each fruit to mark it as you count along. A gentle hands-on way to practise one-to-one counting.</div>
-                <div class="card-footer"><a class="play-btn" href="fruit_count.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-lab" data-ages="6-8">
-                <div class="card-header">
-                    <span class="card-emoji">📐</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Geometric Multiplier</div>
-                        <span class="age-badge age-6-8">Ages 6–8</span>
-                    </div>
-                </div>
-                <div class="card-desc">Draw the maths! Watch lines turn into dots and see how place value carries over when you multiply.</div>
-                <div class="card-footer"><a class="play-btn" href="geometric_multiplier.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-lab" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">💎</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Pascal Prism</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Hover Pascal's triangle to see the ancestry math, then click the diagonals to uncover points, lines, triangles and the Sierpinski fractal.</div>
-                <div class="card-footer"><a class="play-btn" href="pascal.html">▶ Play!</a></div>
-            </div>
-
-            <div class="tool-card subject-lab" data-ages="8+">
-                <div class="card-header">
-                    <span class="card-emoji">⚒️</span>
-                    <div class="card-titles">
-                        <div class="card-name">The Dimension Forge</div>
-                        <span class="age-badge age-8\+">Ages 8+</span>
-                    </div>
-                </div>
-                <div class="card-desc">Discover the three laws for turning a flat shape into a solid — extrude a prism, converge a pyramid or fold a Platonic solid.</div>
-                <div class="card-footer"><a class="play-btn" href="volume.html">▶ Play!</a></div>
-            </div>
-
-        </div>
-    </section>
-
-    <!-- ══════════════════════════════════════════ -->
-    <!-- FOCUS & TIMERS                            -->
-    <!-- ══════════════════════════════════════════ -->
-    <section class="subject-section subject-focus" data-subject="focus">
-        <h2 class="section-title"><span class="section-icon">⏱️</span> Focus &amp; Timers</h2>
-        <div class="card-grid">
-
-            <div class="tool-card subject-focus" data-ages="all">
+            <div class="tool-card subject-creative" data-ages="all">
                 <div class="card-header">
                     <span class="card-emoji">⏱️</span>
                     <div class="card-titles">
@@ -1058,55 +1017,342 @@
         </div>
     </section>
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- MATH LAB & VISUALIZERS                    -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="subject-section subject-mathlab" data-subject="mathlab">
+        <h2 class="section-title"><span class="section-icon">🔬</span><span class="section-name">Math Lab &amp; Visualizers</span><span class="sec-count">12</span><span class="chev">▾</span></h2>
+
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Hands-On Explorers</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-mathlab" data-ages="4-5">
+                    <div class="card-header">
+                        <span class="card-emoji">🌳</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Harvest Counter</div>
+                            <span class="age-badge age-4-5">Ages 4–5</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Tap each fruit to mark it as you count along. A gentle hands-on way to practise one-to-one counting.</div>
+                    <div class="card-footer"><a class="play-btn" href="fruit_count.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="6-8">
+                    <div class="card-header">
+                        <span class="card-emoji">📐</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Geometric Multiplier</div>
+                            <span class="age-badge age-6-8">Ages 6–8</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Draw the maths! Watch lines turn into dots and see how place value carries over when you multiply.</div>
+                    <div class="card-footer"><a class="play-btn" href="geometric_multiplier.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">💎</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Pascal Prism</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Hover Pascal's triangle to see the ancestry math, then click the diagonals to uncover points, lines, triangles and the Sierpinski fractal.</div>
+                    <div class="card-footer"><a class="play-btn" href="pascal.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">⚒️</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Dimension Forge</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Discover the three laws for turning a flat shape into a solid — extrude a prism, converge a pyramid or fold a Platonic solid.</div>
+                    <div class="card-footer"><a class="play-btn" href="volume.html">▶ Play!</a></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Math Machines</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">⛓️</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Chain Reactor</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Build a chain of numbers and operators, then watch order of operations collapse it step by step with sound.</div>
+                    <div class="card-footer"><a class="play-btn" href="chain_reactor.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">🎙️</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Infinite Number Reader</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Type any massive number and see — and hear — its full written name, from thousands all the way to decillions.</div>
+                    <div class="card-footer"><a class="play-btn" href="googol_engine.html">▶ Play!</a></div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="card-subgroup">
+            <h3 class="subgroup-title">Math Art &amp; Visualizers</h3>
+            <div class="card-grid">
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">✨</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Number Weaver</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Watch multiplication tables draw stunning geometric patterns around a circle of numbers, live.</div>
+                    <div class="card-footer"><a class="play-btn" href="mandala.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">🎶</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Resonance Chamber</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Swinging pendulums drift in and out of sync, chiming musical notes as they cross the middle.</div>
+                    <div class="card-footer"><a class="play-btn" href="resonance.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">🧬</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Automata Loom</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Flip binary switches to weave cellular automata patterns — from tidy triangles to total chaos.</div>
+                    <div class="card-footer"><a class="play-btn" href="cellular_automata.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">🔮</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Prime Kaleidoscope</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Every number is built from prime number "DNA" — watch the math spin into a kaleidoscope.</div>
+                    <div class="card-footer"><a class="play-btn" href="prime_kaleidoscope.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">⚡</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Collatz Spire</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Watch the famous Collatz conjecture unfold node-by-node into a glowing data spire.</div>
+                    <div class="card-footer"><a class="play-btn" href="collatz_conjecture.html">▶ Play!</a></div>
+                </div>
+
+                <div class="tool-card subject-mathlab" data-ages="8+">
+                    <div class="card-header">
+                        <span class="card-emoji">🪐</span>
+                        <div class="card-titles">
+                            <div class="card-name">The Orbit Weaver</div>
+                            <span class="age-badge age-8+">Ages 8+</span>
+                        </div>
+                    </div>
+                    <div class="card-desc">Circles spinning inside circles build cosmic mandalas you can listen to as well as see.</div>
+                    <div class="card-footer"><a class="play-btn" href="orbit_weaver.html">▶ Play!</a></div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
     <div class="empty-state" id="empty-state">
-        😅 No games found for this filter. Try a different age group!
+        😅 No games match your filters. Try a different age, subject or search!
     </div>
 
 </main>
 
 <footer>
-    Learning Adventures &mdash; Homeschool Tools &mdash; Last updated April 2026
+    Learning Adventures &mdash; Homeschool Tools &mdash; 55 games &mdash; Last updated September 2026
 </footer>
 
 <script>
-    const buttons = document.querySelectorAll('.age-btn');
-    const cards   = document.querySelectorAll('.tool-card');
-    const sections = document.querySelectorAll('.subject-section');
-    const emptyState = document.getElementById('empty-state');
+(function () {
+    var RECENT_KEY = 'ph_recent';
+    var COLLAPSE_KEY = 'ph_collapsed';
+    var MAX_RECENT = 6;
 
-    buttons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            // Update active button
-            buttons.forEach(b => b.classList.remove('active'));
+    var ageButtons  = Array.prototype.slice.call(document.querySelectorAll('.age-btn'));
+    var subjButtons = Array.prototype.slice.call(document.querySelectorAll('.subj-btn'));
+    var searchInput = document.getElementById('search');
+    var resultsCount = document.getElementById('results-count');
+    var cards     = Array.prototype.slice.call(document.querySelectorAll('.tool-card'));
+    var sections  = Array.prototype.slice.call(document.querySelectorAll('.subject-section'));
+    var subgroups = Array.prototype.slice.call(document.querySelectorAll('.card-subgroup'));
+    var emptyState = document.getElementById('empty-state');
+    var recent = document.getElementById('recent');
+    var recentGrid = document.getElementById('recent-grid');
+
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+    function load(key, fallback) {
+        try {
+            var v = JSON.parse(localStorage.getItem(key));
+            return v == null ? fallback : v;
+        } catch (e) { return fallback; }
+    }
+    function save(key, val) {
+        try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    }
+
+    // Precompute searchable text + subject for each card
+    cards.forEach(function (card) {
+        var name = card.querySelector('.card-name').textContent.trim();
+        var desc = card.querySelector('.card-desc').textContent.trim();
+        card.dataset.search = (name + ' ' + desc).toLowerCase();
+        card.dataset.subject = card.closest('.subject-section').dataset.subject;
+    });
+
+    var collapsedSet = {};
+    load(COLLAPSE_KEY, []).forEach(function (k) { collapsedSet[k] = true; });
+
+    function currentAge() {
+        var b = document.querySelector('.age-btn.active');
+        return b ? b.dataset.age : 'all';
+    }
+    function currentSubj() {
+        var b = document.querySelector('.subj-btn.active');
+        return b ? b.dataset.subject : 'all';
+    }
+
+    function applyFilters() {
+        var age = currentAge();
+        var subj = currentSubj();
+        var q = searchInput.value.trim().toLowerCase();
+        var filtering = age !== 'all' || subj !== 'all' || q !== '';
+        var total = 0;
+
+        cards.forEach(function (card) {
+            var a = card.dataset.ages;
+            var okAge = age === 'all' || a === age || a === 'all';
+            var okSubj = subj === 'all' || card.dataset.subject === subj;
+            var okText = q === '' || card.dataset.search.indexOf(q) !== -1;
+            var show = okAge && okSubj && okText;
+            card.classList.toggle('hidden', !show);
+            if (show) total++;
+        });
+
+        subgroups.forEach(function (sg) {
+            var vis = sg.querySelectorAll('.tool-card:not(.hidden)').length;
+            sg.classList.toggle('hidden', vis === 0);
+        });
+
+        var anyVisible = false;
+        sections.forEach(function (sec) {
+            var vis = sec.querySelectorAll('.tool-card:not(.hidden)').length;
+            sec.classList.toggle('hidden', vis === 0);
+            if (vis > 0) anyVisible = true;
+            if (filtering) {
+                sec.classList.remove('collapsed');
+            } else {
+                sec.classList.toggle('collapsed', !!collapsedSet[sec.dataset.subject]);
+            }
+        });
+
+        emptyState.classList.toggle('visible', !anyVisible);
+        resultsCount.textContent = filtering ? ('Showing ' + total + (total === 1 ? ' game' : ' games')) : '';
+        recent.hidden = filtering || recentGrid.children.length === 0;
+    }
+
+    ageButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            ageButtons.forEach(function (b) { b.classList.remove('active'); });
             btn.classList.add('active');
-
-            const selectedAge = btn.dataset.age;
-
-            // Show/hide individual cards
-            cards.forEach(card => {
-                const cardAge = card.dataset.ages;
-                if (selectedAge === 'all' || cardAge === selectedAge || cardAge === 'all') {
-                    card.classList.remove('hidden');
-                } else {
-                    card.classList.add('hidden');
-                }
-            });
-
-            // Hide sections that have zero visible cards
-            let anyVisible = false;
-            sections.forEach(section => {
-                const visibleCards = section.querySelectorAll('.tool-card:not(.hidden)');
-                if (visibleCards.length === 0) {
-                    section.classList.add('hidden');
-                } else {
-                    section.classList.remove('hidden');
-                    anyVisible = true;
-                }
-            });
-
-            emptyState.classList.toggle('visible', !anyVisible);
+            applyFilters();
         });
     });
+    subjButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            subjButtons.forEach(function (b) { b.classList.remove('active'); });
+            btn.classList.add('active');
+            applyFilters();
+        });
+    });
+    searchInput.addEventListener('input', applyFilters);
+
+    // Collapsible sections
+    sections.forEach(function (sec) {
+        var title = sec.querySelector('.section-title');
+        title.setAttribute('role', 'button');
+        title.setAttribute('tabindex', '0');
+        function toggle() {
+            var key = sec.dataset.subject;
+            if (collapsedSet[key]) { delete collapsedSet[key]; }
+            else { collapsedSet[key] = true; }
+            save(COLLAPSE_KEY, Object.keys(collapsedSet));
+            applyFilters();
+        }
+        title.addEventListener('click', toggle);
+        title.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+    });
+
+    // Recently played
+    function renderRecent() {
+        var items = load(RECENT_KEY, []).slice(0, MAX_RECENT);
+        recentGrid.innerHTML = items.map(function (it) {
+            return '<a class="recent-card subject-' + esc(it.subject || 'math') + '" href="' + esc(it.href) + '">' +
+                '<span class="recent-emoji">' + esc(it.emoji || '▶') + '</span>' +
+                '<span class="recent-name">' + esc(it.name || 'Game') + '</span>' +
+                '</a>';
+        }).join('');
+    }
+
+    document.querySelectorAll('.tool-card .play-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var card = btn.closest('.tool-card');
+            var item = {
+                href: btn.getAttribute('href'),
+                name: card.querySelector('.card-name').textContent.trim(),
+                emoji: card.querySelector('.card-emoji').textContent.trim(),
+                subject: card.dataset.subject
+            };
+            var list = load(RECENT_KEY, []).filter(function (x) { return x && x.href !== item.href; });
+            list.unshift(item);
+            save(RECENT_KEY, list.slice(0, MAX_RECENT));
+        });
+    });
+
+    renderRecent();
+    applyFilters();
+})();
 </script>
 
 </body>

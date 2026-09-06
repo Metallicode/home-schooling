@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The World Harp</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        /* --- DASHBOARD --- */
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 900px; 
+            gap: 15px; justify-content: center; align-items: center; flex: 1;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: center;
+            background: #111; padding: 15px 30px; border-radius: 15px; border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 5px; align-items: flex-start;}
+        .control-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;}
+
+        select {
+            background: #222; color: #fff; border: 1px solid #444; padding: 10px 15px;
+            border-radius: 8px; font-family: inherit; font-size: 16px; outline: none; cursor: pointer;
+        }
+        select:focus { border-color: #00e5ff; }
+        
+        optgroup { background: #111; color: #888; font-style: italic; }
+        option { background: #222; color: #fff; font-style: normal;}
+
+        /* --- HARP UI --- */
+        .harp-container {
+            width: 100%; flex: 1; min-height: 60vh;
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: linear-gradient(180deg, #111 0%, #050508 100%); 
+            padding: 20px 40px; border-radius: 15px; border: 1px solid #222;
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8); position: relative;
+        }
+
+        /* Side rails of the harp */
+        .harp-container::before, .harp-container::after {
+            content: ''; position: absolute; top: 0; bottom: 0; width: 15px;
+            background: linear-gradient(90deg, #2a1b12, #4a3221, #2a1b12);
+            border-radius: 10px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        .harp-container::before { left: 10px; }
+        .harp-container::after { right: 10px; }
+
+        .harp-string-wrapper {
+            flex: 1; display: flex; align-items: center; position: relative;
+            cursor: crosshair; padding: 0 10px; z-index: 2;
+        }
+
+        .harp-string {
+            width: 100%; height: 2px; background: #00e5ff; opacity: 0.4;
+            box-shadow: 0 0 5px #00e5ff; transition: all 0.8s cubic-bezier(0.1, 1, 0.1, 1);
+            pointer-events: none; border-radius: 2px;
+        }
+
+        /* Root Notes get special styling */
+        .harp-string-wrapper.is-root .harp-string {
+            background: #ffeb3b; height: 3px; opacity: 0.6; box-shadow: 0 0 8px #ffeb3b;
+        }
+
+        /* Hover & Pluck Animation */
+        .harp-string-wrapper:hover .harp-string,
+        .harp-string-wrapper.plucked .harp-string {
+            height: 6px; opacity: 1; transition: all 0.05s;
+        }
+        .harp-string-wrapper:hover .harp-string { background: #fff; box-shadow: 0 0 20px #fff; }
+        .harp-string-wrapper.plucked .harp-string { background: #fff; box-shadow: 0 0 20px #fff; }
+
+        .note-label {
+            position: absolute; left: 35px; font-size: 11px; color: #666; font-weight: bold;
+            pointer-events: none; opacity: 0.5; transition: all 0.3s;
+        }
+        .harp-string-wrapper:hover .note-label, .harp-string-wrapper.plucked .note-label {
+            opacity: 1; color: #fff; transform: scale(1.2); left: 40px;
+        }
+        .harp-string-wrapper.is-root .note-label { color: #ffeb3b; opacity: 0.8; }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #00e5ff; font-weight: bold; cursor: pointer; font-size: 14px;
+            margin-left: auto; 
+        }
+        .toggle-container input { width: 16px; height: 16px; accent-color: #00e5ff; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.92);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>🌍 The World Harp 🌍</h1>
+    <p>Select a culture or mode, and sweep your mouse over the strings.</p>
+
+    <div class="dashboard">
+        
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-label">Root Note</div>
+                <select id="root-select" onchange="buildHarp()">
+                    <option value="0">C</option>
+                    <option value="1">C# / Db</option>
+                    <option value="2">D</option>
+                    <option value="3">D# / Eb</option>
+                    <option value="4" selected>E (Standard)</option>
+                    <option value="5">F</option>
+                    <option value="6">F# / Gb</option>
+                    <option value="7">G</option>
+                    <option value="8">G# / Ab</option>
+                    <option value="9">A</option>
+                    <option value="10">A# / Bb</option>
+                    <option value="11">B</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Global Scales & Modes</div>
+                <select id="scale-select" onchange="buildHarp()">
+                    <optgroup label="Western Fundamentals">
+                        <option value="major">Major (Ionian)</option>
+                        <option value="minor">Natural Minor (Aeolian)</option>
+                        <option value="harmonic_minor">Harmonic Minor</option>
+                        <option value="melodic_minor">Melodic Minor</option>
+                    </optgroup>
+                    <optgroup label="Folk & Blues">
+                        <option value="pentatonic_major">Major Pentatonic</option>
+                        <option value="pentatonic_minor">Minor Pentatonic</option>
+                        <option value="blues">Blues Scale</option>
+                    </optgroup>
+                    <optgroup label="Asian Traditional">
+                        <option value="hirajoshi" selected>Hirajoshi (Japan)</option>
+                        <option value="insen">Insen (Japan)</option>
+                        <option value="pelog">Pelog Approx. (Indonesia)</option>
+                        <option value="chinese_gong">Gong / Chinese Pentatonic</option>
+                    </optgroup>
+                    <optgroup label="Middle Eastern & Indian">
+                        <option value="double_harmonic">Double Harmonic / Arabic</option>
+                        <option value="phrygian_dominant">Phrygian Dominant / Freygish</option>
+                        <option value="hungarian_minor">Hungarian Minor</option>
+                        <option value="marwa">Marwa Thaat (India)</option>
+                    </optgroup>
+                    <optgroup label="Atmospheric Modes">
+                        <option value="dorian">Dorian (Medieval / Jazzy)</option>
+                        <option value="phrygian">Phrygian (Dark / Spanish)</option>
+                        <option value="lydian">Lydian (Dreamy / Floaty)</option>
+                        <option value="mixolydian">Mixolydian (Classic Rock)</option>
+                        <option value="whole_tone">Whole Tone (Dream Sequence)</option>
+                    </optgroup>
+                </select>
+            </div>
+            
+            <label class="toggle-container">
+                <input type="checkbox" id="toggle-sound" checked onchange="initAudio()">
+                🎵 Enable Strings
+            </label>
+        </div>
+
+        <div class="harp-container" id="harp">
+            <!-- Strings Rendered by JS -->
+        </div>
+    </div>
+
+<script>
+    // --- GLOBAL SCALE DICTIONARY ---
+    // Defined by semitone intervals from the root note
+    const SCALES = {
+        // Western
+        "major": [0, 2, 4, 5, 7, 9, 11],
+        "minor": [0, 2, 3, 5, 7, 8, 10],
+        "harmonic_minor": [0, 2, 3, 5, 7, 8, 11],
+        "melodic_minor": [0, 2, 3, 5, 7, 9, 11],
+        // Folk & Blues
+        "pentatonic_major": [0, 2, 4, 7, 9],
+        "pentatonic_minor": [0, 3, 5, 7, 10],
+        "blues": [0, 3, 5, 6, 7, 10],
+        // Asian
+        "hirajoshi": [0, 2, 3, 7, 8],
+        "insen": [0, 1, 5, 7, 10],
+        "pelog": [0, 1, 3, 7, 8],
+        "chinese_gong": [0, 2, 4, 7, 9], // Structurally identical to Major Pentatonic but conceptually distinct
+        // Middle Eastern / Indian
+        "double_harmonic": [0, 1, 4, 5, 7, 8, 11],
+        "phrygian_dominant": [0, 1, 4, 5, 7, 8, 10],
+        "hungarian_minor": [0, 2, 3, 6, 7, 8, 11],
+        "marwa": [0, 1, 4, 6, 7, 9, 11],
+        // Modes & Exotic
+        "dorian": [0, 2, 3, 5, 7, 9, 10],
+        "phrygian": [0, 1, 3, 5, 7, 8, 10],
+        "lydian": [0, 2, 4, 6, 7, 9, 11],
+        "mixolydian": [0, 2, 4, 5, 7, 9, 10],
+        "whole_tone": [0, 2, 4, 6, 8, 10]
+    };
+
+    const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+    // --- AUDIO ENGINE (Harp Strings) ---
+    let audioCtx = null;
+    let masterGain = null;
+    let compressor = null;
+    let convolver = null;
+
+    function createReverb() {
+        // Lush, spacious reverb for the harp
+        const length = audioCtx.sampleRate * 3.0; 
+        const impulse = audioCtx.createBuffer(2, length, audioCtx.sampleRate);
+        const left = impulse.getChannelData(0);
+        const right = impulse.getChannelData(1);
+        for (let i = 0; i < length; i++) {
+            const decay = Math.exp(-i / (audioCtx.sampleRate * 0.7));
+            left[i] = (Math.random() * 2 - 1) * decay;
+            right[i] = (Math.random() * 2 - 1) * decay;
+        }
+        let conv = audioCtx.createConvolver();
+        conv.buffer = impulse;
+        return conv;
+    }
+
+    function initAudio() {
+        if (document.getElementById('toggle-sound').checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Compressor keeps massive glissandos from blowing out the speakers
+            compressor = audioCtx.createDynamicsCompressor();
+            compressor.threshold.setValueAtTime(-20, audioCtx.currentTime);
+            compressor.knee.setValueAtTime(20, audioCtx.currentTime);
+            compressor.ratio.setValueAtTime(10, audioCtx.currentTime);
+            compressor.attack.setValueAtTime(0.002, audioCtx.currentTime);
+            compressor.release.setValueAtTime(0.1, audioCtx.currentTime);
+            compressor.connect(audioCtx.destination);
+
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.4;
+            
+            convolver = createReverb();
+            
+            masterGain.connect(compressor);
+            masterGain.connect(convolver);
+            convolver.connect(compressor);
+        }
+        if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function pluckString(midiNote) {
+        if (!audioCtx) return;
+
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+
+        const freq = 440 * Math.pow(2, (midiNote - 69) / 12);
+        
+        // Harp/Pluck Sound: Blending Triangle with a bit of Sawtooth crunch
+        osc.type = 'triangle'; 
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        // Lowpass filter that closes over time
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3000, audioCtx.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 1.5);
+
+        osc.connect(gainNode);
+        gainNode.connect(filter);
+        filter.connect(masterGain);
+
+        // ADSR Envelope: Sharp attack, long exponential decay (no sustain)
+        const now = audioCtx.currentTime;
+        gainNode.gain.setValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(1.0, now + 0.015); // Snappy pluck
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 2.0); // Rings out for 2 seconds
+
+        osc.start(now);
+        osc.stop(now + 2.1);
+
+        // Cleanup
+        setTimeout(() => {
+            osc.disconnect(); gainNode.disconnect(); filter.disconnect();
+        }, 2200);
+    }
+
+    // --- UI HARP BUILDER ---
+    
+    function buildHarp() {
+        const harp = document.getElementById('harp');
+        harp.innerHTML = '';
+        
+        const rootIndex = parseInt(document.getElementById('root-select').value);
+        const scaleKey = document.getElementById('scale-select').value;
+        const intervals = SCALES[scaleKey];
+        
+        // Base MIDI (e.g. C2 = 36). We build 3 Octaves.
+        const baseMidi = 36 + rootIndex; 
+        const notesToBuild = [];
+
+        // Generate the exact sequence of MIDI notes for 3 octaves
+        for (let oct = 0; oct < 3; oct++) {
+            intervals.forEach(interval => {
+                notesToBuild.push(baseMidi + interval + (oct * 12));
+            });
+        }
+        // Add the top root note to cap it off perfectly
+        notesToBuild.push(baseMidi + (3 * 12)); 
+
+        // We want highest notes at the TOP of the screen, so we reverse the array
+        notesToBuild.reverse();
+
+        notesToBuild.forEach(midi => {
+            const isRoot = (midi % 12) === rootIndex;
+            const noteName = NOTE_NAMES[midi % 12];
+            const octNumber = Math.floor(midi / 12) - 1;
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `harp-string-wrapper ${isRoot ? 'is-root' : ''}`;
+            
+            const string = document.createElement('div');
+            string.className = 'harp-string';
+
+            const label = document.createElement('div');
+            label.className = 'note-label';
+            label.innerText = `${noteName}${octNumber}`;
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(string);
+
+            // Interaction Trigger
+            wrapper.addEventListener('mouseenter', () => {
+                initAudio();
+                pluckString(midi);
+                
+                // Visual Animation
+                wrapper.classList.add('plucked');
+                setTimeout(() => wrapper.classList.remove('plucked'), 100);
+            });
+
+            // Fallback for touch devices gliding
+            wrapper.addEventListener('pointerenter', () => {
+                initAudio();
+                pluckString(midi);
+                wrapper.classList.add('plucked');
+                setTimeout(() => wrapper.classList.remove('plucked'), 100);
+            });
+
+            harp.appendChild(wrapper);
+        });
+    }
+
+    // Init
+    buildHarp();
+
+</script>
+</body>
+</html>

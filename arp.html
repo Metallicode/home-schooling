@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Sonic Loom</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 900px; 
+            gap: 20px; justify-content: center; align-items: center;
+        }
+
+        /* --- VISUALIZER --- */
+        .visualizer-container {
+            width: 100%; height: 250px; background: #0a0a0d; 
+            border: 2px solid #222; border-radius: 15px; overflow: hidden;
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.8), 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* Guide lines for the canvas */
+        .guide-lines {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; background: repeating-linear-gradient(
+                to bottom, transparent, transparent 19px, rgba(255,255,255,0.03) 19px, rgba(255,255,255,0.03) 20px
+            );
+        }
+
+        /* --- KEYBOARD --- */
+        .keyboard {
+            display: flex; position: relative; height: 160px; width: 100%; max-width: 600px;
+            background: #111; padding: 10px; border-radius: 10px; border: 1px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); justify-content: space-between;
+        }
+
+        .key {
+            border-radius: 0 0 8px 8px; cursor: pointer; user-select: none;
+            display: flex; align-items: flex-end; justify-content: center; padding-bottom: 15px;
+            font-weight: bold; font-size: 14px; transition: all 0.1s;
+        }
+
+        .key-white {
+            width: 13%; height: 100%; background: #eee; color: #333;
+            border: 1px solid #ccc; border-top: none; z-index: 1;
+            box-shadow: 0 4px 0 #bbb;
+        }
+        .key-white.active { box-shadow: 0 0 0 #bbb; transform: translateY(4px); background: #fff;}
+
+        .key-black {
+            width: 9%; height: 60%; background: #222; color: #888;
+            position: absolute; z-index: 2; border: 1px solid #000;
+            border-radius: 0 0 6px 6px; box-shadow: 0 4px 0 #000;
+        }
+        .key-black.active { box-shadow: 0 0 0 #000; transform: translateY(4px); background: #444;}
+
+        /* Positioning the black keys */
+        .cs { left: 9.5%; } .ds { left: 23.5%; } 
+        .fs { left: 52%; } .gs { left: 66%; } .as { left: 80%; }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: center;
+            background: #111; padding: 20px; border-radius: 15px; border: 1px solid #333; width: 100%;
+        }
+
+        .control-group { display: flex; flex-direction: column; gap: 8px; align-items: flex-start;}
+        .control-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;}
+
+        select, input[type="range"] {
+            background: #222; color: #fff; border: 1px solid #444; padding: 10px;
+            border-radius: 8px; font-family: inherit; font-size: 14px; outline: none; cursor: pointer;
+        }
+        
+        .btn-play {
+            background: #00e676; color: #000; border: none; padding: 15px 30px;
+            font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.4); text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn-play.playing {
+            background: #ff5252; box-shadow: 0 0 15px rgba(255, 82, 82, 0.4);
+        }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.92);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>🧶 The Sonic Loom 🧶</h1>
+    <p>Toggle keys to choose notes. Watch the math weave them into melodies.</p>
+
+    <div class="dashboard">
+        
+        <!-- VISUALIZER -->
+        <div class="visualizer-container">
+            <div class="guide-lines"></div>
+            <canvas id="visCanvas"></canvas>
+        </div>
+
+        <!-- KEYBOARD -->
+        <div class="keyboard" id="keyboard">
+            <!-- Rendered by JS -->
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="controls">
+            <button class="btn-play" id="btn-play" onclick="togglePlay()">Start Engine</button>
+            
+            <div class="control-group">
+                <div class="control-label">Arp Pattern</div>
+                <select id="arp-mode">
+                    <option value="up">Stairs Up (Ascending)</option>
+                    <option value="down">Stairs Down (Descending)</option>
+                    <option value="updown">Mountains (Up & Down)</option>
+                    <option value="random">Scatter (Random)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">Speed: <span id="speed-val">120</span> BPM</div>
+                <input type="range" id="speed-slider" min="40" max="240" value="120" oninput="updateSpeed(this.value)">
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- MUSIC DATA & STATE ---
+    const scale = [
+        { note: 'C', freq: 261.63, type: 'white', color: '#ff5252' },
+        { note: 'C#', freq: 277.18, type: 'black', cls: 'cs', color: '#ff7043' },
+        { note: 'D', freq: 293.66, type: 'white', color: '#ffa726' },
+        { note: 'D#', freq: 311.13, type: 'black', cls: 'ds', color: '#ffca28' },
+        { note: 'E', freq: 329.63, type: 'white', color: '#ffee58' },
+        { note: 'F', freq: 349.23, type: 'white', color: '#9ccc65' },
+        { note: 'F#', freq: 369.99, type: 'black', cls: 'fs', color: '#26a69a' },
+        { note: 'G', freq: 392.00, type: 'white', color: '#29b6f6' },
+        { note: 'G#', freq: 415.30, type: 'black', cls: 'gs', color: '#26c6da' },
+        { note: 'A', freq: 440.00, type: 'white', color: '#ab47bc' },
+        { note: 'A#', freq: 466.16, type: 'black', cls: 'as', color: '#ec407a' },
+        { note: 'B', freq: 493.88, type: 'white', color: '#ff4081' }
+    ];
+
+    let activeKeys = new Set();
+    let isPlaying = false;
+    let arpIndex = 0;
+    let arpDirection = 1; // 1 for up, -1 for down
+    let bpm = 120;
+    let loopId = null;
+
+    // --- AUDIO ENGINE ---
+    let audioCtx, masterGain;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.3; // Gentle volume
+            masterGain.connect(audioCtx.destination);
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, color, noteIndex) {
+        if (!audioCtx) return;
+        
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(masterGain);
+        
+        // A nice, plucky synthesizer sound
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        // ADSR Envelope (Fast attack, quick decay for arp plucks)
+        const noteLength = (60 / bpm) * 0.5; // 8th note duration
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.8, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + noteLength);
+        
+        osc.start(audioCtx.currentTime);
+        osc.stop(audioCtx.currentTime + noteLength);
+
+        // Spawn visualizer block
+        spawnVisualNote(color, noteIndex);
+        
+        // Flash the physical key
+        flashKey(noteIndex);
+    }
+
+    // --- UI BUILDER ---
+    const keyboard = document.getElementById('keyboard');
+    
+    function buildKeyboard() {
+        scale.forEach((k, index) => {
+            const btn = document.createElement('div');
+            btn.className = `key key-${k.type} ${k.cls || ''}`;
+            btn.innerText = k.note;
+            btn.id = `key-${index}`;
+            
+            btn.onclick = () => {
+                initAudio();
+                if (activeKeys.has(index)) {
+                    activeKeys.delete(index);
+                    btn.classList.remove('active');
+                    btn.style.boxShadow = '';
+                    btn.style.borderColor = '';
+                } else {
+                    activeKeys.add(index);
+                    btn.classList.add('active');
+                    btn.style.boxShadow = `0 0 20px ${k.color}`;
+                    btn.style.borderColor = k.color;
+                    if(!isPlaying) playTone(k.freq, k.color, index); // Preview sound if stopped
+                }
+            };
+            keyboard.appendChild(btn);
+        });
+    }
+    
+    function flashKey(index) {
+        const key = document.getElementById(`key-${index}`);
+        const c = scale[index].color;
+        key.style.background = c;
+        key.style.color = '#000';
+        setTimeout(() => {
+            key.style.background = '';
+            key.style.color = '';
+        }, 150);
+    }
+
+    // --- ARPEGGIATOR LOGIC ---
+    function stepArp() {
+        if (activeKeys.size === 0) return; // Nothing to play
+
+        let sortedKeys = Array.from(activeKeys).sort((a, b) => a - b);
+        let mode = document.getElementById('arp-mode').value;
+        let noteToPlay = 0;
+
+        if (mode === 'up') {
+            arpIndex = (arpIndex + 1) % sortedKeys.length;
+            noteToPlay = sortedKeys[arpIndex];
+        } 
+        else if (mode === 'down') {
+            arpIndex = (arpIndex - 1 + sortedKeys.length) % sortedKeys.length;
+            noteToPlay = sortedKeys[arpIndex];
+        } 
+        else if (mode === 'updown') {
+            if (sortedKeys.length === 1) {
+                noteToPlay = sortedKeys[0];
+            } else {
+                arpIndex += arpDirection;
+                if (arpIndex >= sortedKeys.length) {
+                    arpDirection = -1;
+                    arpIndex = sortedKeys.length - 2;
+                } else if (arpIndex < 0) {
+                    arpDirection = 1;
+                    arpIndex = 1;
+                }
+                noteToPlay = sortedKeys[arpIndex];
+            }
+        } 
+        else if (mode === 'random') {
+            noteToPlay = sortedKeys[Math.floor(Math.random() * sortedKeys.length)];
+        }
+
+        const noteData = scale[noteToPlay];
+        playTone(noteData.freq, noteData.color, noteToPlay);
+    }
+
+    function togglePlay() {
+        initAudio();
+        const btn = document.getElementById('btn-play');
+        if (isPlaying) {
+            clearInterval(loopId);
+            isPlaying = false;
+            btn.innerText = "Start Engine";
+            btn.classList.remove('playing');
+        } else {
+            // Reset state so it starts nicely
+            arpIndex = -1; 
+            arpDirection = 1;
+            
+            // Calculate ms per 16th note
+            const msPerStep = (60000 / bpm) / 4; 
+            loopId = setInterval(stepArp, msPerStep);
+            
+            isPlaying = true;
+            btn.innerText = "Stop Engine";
+            btn.classList.add('playing');
+        }
+    }
+
+    function updateSpeed(val) {
+        bpm = val;
+        document.getElementById('speed-val').innerText = bpm;
+        if (isPlaying) {
+            // Restart loop with new speed
+            clearInterval(loopId);
+            const msPerStep = (60000 / bpm) / 4;
+            loopId = setInterval(stepArp, msPerStep);
+        }
+    }
+
+    // --- VISUALIZER ENGINE ---
+    const canvas = document.getElementById('visCanvas');
+    const ctx = canvas.getContext('2d');
+    let visualNotes = [];
+
+    // Make canvas resize correctly
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function spawnVisualNote(color, noteIndex) {
+        // Map the note index (0-11) to a Y position on the canvas
+        // Index 0 (C) is at the bottom, Index 11 (B) is at the top
+        const rowHeight = canvas.height / 12;
+        const yPos = canvas.height - (noteIndex * rowHeight) - rowHeight;
+
+        visualNotes.push({
+            x: canvas.width, // Start at far right
+            y: yPos,
+            w: (120 / bpm) * 20 + 20, // Width scales slightly with speed
+            h: rowHeight * 0.8, // Slight gap between rows
+            color: color,
+            alpha: 1.0
+        });
+    }
+
+    function drawVisualizer() {
+        requestAnimationFrame(drawVisualizer);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Move and draw notes
+        const speed = 4; // Pixels per frame scrolling left
+        
+        for (let i = visualNotes.length - 1; i >= 0; i--) {
+            let n = visualNotes[i];
+            n.x -= speed;
+            
+            // Draw glowing rectangle
+            ctx.fillStyle = n.color;
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = n.color;
+            
+            // Give it rounded corners
+            ctx.beginPath();
+            if(ctx.roundRect) {
+                ctx.roundRect(n.x, n.y, n.w, n.h, 5);
+            } else {
+                ctx.rect(n.x, n.y, n.w, n.h);
+            }
+            ctx.fill();
+            
+            // Remove if off screen
+            if (n.x + n.w < 0) {
+                visualNotes.splice(i, 1);
+            }
+        }
+        ctx.shadowBlur = 0; // reset for next frame
+    }
+
+    // Init
+    buildKeyboard();
+    drawVisualizer();
+
+</script>
+</body>
+</html>

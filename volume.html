@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Dimension Forge</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+            overflow-x: hidden;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        /* --- DASHBOARD --- */
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 1100px; 
+            gap: 15px; justify-content: center; align-items: center;
+        }
+
+        /* --- CONTROLS --- */
+        .controls {
+            display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: stretch;
+            background: #111; padding: 20px; border-radius: 15px; border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%;
+        }
+
+        .btn-group { 
+            display: flex; flex-direction: column; gap: 10px; align-items: center; 
+            background: #0a0a0d; padding: 15px; border-radius: 10px; border: 1px solid #222; flex: 1;
+        }
+        .control-label { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;}
+
+        .btn {
+            background: #222; color: #fff; border: 2px solid #444; border-radius: 8px;
+            padding: 10px 15px; font-size: 13px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .btn:hover { background: #333; transform: translateY(-2px); }
+        
+        .active-shape { background: #00e5ff; color: #000; border-color: #00e5ff; box-shadow: 0 0 15px rgba(0, 229, 255, 0.5); }
+        .active-type { background: #ff4081; color: #fff; border-color: #ff4081; box-shadow: 0 0 15px rgba(255, 64, 129, 0.5); }
+        
+        .size-controls { display: flex; gap: 15px; align-items: center;}
+        .btn-size { border-color: #00e676; color: #00e676; font-size: 20px; padding: 5px 20px;}
+        .btn-size:hover { background: #00e676; color: #000; box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);}
+        .btn-size:disabled { border-color: #333; color: #333; cursor: not-allowed; background: transparent; box-shadow: none; transform: none;}
+        #size-display { font-size: 28px; font-weight: bold; width: 40px; color: #00e676;}
+
+        /* --- VISUAL DISPLAY --- */
+        .stage {
+            display: flex; gap: 20px; width: 100%; justify-content: center; flex-wrap: wrap;
+        }
+
+        .pane {
+            flex: 1; min-width: 350px; background: #0a0a0d; border-radius: 15px;
+            border: 1px solid #222; box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+            display: flex; flex-direction: column; align-items: center; padding: 20px;
+        }
+
+        .pane-title { font-size: 22px; font-weight: bold; margin-bottom: 5px; text-transform: uppercase;}
+        .pane-math { font-size: 15px; color: #aaa; margin-bottom: 10px; min-height: 45px; line-height: 1.4;}
+        .math-highlight { color: #fff; font-weight: bold; font-size: 18px; padding: 2px 8px; background: rgba(255,255,255,0.1); border-radius: 5px;}
+        .hint-text { font-size: 11px; color: #666; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px;}
+
+        /* WebGL Canvases */
+        .canvas-container {
+            width: 100%; height: 400px; border-radius: 10px; overflow: hidden;
+            background: radial-gradient(circle at center, #1a1a24 0%, #050508 100%);
+            border: 1px solid #111; cursor: grab;
+        }
+        .canvas-container:active { cursor: grabbing; }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #b388ff; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 14px;
+        }
+        .toggle-container input { width: 16px; height: 16px; accent-color: #b388ff; cursor: pointer; }
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.92);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>⚒️ The Dimension Forge ⚒️</h1>
+    <p>Discover the 3 different laws of moving from 2D to 3D. <strong>Drag the shapes to rotate!</strong></p>
+
+    <div class="dashboard">
+        
+        <!-- CONTROLS -->
+        <div class="controls">
+            
+            <div class="btn-group">
+                <div class="control-label">1. Pick a 2D Shape</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <button class="btn active-shape" id="shape-triangle" onclick="setShape('triangle')">Triangle</button>
+                    <button class="btn" id="shape-square" onclick="setShape('square')">Square</button>
+                    <button class="btn" id="shape-pentagon" onclick="setShape('pentagon')">Pentagon</button>
+                    <button class="btn" id="shape-hexagon" onclick="setShape('hexagon')">Hexagon</button>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <div class="control-label">2. How to make it 3D?</div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;">
+                    <button class="btn active-type" id="type-prism" onclick="setType('prism')">Extrude (Prism)</button>
+                    <button class="btn" id="type-pyramid" onclick="setType('pyramid')">Converge (Pyramid)</button>
+                    <button class="btn" id="type-platonic" onclick="setType('platonic')" style="border-color:#ffeb3b; color:#ffeb3b;">Fold (Platonic)</button>
+                </div>
+            </div>
+
+            <div class="btn-group">
+                <div class="control-label">3. Size (N)</div>
+                <div class="size-controls">
+                    <button class="btn btn-size" id="btn-dec" onclick="changeSize(-1)">-</button>
+                    <span id="size-display">4</span>
+                    <button class="btn btn-size" id="btn-inc" onclick="changeSize(1)">+</button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- STAGE -->
+        <div class="stage">
+            <div class="pane">
+                <div class="pane-title" id="title-2d" style="color: #00e5ff;">2D Flat Shape</div>
+                <div class="pane-math" id="math-2d">Math</div>
+                <div class="hint-text">Try rotating sideways to see zero depth.</div>
+                <div class="canvas-container" id="container-2d"></div>
+            </div>
+
+            <div class="pane">
+                <div class="pane-title" id="title-3d" style="color: #ff4081;">3D Structure</div>
+                <div class="pane-math" id="math-3d">Math</div>
+                <div class="hint-text" id="hint-3d">Drag to explore the structure.</div>
+                <div class="canvas-container" id="container-3d"></div>
+            </div>
+        </div>
+
+        <label class="toggle-container">
+            <input type="checkbox" id="toggle-sound" checked onchange="initAudio()">
+            🎵 Enable Sound Effects
+        </label>
+
+    </div>
+
+<script>
+    // --- STATE ---
+    let currentShape = 'triangle'; 
+    let currentType = 'prism'; 
+    let currentSize = 4;
+    const MAX_SIZE = 7; 
+    const SPACING = 1.15; 
+
+    // --- AUDIO ---
+    let audioCtx, masterGain;
+    function initAudio() {
+        if (document.getElementById('toggle-sound').checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.15;
+            masterGain.connect(audioCtx.destination);
+        }
+    }
+    
+    function playBuildSound() {
+        if (!audioCtx || !document.getElementById('toggle-sound').checked) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(masterGain);
+        
+        // Deepen pitch based on size, make Platonic solids sound highly crystalline
+        let pitch = 800 - (currentSize * 50);
+        if (currentType === 'platonic') pitch = 1200; 
+        
+        osc.type = currentType === 'platonic' ? 'sine' : 'triangle';
+        osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+        
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.4, audioCtx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        
+        osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // --- THREE.JS ENGINE ---
+    function initScene(containerId) {
+        const container = document.getElementById(containerId);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const p1 = new THREE.PointLight(0xffffff, 0.8); p1.position.set(10, 20, 10); scene.add(p1);
+        const p2 = new THREE.PointLight(0x8888ff, 0.5); p2.position.set(-10, -10, -10); scene.add(p2);
+        
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; controls.dampingFactor = 0.05; controls.enablePan = false;
+        return { scene, camera, renderer, controls, group: new THREE.Group() };
+    }
+
+    const scene2D = initScene('container-2d');
+    const scene3D = initScene('container-3d');
+    scene2D.scene.add(scene2D.group);
+    scene3D.scene.add(scene3D.group);
+
+    const sphereGeo = new THREE.SphereGeometry(0.5, 32, 32);
+    
+    // Physical Materials
+    const materials = {
+        'triangle': new THREE.MeshPhysicalMaterial({ color: 0x00e676, roughness: 0.1, clearcoat: 0.8 }),
+        'square': new THREE.MeshPhysicalMaterial({ color: 0x00e5ff, roughness: 0.1, clearcoat: 0.8 }),
+        'pentagon': new THREE.MeshPhysicalMaterial({ color: 0xff9800, roughness: 0.1, clearcoat: 0.8 }),
+        'hexagon': new THREE.MeshPhysicalMaterial({ color: 0xffeb3b, roughness: 0.1, clearcoat: 0.8 }),
+        'platonic': new THREE.MeshPhysicalMaterial({ color: 0xffeb3b, roughness: 0.1, metalness: 0.5, clearcoat: 1.0 })
+    };
+
+    function animate() {
+        requestAnimationFrame(animate);
+        scene3D.group.rotation.y += 0.005; // Auto-rotate 3D 
+        scene2D.controls.update(); scene3D.controls.update();
+        scene2D.renderer.render(scene2D.scene, scene2D.camera);
+        scene3D.renderer.render(scene3D.scene, scene3D.camera);
+    }
+    animate();
+
+    // --- MATH LATTICE GENERATORS ---
+    function getTriangle(size, yLevel) {
+        let pts = [];
+        for(let row=0; row<size; row++) {
+            for(let col=0; col<=row; col++) {
+                let x = (col - row/2) * SPACING;
+                let z = (row * 0.866) * SPACING;
+                pts.push({x: x, y: yLevel, z: z});
+            }
+        }
+        let zCenter = ((size-1) * 0.866 * SPACING) / 2;
+        pts.forEach(p => p.z -= zCenter);
+        return pts;
+    }
+
+    function getSquare(size, yLevel) {
+        let pts = [];
+        for(let row=0; row<size; row++) {
+            for(let col=0; col<size; col++) {
+                let x = (col - (size-1)/2) * SPACING;
+                let z = (row - (size-1)/2) * SPACING;
+                pts.push({x: x, y: yLevel, z: z});
+            }
+        }
+        return pts;
+    }
+
+    // Generates Centered Polygons (Pentagons, Hexagons)
+    function getCenteredPolygon(sides, size, yLevel) {
+        let pts = [];
+        pts.push({x: 0, y: yLevel, z: 0}); 
+        for(let r=1; r<size; r++) { 
+            for(let side=0; side<sides; side++) {
+                let a1 = side * 2 * Math.PI / sides - (Math.PI/2);
+                let a2 = ((side+1)%sides) * 2 * Math.PI / sides - (Math.PI/2);
+                for(let step=0; step<r; step++) {
+                    let t = step/r; 
+                    let x = r * SPACING * (Math.cos(a1)*(1-t) + Math.cos(a2)*t);
+                    let z = r * SPACING * (Math.sin(a1)*(1-t) + Math.sin(a2)*t);
+                    pts.push({x: x, y: yLevel, z: z});
+                }
+            }
+        }
+        return pts;
+    }
+
+    // Master dispatcher for 2D shapes
+    function getShapeCoords(shape, size, yLevel) {
+        if(shape === 'triangle') return getTriangle(size, yLevel);
+        if(shape === 'square') return getSquare(size, yLevel);
+        if(shape === 'pentagon') return getCenteredPolygon(5, size, yLevel);
+        if(shape === 'hexagon') return getCenteredPolygon(6, size, yLevel);
+    }
+
+    // --- PLATONIC SOLID ENGINE ---
+    // Extracts the literal mathematical vertices of the perfect 3D solids
+    function getPlatonicData(shape) {
+        let geo;
+        let scale = 3.5;
+        if (shape === 'triangle') geo = new THREE.TetrahedronGeometry(scale);
+        if (shape === 'square') geo = new THREE.BoxGeometry(scale, scale, scale);
+        if (shape === 'pentagon') geo = new THREE.DodecahedronGeometry(scale);
+
+        let uniquePts = [];
+        if (geo) {
+            const pos = geo.attributes.position;
+            for(let i = 0; i < pos.count; i++) {
+                let p = new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i));
+                // Remove duplicates that Three.js generates for flat faces
+                if (!uniquePts.some(up => up.distanceTo(p) < 0.1)) {
+                    uniquePts.push(p);
+                }
+            }
+        }
+        return { uniquePts, geo };
+    }
+
+
+    // --- BUILDERS ---
+    function buildMeshes(group, coordinates, material) {
+        coordinates.forEach(pt => {
+            const mesh = new THREE.Mesh(sphereGeo, material);
+            mesh.position.set(pt.x, pt.y, pt.z);
+            group.add(mesh);
+        });
+    }
+
+    function updateVisuals() {
+        playBuildSound();
+        
+        // Clear scenes
+        while(scene2D.group.children.length > 0) scene2D.group.remove(scene2D.group.children[0]);
+        while(scene3D.group.children.length > 0) scene3D.group.remove(scene3D.group.children[0]);
+
+        // Camera Logic
+        const camDistance = currentType === 'platonic' ? 9 : (currentSize * 3.5);
+        scene2D.camera.position.set(0, camDistance, camDistance * 0.1); 
+        scene2D.camera.lookAt(0,0,0);
+        scene3D.camera.position.set(camDistance * 0.7, camDistance * 0.7, camDistance * 0.7);
+        scene3D.camera.lookAt(0,0,0);
+        scene3D.group.rotation.y = 0;
+
+        let coords2D = getShapeCoords(currentShape, currentSize, 0);
+        let coords3D = [];
+        let str2D = `2D Shape Area (N=${currentSize})<br>= <span class="math-highlight" style="color:#00e5ff">${coords2D.length} balls</span>`;
+        let str3D = "";
+
+        // ** RENDER 2D **
+        buildMeshes(scene2D.group, coords2D, materials[currentShape]);
+
+        // ** RENDER 3D **
+        document.getElementById('hint-3d').innerText = "Drag to explore the structure.";
+
+        if (currentType === 'prism') {
+            document.getElementById('title-3d').innerText = `3D Prism (Extrusion)`;
+            let yOffsetBase = -((currentSize-1) * SPACING) / 2;
+            
+            for(let layer = 0; layer < currentSize; layer++) {
+                coords3D = coords3D.concat(getShapeCoords(currentShape, currentSize, yOffsetBase + (layer * SPACING)));
+            }
+            buildMeshes(scene3D.group, coords3D, materials[currentShape]);
+            str3D = `Extruding (Stacking identical layers): ${coords2D.length} × ${currentSize}<br>= <span class="math-highlight" style="color:#ff4081">${coords3D.length} balls</span>`;
+        
+        } 
+        else if (currentType === 'pyramid') {
+            document.getElementById('title-3d').innerText = `3D Pyramid (Convergence)`;
+            let yOffsetBase = -((currentSize-1) * 0.816 * SPACING) / 2;
+            let layerArr = [];
+            
+            for(let layer = 0; layer < currentSize; layer++) {
+                let layerSize = currentSize - layer;
+                let layerPts = getShapeCoords(currentShape, layerSize, yOffsetBase + (layer * 0.816 * SPACING));
+                
+                // Keep the Triangle pyramid leaning correctly
+                if (currentShape === 'triangle') {
+                    let zShift = (layer * 0.866 * SPACING) / 3;
+                    layerPts.forEach(p => p.z -= zShift);
+                }
+                coords3D = coords3D.concat(layerPts);
+                layerArr.push(layerPts.length);
+            }
+            buildMeshes(scene3D.group, coords3D, materials[currentShape]);
+            str3D = `Converging (Stacking shrinking layers): ${layerArr.join(" + ")}<br>= <span class="math-highlight" style="color:#ff4081">${coords3D.length} balls</span>`;
+        
+        } 
+        else if (currentType === 'platonic') {
+            if (currentShape === 'hexagon') {
+                document.getElementById('title-3d').innerText = `Impossible!`;
+                str3D = `BEES KNOW BEST!<br><span class="math-highlight" style="color:#ff5252">Hexagons cannot fold into a 3D ball!</span><br>3 flat hexagons = 360°. They perfectly tile a flat floor, so they can never fold upwards.`;
+                document.getElementById('hint-3d').innerText = "Math broken!";
+            } else {
+                const pData = getPlatonicData(currentShape);
+                
+                // Draw the Vertex Balls
+                buildMeshes(scene3D.group, pData.uniquePts, materials['platonic']);
+                
+                // Draw Glowing Edges to show the faces
+                const edges = new THREE.EdgesGeometry(pData.geo);
+                const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffeb3b, linewidth: 2, transparent: true, opacity: 0.8 }));
+                scene3D.group.add(line);
+
+                let faceCount = currentShape === 'triangle' ? 4 : (currentShape === 'square' ? 6 : 12);
+                let pName = currentShape === 'triangle' ? 'Tetrahedron' : (currentShape === 'square' ? 'Cube' : 'Dodecahedron');
+                
+                document.getElementById('title-3d').innerText = `The ${pName}`;
+                str3D = `Platonic Solid (True 3D Folding)<br><span class="math-highlight" style="color:#ffeb3b">${pData.uniquePts.length} Vertices | ${faceCount} flat faces</span>`;
+            }
+        }
+
+        document.getElementById('math-2d').innerHTML = str2D;
+        document.getElementById('math-3d').innerHTML = str3D;
+    }
+
+    // --- UI CONTROLS ---
+    function setShape(shape) {
+        document.querySelectorAll('.active-shape').forEach(el => el.classList.remove('active-shape'));
+        document.getElementById(`shape-${shape}`).classList.add('active-shape');
+        currentShape = shape;
+        updateVisuals();
+    }
+
+    function setType(type) {
+        document.querySelectorAll('.active-type').forEach(e => e.classList.remove('active-type'));
+        document.getElementById(`type-${type}`).classList.add('active-type');
+        currentType = type;
+        
+        if (type === 'platonic') {
+            document.getElementById('btn-dec').disabled = true;
+            document.getElementById('btn-inc').disabled = true;
+            document.getElementById('size-display').innerText = "N/A";
+            document.getElementById('size-display').style.color = "#444";
+        } else {
+            document.getElementById('size-display').innerText = currentSize;
+            document.getElementById('size-display').style.color = "#00e676";
+            document.getElementById('btn-dec').disabled = (currentSize === 1);
+            document.getElementById('btn-inc').disabled = (currentSize === MAX_SIZE);
+        }
+        updateVisuals();
+    }
+
+    function changeSize(delta) {
+        let newSize = currentSize + delta;
+        if (newSize >= 1 && newSize <= MAX_SIZE) {
+            currentSize = newSize;
+            document.getElementById('size-display').innerText = currentSize;
+            document.getElementById('btn-dec').disabled = (currentSize === 1);
+            document.getElementById('btn-inc').disabled = (currentSize === MAX_SIZE);
+            updateVisuals();
+        }
+    }
+
+    setTimeout(updateVisuals, 100);
+</script>
+</body>
+</html>

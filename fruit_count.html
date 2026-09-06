@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Harvest Counter</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #81d4fa; /* Soft sky blue */
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #1565c0; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 18px; color: #0277bd; margin: 0 0 20px 0; font-weight: bold;}
+
+        /* --- THE SCENE --- */
+        .scene {
+            position: relative; width: 100%; max-width: 600px; height: 500px;
+            display: flex; justify-content: center; align-items: flex-end;
+            margin-bottom: 30px;
+        }
+
+        /* Pure CSS Tree */
+        .tree-trunk {
+            position: absolute; bottom: 0; width: 100px; height: 180px;
+            background: linear-gradient(to right, #5d4037, #795548, #5d4037);
+            border-radius: 10px 10px 0 0; box-shadow: 5px 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .tree-leaves {
+            position: absolute; bottom: 120px; width: 450px; height: 350px;
+            background: radial-gradient(circle at 30% 30%, #66bb6a, #2e7d32);
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3), inset -20px -20px 40px rgba(0,0,0,0.2);
+        }
+
+        /* Fruits */
+        .fruit {
+            position: absolute; font-size: 40px; 
+            user-select: none; cursor: pointer;
+            transition: all 0.2s ease;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.4));
+            /* Center the emoji exactly on its coordinate */
+            transform: translate(-50%, -50%); 
+        }
+
+        .fruit:hover { transform: translate(-50%, -50%) scale(1.2); }
+        .fruit:active { transform: translate(-50%, -50%) scale(0.9); }
+
+        /* When the child clicks a fruit to mark it as counted */
+        .fruit.counted {
+            opacity: 0.4; filter: grayscale(0.8) drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+
+        /* --- CONTROLS --- */
+        .control-panel {
+            background: rgba(255, 255, 255, 0.9); padding: 25px; border-radius: 20px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 100%; max-width: 500px;
+            display: flex; flex-direction: column; gap: 15px; align-items: center;
+        }
+
+        .question { font-size: 24px; color: #333; font-weight: bold; margin: 0;}
+
+        .input-row {
+            display: flex; gap: 15px; justify-content: center; align-items: center;
+        }
+
+        input[type="number"] {
+            width: 100px; font-size: 32px; font-weight: bold; text-align: center;
+            padding: 10px; border: 3px solid #29b6f6; border-radius: 15px;
+            outline: none; color: #0277bd; font-family: inherit;
+        }
+        input[type="number"]:focus { border-color: #ff4081; box-shadow: 0 0 15px rgba(255, 64, 129, 0.4); }
+
+        .btn {
+            background: #29b6f6; color: #fff; border: none; border-radius: 15px;
+            padding: 15px 30px; font-size: 24px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.1s; box-shadow: 0 6px 0 #0277bd;
+        }
+        .btn:hover { background: #4fc3f7; transform: translateY(2px); box-shadow: 0 4px 0 #0277bd; }
+        .btn:active { transform: translateY(6px); box-shadow: 0 0 0 #0277bd; }
+
+        #feedback {
+            font-size: 20px; font-weight: bold; min-height: 30px;
+        }
+
+        /* Success Animation */
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+            100% { transform: scale(1); }
+        }
+        .celebrating { animation: celebrate 0.5s ease 3; }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #1565c0; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        .toggle-container input { width: 18px; height: 18px; accent-color: #1565c0; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.92);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>🌳 The Harvest Counter 🌳</h1>
+    <p>Tap a fruit to mark it while you count!</p>
+
+    <!-- THE SCENE -->
+    <div class="scene">
+        <div class="tree-trunk"></div>
+        <div class="tree-leaves" id="tree-leaves">
+            <!-- Fruits injected here -->
+        </div>
+    </div>
+
+    <!-- UI PANEL -->
+    <div class="control-panel">
+        <div class="question" id="question-text">How many apples are on the tree?</div>
+        
+        <div class="input-row">
+            <input type="number" id="answer-input" min="1" max="25" placeholder="?">
+            <button class="btn" onclick="checkAnswer()">Check!</button>
+        </div>
+        
+        <div id="feedback"></div>
+
+        <label class="toggle-container">
+            <input type="checkbox" id="toggle-sound" checked onchange="initAudio()">
+            🎵 Enable Sounds
+        </label>
+    </div>
+
+<script>
+    // --- GAME STATE ---
+    const fruits = [
+        { emoji: '🍎', name: 'apples' },
+        { emoji: '🍊', name: 'oranges' },
+        { emoji: '🍋', name: 'lemons' },
+        { emoji: '🍑', name: 'peaches' },
+        { emoji: '🍒', name: 'cherries' }
+    ];
+    
+    let currentTargetCount = 0;
+    let currentFruit = null;
+    let isTransitioning = false;
+
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+
+    function initAudio() {
+        if (document.getElementById('toggle-sound').checked && !audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+    }
+
+    function playSound(type) {
+        if (!audioCtx || !document.getElementById('toggle-sound').checked) return;
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'pop') { // Clicking a fruit
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600 + (Math.random() * 200), audioCtx.currentTime);
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'wrong') { // Wrong answer
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'win') { // Correct answer!
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+            osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1); // C#5
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2); // E5
+            
+            gain.gain.setValueAtTime(0, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            osc.start(audioCtx.currentTime); osc.stop(audioCtx.currentTime + 0.6);
+        }
+    }
+
+    // --- GAME LOGIC ---
+
+    function generateRound() {
+        isTransitioning = false;
+        
+        // 1. Pick random fruit and count (1 to 25)
+        currentFruit = fruits[Math.floor(Math.random() * fruits.length)];
+        currentTargetCount = Math.floor(Math.random() * 25) + 1;
+
+        // 2. Update UI
+        document.getElementById('question-text').innerText = `How many ${currentFruit.name} are on the tree?`;
+        document.getElementById('answer-input').value = '';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('tree-leaves').classList.remove('celebrating');
+
+        // 3. Place fruits with Collision Detection
+        const leaves = document.getElementById('tree-leaves');
+        leaves.innerHTML = ''; // Clear old fruits
+
+        // The leaves element is 450x350. We want a safe margin so fruits don't hang off the edge.
+        const width = 450;
+        const height = 350;
+        const padding = 40; 
+        const minDistance = 45; // Minimum distance between fruit centers to prevent overlap
+
+        let placedFruits = [];
+
+        for (let i = 0; i < currentTargetCount; i++) {
+            let x, y;
+            let overlapping = true;
+            let attempts = 0;
+
+            // Collision Detection Loop
+            while (overlapping && attempts < 200) {
+                // Generate random coordinates within the safe ellipse area
+                // Using basic bounding box with padding for simplicity
+                x = padding + Math.random() * (width - padding * 2);
+                y = padding + Math.random() * (height - padding * 2);
+                
+                overlapping = false;
+                
+                // Check distance against all previously placed fruits
+                for (let j = 0; j < placedFruits.length; j++) {
+                    const dx = x - placedFruits[j].x;
+                    const dy = y - placedFruits[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < minDistance) {
+                        overlapping = true;
+                        break;
+                    }
+                }
+                attempts++;
+            }
+
+            // Save valid coordinate
+            placedFruits.push({ x: x, y: y });
+
+            // Create DOM Element
+            const fruitEl = document.createElement('div');
+            fruitEl.className = 'fruit';
+            fruitEl.innerText = currentFruit.emoji;
+            fruitEl.style.left = `${x}px`;
+            fruitEl.style.top = `${y}px`;
+            
+            // Interaction: Mark as counted
+            fruitEl.onclick = function() {
+                initAudio();
+                if (!this.classList.contains('counted')) {
+                    this.classList.add('counted');
+                    playSound('pop');
+                } else {
+                    this.classList.remove('counted');
+                    playSound('pop');
+                }
+            };
+
+            leaves.appendChild(fruitEl);
+        }
+    }
+
+    function checkAnswer() {
+        if (isTransitioning) return;
+        initAudio();
+
+        const inputEl = document.getElementById('answer-input');
+        const feedbackEl = document.getElementById('feedback');
+        const answer = parseInt(inputEl.value);
+
+        if (isNaN(answer)) {
+            feedbackEl.innerText = "Please type a number!";
+            feedbackEl.style.color = "#f57c00";
+            playSound('wrong');
+            return;
+        }
+
+        if (answer === currentTargetCount) {
+            // WIN STATE
+            isTransitioning = true;
+            feedbackEl.innerText = "Correct! Great counting! 🎉";
+            feedbackEl.style.color = "#43a047";
+            document.getElementById('tree-leaves').classList.add('celebrating');
+            playSound('win');
+
+            // Wait 2.5 seconds, then start next round
+            setTimeout(generateRound, 2500);
+        } else {
+            // WRONG STATE
+            feedbackEl.innerText = "Not quite. Try counting them again!";
+            feedbackEl.style.color = "#e53935";
+            playSound('wrong');
+            
+            // Clear input so she can try again easily
+            inputEl.value = '';
+            inputEl.focus();
+        }
+    }
+
+    // Allow pressing "Enter" in the input box to submit
+    document.getElementById('answer-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            checkAnswer();
+        }
+    });
+
+    // Start the first round!
+    generateRound();
+
+</script>
+</body>
+</html>

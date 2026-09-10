@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wander the World</title>
+    <style>
+        :root { --cyan:#00e5ff; --gold:#ffeb3b; }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center;
+            background:#050508; color:#fff; margin:0; padding:16px; min-height:100vh; text-align:center;
+            overflow-x:hidden;
+        }
+        h1 { color:var(--cyan); text-shadow:0 0 15px rgba(0,229,255,.5); margin:0 0 4px; letter-spacing:2px; font-size:clamp(20px,5vw,30px); }
+        p.intro { font-size:14px; color:#b2ebf2; margin:0 0 14px; }
+
+        .dashboard {
+            display:flex; flex-wrap:wrap; width:100%; max-width:1200px; gap:16px;
+            justify-content:center; align-items:stretch;
+        }
+
+        .globe-container {
+            flex:1 1 500px; min-width:300px; height:min(64vh,620px);
+            background:radial-gradient(circle at 50% 40%, #0e1826 0%, #020205 70%);
+            border-radius:15px; border:1px solid #222; box-shadow:inset 0 0 40px rgba(0,0,0,.8);
+            overflow:hidden; position:relative; cursor:grab;
+        }
+        .globe-container:active { cursor:grabbing; }
+
+        .facing {
+            position:absolute; top:14px; left:0; right:0; text-align:center;
+            font-size:12px; letter-spacing:2px; color:#7fd7e8; text-transform:uppercase;
+            pointer-events:none; text-shadow:0 0 8px #000;
+        }
+        .facing b { color:#fff; }
+
+        .hint {
+            position:absolute; left:50%; bottom:64px; transform:translateX(-50%);
+            background:rgba(0,0,0,.72); border:1px solid #333; border-radius:20px;
+            padding:7px 16px; font-size:12px; color:var(--gold); white-space:nowrap;
+            transition:opacity .5s; pointer-events:none; z-index:20;
+        }
+        .hint.hide { opacity:0; }
+
+        .globe-buttons {
+            position:absolute; top:12px; right:12px; display:flex; flex-direction:column; gap:8px; z-index:15;
+        }
+        .gbtn {
+            background:var(--gold); color:#000; border:none; border-radius:8px; padding:8px 12px;
+            font:inherit; font-weight:bold; font-size:12px; letter-spacing:1px; text-transform:uppercase;
+            cursor:pointer; box-shadow:0 0 14px rgba(255,235,59,.35); transition:transform .1s;
+        }
+        .gbtn:active { transform:scale(.95); }
+        .gbtn.ghost { background:rgba(0,0,0,.6); color:var(--cyan); border:1px solid #2a4a52; box-shadow:none; }
+
+        .layer-controls {
+            position:absolute; bottom:14px; left:14px; background:rgba(0,0,0,.7);
+            padding:10px 14px; border-radius:10px; border:1px solid #333;
+            display:flex; flex-direction:column; gap:7px; text-align:left; z-index:10;
+        }
+        .layer-controls .lc-title { font-size:10px; color:#888; text-transform:uppercase; letter-spacing:1px; }
+        .toggle-row { display:flex; align-items:center; gap:9px; color:var(--cyan); font-weight:bold; font-size:12px; cursor:pointer; }
+        .toggle-row input { width:15px; height:15px; accent-color:var(--cyan); cursor:pointer; }
+
+        .dist-flash {
+            position:absolute; left:50%; top:44px; transform:translateX(-50%);
+            font-size:13px; color:var(--gold); font-weight:bold; letter-spacing:1px;
+            text-shadow:0 0 10px #000; opacity:0; transition:opacity .4s; pointer-events:none; z-index:12;
+        }
+        .dist-flash.show { opacity:1; }
+
+        /* PASSPORT */
+        .passport {
+            flex:1 1 320px; min-width:280px; background:#0a0a0d; border-radius:15px; border:1px solid #333;
+            box-shadow:0 10px 30px rgba(0,0,0,.5); padding:22px; text-align:left;
+            position:relative; overflow:hidden; display:flex; flex-direction:column;
+        }
+        .passport::before {
+            content:'PASSPORT'; position:absolute; top:12px; right:-22px; transform:rotate(45deg);
+            background:var(--gold); color:#000; font-weight:bold; padding:5px 30px; font-size:11px; letter-spacing:2px;
+        }
+        .empty-state { margin:auto; color:#666; font-style:italic; max-width:220px; line-height:1.6; }
+
+        .p-flag { font-size:40px; line-height:1; }
+        .p-title-row { display:flex; align-items:center; gap:8px; margin:6px 0 2px; }
+        .p-title { font-size:26px; font-weight:bold; text-transform:uppercase; }
+        .say-btn { background:none; border:1px solid #2a4a52; color:#00e5ff; border-radius:8px;
+                   cursor:pointer; font-size:15px; padding:3px 9px; line-height:1; flex-shrink:0; }
+        .say-btn:hover { background:rgba(0,229,255,.12); }
+        .p-country { font-size:14px; color:#888; font-style:italic; margin-bottom:14px; }
+        .p-wonder { font-size:15px; color:#e6faff; line-height:1.55; margin-bottom:16px; border-left:3px solid var(--cyan); padding-left:12px; }
+
+        .p-row { margin-bottom:12px; }
+        .p-lab { font-size:10px; color:var(--cyan); text-transform:uppercase; letter-spacing:1px; font-weight:bold; margin-bottom:3px; }
+        .p-val { font-size:13px; color:#ccc; line-height:1.5; }
+
+        .elev-bar { width:100%; height:6px; background:#1c1c22; border-radius:3px; overflow:hidden; margin-top:4px; }
+        .elev-fill { height:100%; width:0; background:var(--cyan); transition:width .6s ease-out; }
+
+        .music-row { display:flex; align-items:center; gap:10px; margin-top:2px; }
+        .play-music {
+            background:var(--gold); color:#000; border:none; border-radius:20px; padding:6px 14px;
+            font:inherit; font-weight:bold; font-size:12px; cursor:pointer; white-space:nowrap;
+        }
+        .home-info { margin-top:auto; padding-top:14px; border-top:1px dashed #333; font-size:12px; color:#9fe6c8; }
+
+        .tooltip {
+            position:absolute; display:none; background:rgba(0,0,0,.88); color:var(--gold);
+            padding:6px 12px; border-radius:8px; font-size:13px; font-weight:bold; pointer-events:none;
+            border:1px solid var(--gold); z-index:1000; text-transform:uppercase; letter-spacing:1px;
+            box-shadow:0 0 14px rgba(255,235,59,.4);
+        }
+
+        .toggle-container { display:flex; align-items:center; justify-content:center; gap:10px; color:var(--gold); font-weight:bold; cursor:pointer; margin-top:14px; font-size:13px; }
+        .toggle-container input { width:16px; height:16px; accent-color:var(--gold); cursor:pointer; }
+
+        @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition-duration:.01s !important; } }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>🌍 Wander the World 🌍</h1>
+    <p class="intro">Spin the Earth and roam. Hover a border to hear the country's name; click a glowing pin to open its Passport Card. The dark side is where it's night right now.</p>
+
+    <div class="dashboard">
+        <div class="globe-container" id="globe-canvas">
+            <div class="facing" id="facing">Looking at <b>&mdash;</b></div>
+            <div class="dist-flash" id="dist-flash"></div>
+            <div class="globe-buttons">
+                <button class="gbtn" id="btn-surprise">🎲 Surprise me</button>
+                <button class="gbtn ghost" id="btn-home">📍 Set home</button>
+            </div>
+            <div class="layer-controls">
+                <div class="lc-title">Map layers</div>
+                <label class="toggle-row"><input type="checkbox" id="layer-pins" checked> 📍 Place pins</label>
+                <label class="toggle-row"><input type="checkbox" id="layer-borders" checked> 🗺️ Country borders</label>
+                <label class="toggle-row"><input type="checkbox" id="layer-topo" checked> ⛰️ Mountain relief</label>
+                <label class="toggle-row"><input type="checkbox" id="layer-grid"> 🌐 Equator &amp; tropics</label>
+                <label class="toggle-row"><input type="checkbox" id="layer-labels"> 🔤 Continent names</label>
+            </div>
+            <div class="hint" id="hint">Drag to spin &nbsp;·&nbsp; scroll to zoom &nbsp;·&nbsp; click a glowing pin</div>
+        </div>
+
+        <div class="passport" id="passport">
+            <div class="empty-state" id="empty-state">Pick a glowing pin on the globe &mdash; or hit <b>Surprise me</b> &mdash; to open its Passport Card.</div>
+            <div id="content" style="display:none;">
+                <div class="p-flag" id="p-flag">🏳️</div>
+                <div class="p-title-row">
+                    <div class="p-title" id="p-title">Place</div>
+                    <button class="say-btn" id="p-say" title="Say the name out loud">🔊</button>
+                </div>
+                <div class="p-country" id="p-country">Country</div>
+                <div class="p-wonder" id="p-wonder"></div>
+                <div class="p-row"><div class="p-lab">👋 Say hello</div><div class="p-val" id="p-hello"></div></div>
+                <div class="p-row"><div class="p-lab">🧒 Kids here might…</div><div class="p-val" id="p-kids"></div></div>
+                <div class="p-row"><div class="p-lab">🍽️ Taste this</div><div class="p-val" id="p-food"></div></div>
+                <div class="p-row"><div class="p-lab">🎉 Big celebration</div><div class="p-val" id="p-festival"></div></div>
+                <div class="p-row"><div class="p-lab">🐾 Look for</div><div class="p-val" id="p-animal"></div></div>
+                <div class="p-row"><div class="p-lab">⛰️ Height above the sea (<span id="p-elev">0</span> m)</div><div class="elev-bar"><div class="elev-fill" id="p-elev-bar"></div></div></div>
+                <div class="p-row"><div class="p-lab">🎵 What music sounds like here</div>
+                    <div class="music-row"><button class="play-music" id="p-play">▶ Play</button><span class="p-val" id="p-music"></span></div>
+                </div>
+                <div class="home-info" id="p-home" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <label class="toggle-container"><input type="checkbox" id="say-names" checked> 🔊 Say country &amp; place names</label>
+    <label class="toggle-container" style="margin-top:8px;"><input type="checkbox" id="toggle-sound" checked> 🎵 Music &amp; effects</label>
+    <div id="tooltip" class="tooltip">Country</div>
+
+<script>
+(function () {
+    'use strict';
+    var DEG = Math.PI / 180;
+    var EARTH_R = 2;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    /* ===================== DATA ===================== */
+    var LOCATIONS = [
+        { id:'kyoto', lat:35.01, lon:135.77, name:'Kyoto', country:'Japan', flag:'🇯🇵', color:0xff4081, elev:45,
+          wonder:'The 1,000-year-old capital of Japan, packed with wooden temples and golden shrines tucked between forested hills.',
+          hello:'Konnichiwa (kon-nee-chee-wah)', kids:'slurp their noodles loudly — it means the food is delicious',
+          food:'🍡 mochi — chewy pounded-rice cakes', festival:'🏮 Gion Matsuri, when huge wooden floats are pulled through the streets',
+          animal:'🦌 tame deer that bow for a snack in nearby Nara', music:'calm and spacious, built on just five notes', motif:[60,62,63,67,68,72] },
+        { id:'giza', lat:29.98, lon:31.13, name:'The Pyramids of Giza', country:'Egypt', flag:'🇪🇬', color:0xffeb3b, elev:60,
+          wonder:'Three mountains of stone built 4,500 years ago — so precise we still cannot fully explain how.',
+          hello:'As-salamu alaykum (as-sa-LAM-u a-LAY-kum)', kids:'still play senet, a board game their ancestors played',
+          food:'🥙 koshari — rice, pasta, lentils and crispy onions in one bowl', festival:'🌞 the Abu Simbel Sun Festival, when sunlight reaches deep into a temple twice a year',
+          animal:'🐫 dromedary camels resting by the tombs', music:'twisting and ornamented, using a "snake-charmer" scale', motif:[60,61,64,65,67,68,71] },
+        { id:'mara', lat:-1.5, lon:35.1, name:'The Maasai Mara', country:'Kenya', flag:'🇰🇪', color:0xff7043, elev:1500,
+          wonder:'Every year over a million wildebeest thunder across these plains in the largest animal migration on Earth.',
+          hello:'Jambo! (JAM-bo)', kids:'can name and track wild animals before they can read',
+          food:'🌽 ugali, a thick maize porridge you scoop with your hand', festival:'💃 the adumu, a jumping dance — the higher you leap, the better',
+          animal:'🦁 lions, 🐘 elephants and 🦒 giraffes', music:'call-and-response singing with deep humming', motif:[60,63,65,67,70,72] },
+        { id:'rio', lat:-22.91, lon:-43.17, name:'Rio de Janeiro', country:'Brazil', flag:'🇧🇷', color:0x00e5ff, elev:5,
+          wonder:'A city wedged between rainforest mountains and the sea, home to Carnival — the biggest party on the planet.',
+          hello:'Olá! (oh-LAH)', kids:'play football on every beach, street and rooftop',
+          food:'🧀 pão de queijo — warm, stretchy cheese bread', festival:'🥁 Carnival, a week of samba parades and drumming',
+          animal:'🐒 tiny marmoset monkeys in the city trees', music:'samba — many drums layered into one rolling groove', motif:[60,62,64,65,67,69,71,72] },
+        { id:'machu', lat:-13.16, lon:-72.55, name:'Machu Picchu', country:'Peru', flag:'🇵🇪', color:0x00e676, elev:2430,
+          wonder:'A whole stone city hidden on a mountain ridge in the clouds, built by the Inca without wheels or iron.',
+          hello:'Allillanchu (a-yee-YAN-choo) — in the Quechua language', kids:'help herd llamas along steep mountain paths',
+          food:'🥔 potatoes — the Inca grew over 3,000 different kinds', festival:'☀️ Inti Raymi, the festival of the Sun',
+          animal:'🦙 llamas and alpacas grazing on the terraces', music:'breathy pan-pipes that sound like mountain wind', motif:[60,63,65,67,70,72] },
+        { id:'iceland', lat:64.13, lon:-21.9, name:'Reykjavík', country:'Iceland', flag:'🇮🇸', color:0xe0e0e0, elev:30,
+          wonder:'An island of fire and ice, where volcanoes erupt under glaciers and the sky glows green with auroras.',
+          hello:'Halló (HAL-loh)', kids:'swim outdoors all winter in pools heated by volcanoes',
+          food:'🍶 skyr, a thick yoghurt eaten for over 1,000 years', festival:'🎇 the Winter Lights Festival in the long dark',
+          animal:'🐴 small, sturdy Icelandic horses with a special gliding walk', music:'wide, echoing and a little haunting', motif:[60,62,64,66,67,69,71] },
+        { id:'everest', lat:27.99, lon:86.93, name:'Mount Everest', country:'Nepal / China', flag:'🇳🇵', color:0x9be7ff, elev:8849,
+          wonder:'The highest point on Earth. The air at the top has so little oxygen that planes fly right past its height.',
+          hello:'Namaste (nah-mas-TAY)', kids:'fly homemade paper kites from the rooftops of Kathmandu',
+          food:'🥟 momos — steamed dumplings with spicy dipping sauce', festival:'🪁 Dashain, when the whole sky fills with kites',
+          animal:'🐐 blue sheep and the very rare snow leopard', music:'long droning notes and deep meditation bells', motif:[60,62,64,67,69,72] },
+        { id:'uluru', lat:-25.34, lon:131.04, name:'Uluru', country:'Australia', flag:'🇦🇺', color:0xff8a65, elev:863,
+          wonder:'A single giant red rock rising from a flat desert, sacred to Aboriginal people for more than 30,000 years.',
+          hello:"G'day (g'DYE)", kids:'learn Dreamtime stories that also work as maps of the land',
+          food:'🍯 bush tucker — wattleseed, native honey and witchetty grubs', festival:'🎨 dot paintings that record stories and country',
+          animal:'🦘 red kangaroos and 🦎 thorny devils', music:'the low buzzing drone of the didgeridoo', motif:[48,48,55,48,58,48] },
+        { id:'marrakesh', lat:31.63, lon:-7.99, name:'Marrakesh', country:'Morocco', flag:'🇲🇦', color:0xffb300, elev:466,
+          wonder:'A walled city of pink clay, with a market maze so twisty that people still get happily lost in it.',
+          hello:'Salam (sa-LAM)', kids:'help their families barter — haggling over price is a friendly game',
+          food:'🍲 tagine, slow-cooked in a cone-shaped clay pot', festival:'🔥 nightly storytellers and musicians filling the Jemaa el-Fnaa square',
+          animal:'🐐 goats that climb high into argan trees to eat the fruit', music:'hypnotic Gnawa rhythms with iron castanets', motif:[60,61,64,65,67,68,71] },
+        { id:'venice', lat:45.44, lon:12.34, name:'Venice', country:'Italy', flag:'🇮🇹', color:0x4dd0e1, elev:1,
+          wonder:'A city built on 118 little islands, with canals instead of roads and boats instead of cars.',
+          hello:'Ciao (chow)', kids:'take a boat — not a bus — to school',
+          food:'🍝 pasta with black squid-ink sauce', festival:'🎭 Carnival, when everyone wears elaborate masks',
+          animal:'🕊️ thousands of pigeons in St Mark’s Square', music:'soaring opera voices and violins', motif:[60,62,64,65,67,69,71] },
+        { id:'mongolia', lat:47.92, lon:106.92, name:'The Mongolian Steppe', country:'Mongolia', flag:'🇲🇳', color:0xd7ccc8, elev:1350,
+          wonder:'Grassland that rolls to the horizon. Some families still pack up their round felt homes and move with the seasons.',
+          hello:'Sain baina uu (sain BAY-noh)', kids:'ride horses before they can walk — and a few hunt with trained golden eagles',
+          food:'🥛 airag, lightly fizzy fermented mare’s milk', festival:'🏹 Naadam: wrestling, archery and long horse races',
+          animal:'🐎 half-wild horses and 🦅 golden eagles', music:'throat-singing — one person humming two notes at once', motif:[60,63,65,67,70,72] },
+        { id:'antarctica', lat:-77.85, lon:166.67, name:'Antarctica', country:'no country — shared by all', flag:'🇦🇶', color:0x80d8ff, elev:2800,
+          wonder:'The coldest, windiest, driest place on Earth. It has no towns, no roads, and belongs to no nation.',
+          hello:'scientists here from many countries greet each other in dozens of languages', kids:'don’t live here — only researchers, and penguins',
+          food:'🍫 lots of chocolate and butter — you burn huge energy staying warm', festival:'🌑 Midwinter, celebrated in 24-hour darkness',
+          animal:'🐧 emperor penguins and 🦭 Weddell seals', music:'the boom and crack of shifting ice, recorded by scientists', motif:[72,71,69,67,64,60] },
+        { id:'varanasi', lat:25.32, lon:83.0, name:'Varanasi', country:'India', flag:'🇮🇳', color:0xffa726, elev:80,
+          wonder:'One of the oldest cities still lived in anywhere, strung along the sacred Ganges river.',
+          hello:'Namaste (nah-mas-TAY)', kids:'float tiny oil lamps on the river at dusk and make a wish',
+          food:'🫓 hot puffed puri bread and cool sweet lassi', festival:'🪔 Diwali, the festival of lights',
+          animal:'🐄 cows that wander the lanes wherever they like', music:'sitar and tabla drums, with a different raga for each hour', motif:[60,61,64,66,67,70,71] },
+        { id:'neworleans', lat:29.95, lon:-90.07, name:'New Orleans', country:'United States', flag:'🇺🇸', color:0x9575cd, elev:1,
+          wonder:'The city where jazz was invented. Music spills out of doorways and marches down the middle of the street.',
+          hello:"Hey y'all (hey YAWL)", kids:'dance along behind brass bands in "second line" parades',
+          food:'🍤 gumbo, a thick spicy stew over rice', festival:'🎺 Mardi Gras, with costumes, floats and beads',
+          animal:'🐊 alligators gliding through the swampy bayou', music:'jazz — every player makes up their part as they go', motif:[60,63,64,65,67,70,72] },
+        { id:'timbuktu', lat:16.77, lon:-3.01, name:'Timbuktu', country:'Mali', flag:'🇲🇱', color:0xffca28, elev:261,
+          wonder:'A city on the edge of the Sahara that once held hundreds of thousands of handwritten books — a desert library.',
+          hello:'Salam alaikum', kids:'study from books their families have carefully kept for 600 years',
+          food:'🫓 takula flatbread baked in the hot desert sand', festival:'🐫 the arrival of the salt caravans after weeks in the dunes',
+          animal:'🐪 long camel trains crossing the Sahara', music:'the kora, a harp with 21 strings played with the thumbs', motif:[60,62,64,67,69,72] },
+        { id:'bali', lat:-8.34, lon:115.09, name:'Bali', country:'Indonesia', flag:'🇮🇩', color:0x66bb6a, elev:700,
+          wonder:'Whole hillsides carved into glowing green staircases of rice paddies, watered by a system 1,000 years old.',
+          hello:'Om Swastiastu (om swas-tee-AS-too)', kids:'learn a dance where the story is told with the eyes and fingertips',
+          food:'🍚 nasi goreng, fried rice with a fried egg on top', festival:'🌑 Nyepi, a full day of silence — no lights, no travel, no noise',
+          animal:'🐒 macaque monkeys that guard (and raid) the temples', music:'gamelan — a whole orchestra of tuned bronze gongs', motif:[60,62,65,67,69,72] },
+        { id:'greenland', lat:69.22, lon:-51.1, name:'Ilulissat', country:'Greenland', flag:'🇬🇱', color:0xb3e5fc, elev:40,
+          wonder:'Right beside a river of ice that flows to the sea and calves icebergs the size of city blocks.',
+          hello:'Aluu (a-LOO)', kids:'travel by dog-sled and learn to read cracks in the sea ice',
+          food:'🐟 dried fish, seal meat and crowberries', festival:'🌞 the day the sun finally returns after weeks of winter night',
+          animal:'🐕 teams of sled dogs and 🐋 humpback whales', music:'drum-dancing on a wide, round skin drum', motif:[64,62,60,62,64,64] },
+        { id:'hawaii', lat:19.72, lon:-155.09, name:'Hawaiʻi Island', country:'United States', flag:'🇺🇸', color:0xff7043, elev:9,
+          wonder:'Islands built by volcanoes — and some are still erupting, adding new land to the map every year.',
+          hello:'Aloha (a-LOH-ha) — it means hello, goodbye and love', kids:'learn hula, a dance that tells stories with the hands',
+          food:'🍧 shave ice piled high with fruit syrup', festival:'🌺 the Merrie Monarch hula festival',
+          animal:'🐢 green sea turtles basking on black-sand beaches', music:'slack-key guitar and ukulele, gentle and rolling', motif:[60,64,67,69,67,64] },
+
+        { id:`paris`, lat:48.86, lon:2.35, name:`Paris`, country:`France`, flag:`🇫🇷`, color:0x64b5f6, elev:35,
+          wonder:`The Eiffel Tower was built as a "temporary" exhibit over 130 years ago — Parisians hated it at first, then fell in love.`,
+          hello:`Bonjour (bon-ZHOOR)`, kids:`carry home a warm baguette and nibble the end before they get there`,
+          food:`🥐 buttery croissants and pain au chocolat`, festival:`🎆 Bastille Day, with fireworks bursting over the tower`,
+          animal:`🐈 cats dozing in bookshop windows along the river`, music:`accordion tunes drifting out of café doorways`, motif:[60,62,63,65,67,68,70] },
+        { id:`rome`, lat:41.90, lon:12.50, name:`Rome`, country:`Italy`, flag:`🇮🇹`, color:0xffb74d, elev:21,
+          wonder:`The Colosseum held 50,000 roaring fans nearly 2,000 years ago — and it is still standing.`,
+          hello:`Ciao (chow)`, kids:`toss a coin over one shoulder into the Trevi Fountain to make a wish`,
+          food:`🍨 gelato in a hundred flavours, eaten while walking`, festival:`🎂 a birthday parade for the whole city every April, in Roman costume`,
+          animal:`🐈 street cats who have the run of the ancient ruins`, music:`strolling players with mandolins`, motif:[60,62,64,65,67,69,71] },
+        { id:`athens`, lat:37.98, lon:23.73, name:`Athens`, country:`Greece`, flag:`🇬🇷`, color:0x4fc3f7, elev:170,
+          wonder:`The Parthenon has watched over the city from its rocky hill for 2,500 years — this is where the idea of "democracy" began.`,
+          hello:`Yassou (YAH-soo)`, kids:`learn the myths of gods and heroes the way other kids learn nursery rhymes`,
+          food:`🥙 souvlaki wrapped in warm pita bread`, festival:`🎭 ancient plays performed in stone theatres older than most countries`,
+          animal:`🐢 tortoises plodding through the olive groves`, music:`the bright, jangly bouzouki`, motif:[60,61,64,65,67,68,71] },
+        { id:`fjords`, lat:62.10, lon:7.00, name:`The Norwegian Fjords`, country:`Norway`, flag:`🇳🇴`, color:0x81d4fa, elev:5,
+          wonder:`Cliffs drop straight into deep blue sea-arms carved by ancient glaciers, with waterfalls tumbling from the top.`,
+          hello:`Hei (hay)`, kids:`sometimes take a ferry to school and watch for porpoises on the way`,
+          food:`🧀 brunost, a sweet caramel-brown cheese sliced paper-thin`, festival:`🇳🇴 Constitution Day, when every single child joins a parade`,
+          animal:`🫎 moose in the birch woods and 🦅 sea eagles overhead`, music:`the Hardanger fiddle, with extra strings that hum on their own`, motif:[60,62,64,66,67,69,71] },
+        { id:`lapland`, lat:68.40, lon:27.40, name:`Sápmi (Lapland)`, country:`Finland / Norway / Sweden`, flag:`🇫🇮`, color:0xb3e5fc, elev:180,
+          wonder:`The land of the Sámi people, who have herded reindeer across the Arctic for thousands of years.`,
+          hello:`Buorre beaivi (BWOR-reh BAY-vee), in Northern Sámi`, kids:`learn to drive a snowmobile and to recognise their family's reindeer by its ear-mark`,
+          food:`🍲 reindeer stew with lingonberries`, festival:`❄️ winter reindeer races and a snowy market`,
+          animal:`🦌 huge herds of reindeer, and Arctic foxes`, music:`the joik — a song that doesn't describe a person or place, it becomes it`, motif:[60,62,63,65,67,70] },
+        { id:`amsterdam`, lat:52.37, lon:4.90, name:`Amsterdam`, country:`Netherlands`, flag:`🇳🇱`, color:0xff8a65, elev:-2,
+          wonder:`A city built below sea level, threaded with canals, where there are more bicycles than people.`,
+          hello:`Hallo (HAH-loh)`, kids:`ride to school by bike — as toddlers, on a little seat on a parent's bike`,
+          food:`🧇 stroopwafels: two thin waffles glued together with syrup`, festival:`🧡 King's Day, when the entire country dresses in orange`,
+          animal:`🦆 ducks and grey herons on every canal`, music:`hand-cranked barrel organs on street corners`, motif:[60,62,64,65,67,69,72] },
+        { id:`seville`, lat:37.39, lon:-5.99, name:`Seville`, country:`Spain`, flag:`🇪🇸`, color:0xff7043, elev:7,
+          wonder:`The home of flamenco — stamping feet, clapping hands and a guitar, mostly made up on the spot.`,
+          hello:`Hola (OH-lah)`, kids:`learn to clap tricky flamenco rhythms before they can dance the steps`,
+          food:`🍅 tapas: lots of tiny plates to share around the table`, festival:`💃 the April Fair, a week of dancing in ruffled polka-dot dresses`,
+          animal:`🐎 Andalusian horses with long flowing manes`, music:`flamenco guitar, fast and full of feeling`, motif:[60,61,64,65,67,68,71] },
+        { id:`capetown`, lat:-33.92, lon:18.42, name:`Cape Town`, country:`South Africa`, flag:`🇿🇦`, color:0x4db6ac, elev:25,
+          wonder:`A flat-topped mountain rises straight out of the city, often draped in a "tablecloth" of cloud.`,
+          hello:`Sawubona (sah-woo-BOH-nah), in Zulu`, kids:`grow up hearing many languages — the country has eleven official ones`,
+          food:`🌭 boerewors, a coiled sausage grilled at a braai (barbecue)`, festival:`🎺 a New Year street carnival of brass bands and bright satin suits`,
+          animal:`🐧 a whole colony of penguins on a city beach`, music:`marimbas and layered a-cappella singing`, motif:[60,63,65,67,70,72] },
+        { id:`lalibela`, lat:12.03, lon:39.04, name:`Lalibela`, country:`Ethiopia`, flag:`🇪🇹`, color:0xffb300, elev:2500,
+          wonder:`Eleven churches carved 800 years ago straight down into solid rock, their roofs level with the ground.`,
+          hello:`Selam (SEH-lam)`, kids:`follow a calendar with 13 months, and are about 7 years "younger" than kids elsewhere`,
+          food:`🫓 injera, a soft, spongy sour flatbread you scoop everything up with`, festival:`✨ Genna, an all-night Christmas of white robes, singing and a hockey-like game`,
+          animal:`🐒 gelada monkeys with golden manes on the high cliffs`, music:`the krar lyre and a fast shoulder-shaking dance`, motif:[60,61,63,66,67,70] },
+        { id:`lagos`, lat:6.52, lon:3.38, name:`Lagos`, country:`Nigeria`, flag:`🇳🇬`, color:0x66bb6a, elev:10,
+          wonder:`One of the fastest-growing cities on Earth, and the powerhouse behind Afrobeats music and "Nollywood" movies.`,
+          hello:`Báwo ni (BAH-woh nee), in Yoruba`, kids:`quote favourite Nollywood film lines the way other kids quote cartoons`,
+          food:`🍚 jollof rice — and every neighbouring country insists theirs is better`, festival:`👻 the Eyo parade, tall figures in flowing white gliding through the streets`,
+          animal:`🐒 mona monkeys in the last pockets of city forest`, music:`Afrobeats: drums, horns and enormous basslines`, motif:[60,62,64,67,69,72] },
+        { id:`baobab`, lat:-20.25, lon:44.42, name:`Avenue of the Baobabs`, country:`Madagascar`, flag:`🇲🇬`, color:0xff8f00, elev:100,
+          wonder:`Baobab trees up to 2,800 years old line a dirt road like giant upside-down carrots.`,
+          hello:`Manao ahoana (mah-now ah-WOO-nah)`, kids:`share an island where about 9 out of 10 animals live nowhere else on Earth`,
+          food:`🍚 rice at every meal, often with zebu (humped cattle)`, festival:`💐 famadihana, a joyful family gathering to remember and honour ancestors`,
+          animal:`🐾 lemurs — ring-tailed ones, and a kind that "dances" sideways across the ground`, music:`the valiha, a tube of bamboo strung like a harp`, motif:[60,62,65,67,69,72] },
+        { id:`victoriafalls`, lat:-17.92, lon:25.86, name:`Victoria Falls`, country:`Zambia / Zimbabwe`, flag:`🇿🇲`, color:0x4dd0e1, elev:900,
+          wonder:`Locals call it Mosi-oa-Tunya, "the smoke that thunders" — the spray climbs so high you spot it from kilometres away.`,
+          hello:`Mwabuka bwanji (mwah-BOO-kah BWAN-jee), in Nyanja`, kids:`can hear the falls rumbling from their villages`,
+          food:`🌽 nshima, a firm maize porridge scooped up with relish`, festival:`🥁 drumming and dance ceremonies held by the river`,
+          animal:`🦛 hippos and 🐘 elephants that wade across the river just above the drop`, music:`the mbira, metal keys plucked inside a big gourd`, motif:[60,63,65,67,70,72] },
+        { id:`zanzibar`, lat:-6.16, lon:39.20, name:`Zanzibar`, country:`Tanzania`, flag:`🇹🇿`, color:0x4fc3f7, elev:5,
+          wonder:`The "Spice Island": the air smells of cloves, and its old Stone Town is a maze of carved wooden doors.`,
+          hello:`Habari (hah-BAH-ree), in Swahili`, kids:`sail in wooden dhows with tall triangular sails`,
+          food:`🍛 pilau, rice simmered with cinnamon, cardamom and cloves`, festival:`🎬 a film and music festival held right on the beach`,
+          animal:`🐒 the red colobus monkey, found nowhere else`, music:`taarab — Swahili poems sung over strings and hand drums`, motif:[60,61,64,65,67,68,71] },
+        { id:`greatwall`, lat:40.43, lon:116.57, name:`The Great Wall`, country:`China`, flag:`🇨🇳`, color:0xef5350, elev:800,
+          wonder:`A wall that snakes over 21,000 km across mountains, built and rebuilt over 2,000 years.`,
+          hello:`Nǐ hǎo (nee HOW)`, kids:`practise writing characters — thousands of them, each one a little picture turned into a symbol`,
+          food:`🥟 jiǎozi dumplings, folded by the whole family at New Year`, festival:`🐉 Lunar New Year: dragon dances, firecrackers and red envelopes of money`,
+          animal:`🐼 giant pandas, in the misty bamboo hills far to the south`, music:`the guzheng, a long zither with 21 strings`, motif:[60,62,64,67,69,72] },
+        { id:`xian`, lat:34.38, lon:109.10, name:`The Terracotta Army`, country:`China`, flag:`🇨🇳`, color:0xa1887f, elev:400,
+          wonder:`A buried army of about 8,000 life-size clay soldiers — every face different — guarding an emperor's tomb.`,
+          hello:`Nǐ hǎo (nee HOW)`, kids:`heard how farmers digging a well in 1974 suddenly hit a 2,200-year-old head`,
+          food:`🍜 hand-pulled "biángbiáng" noodles, as wide as a belt`, festival:`🏮 the Lantern Festival that closes the New Year`,
+          animal:`🐲 in stories, dragons here bring the rain`, music:`the pipa, a pear-shaped lute plucked lightning-fast`, motif:[60,62,64,67,69,72] },
+        { id:`chengdu`, lat:30.66, lon:104.07, name:`Chengdu`, country:`China`, flag:`🇨🇳`, color:0x81c784, elev:500,
+          wonder:`The home of the giant panda — a newborn cub is pink, blind and about the size of a stick of butter.`,
+          hello:`Nǐ hǎo (nee HOW)`, kids:`can help at panda centres, slicing bamboo and mixing "panda cake"`,
+          food:`🌶️ hotpot so numbingly spicy it makes your lips buzz`, festival:`🎭 "face-changing" opera, where painted masks switch in a blink`,
+          animal:`🐼 pandas, plus the fox-faced red panda`, music:`bamboo flutes and the two-string erhu fiddle`, motif:[60,62,64,67,69,72] },
+        { id:`angkor`, lat:13.41, lon:103.87, name:`Angkor Wat`, country:`Cambodia`, flag:`🇰🇭`, color:0xffca28, elev:65,
+          wonder:`The largest religious monument on Earth — lost to the jungle for centuries, with giant tree roots gripping the walls.`,
+          hello:`Suostei (soo-oss-DAY)`, kids:`might cycle or ride an ox-cart past 900-year-old temples on the way to school`,
+          food:`🍜 num banh chok: rice noodles under a green fish curry, eaten for breakfast`, festival:`🚣 the Water Festival, with long-boat races on the river`,
+          animal:`🐒 macaques scrambling over the temple stones`, music:`the pinpeat ensemble of gongs, xylophones and drums`, motif:[60,62,65,67,69,72] },
+        { id:`halong`, lat:20.91, lon:107.18, name:`Ha Long Bay`, country:`Vietnam`, flag:`🇻🇳`, color:0x4db6ac, elev:2,
+          wonder:`Nearly 2,000 limestone islands rise out of emerald water like the humps of a sleeping dragon.`,
+          hello:`Xin chào (sin chow)`, kids:`in the floating villages here go to a school that bobs on the sea`,
+          food:`🍜 phở, a beef-and-noodle soup eaten at any hour, breakfast included`, festival:`🏮 the Mid-Autumn Festival, with lion dances and glowing lanterns`,
+          animal:`🐠 seahorses and cuttlefish below, rare langur monkeys on the cliffs above`, music:`the đàn bầu, a single string that seems to sing words`, motif:[60,62,64,67,69,72] },
+        { id:`petra`, lat:30.33, lon:35.44, name:`Petra`, country:`Jordan`, flag:`🇯🇴`, color:0xff8a65, elev:810,
+          wonder:`A whole city carved into rose-red cliffs 2,000 years ago, reached through a long, narrow canyon.`,
+          hello:`Marhaba (MAR-ha-ba)`, kids:`from the local Bedouin families know every hidden goat path in the rocks`,
+          food:`🍚 mansaf: lamb over rice with a tangy warm yoghurt sauce`, festival:`🕯️ "Petra by Night", the canyon lined with thousands of candles`,
+          animal:`🐫 camels and donkeys resting in the shade of the tombs`, music:`the rababa, a one-string desert fiddle`, motif:[60,61,64,65,67,68,71] },
+        { id:`istanbul`, lat:41.01, lon:28.98, name:`Istanbul`, country:`Türkiye`, flag:`🇹🇷`, color:0x4dd0e1, elev:40,
+          wonder:`The only big city that sits on two continents at once — you can ferry from Europe to Asia for lunch.`,
+          hello:`Merhaba (MER-ha-ba)`, kids:`grab a warm sesame "simit" ring from a street cart on the way to school`,
+          food:`🍬 lokum (Turkish delight) and salty-sweet dried fruit`, festival:`🎈 April 23rd, a national holiday given entirely to children`,
+          animal:`🐈 street cats so loved that the whole city helps feed them`, music:`the breathy ney reed flute and the round-backed oud`, motif:[60,61,63,65,67,68,70] },
+        { id:`samarkand`, lat:39.65, lon:66.98, name:`Samarkand`, country:`Uzbekistan`, flag:`🇺🇿`, color:0x26c6da, elev:700,
+          wonder:`A jewel of the old Silk Road, its courtyards tiled with so much deep blue they seem to glow.`,
+          hello:`Assalom aleykum (as-sa-LOM a-LAY-koom)`, kids:`learn to bake round "non" bread stamped with a carved wooden pattern`,
+          food:`🍚 plov: rice with carrots, lamb and raisins, cooked in a giant shallow pan`, festival:`🌷 Navruz, a spring new year celebrated here for 3,000 years`,
+          animal:`🐫 two-humped Bactrian camels out on the steppe`, music:`the dutar, a soft, mellow two-string lute`, motif:[60,61,64,65,67,68,71] },
+        { id:`bhutan`, lat:27.29, lon:89.72, name:`Tiger's Nest, Bhutan`, country:`Bhutan`, flag:`🇧🇹`, color:0xff7043, elev:3120,
+          wonder:`A monastery clings to a cliff 900 m above the valley floor — in a country that measures "Gross National Happiness".`,
+          hello:`Kuzu zangpo la (KOO-zoo ZANG-po lah)`, kids:`wear the traditional gho or kira to school, and archery is the national sport`,
+          food:`🌶️ ema datshi: chillies cooked as the main vegetable in a cheese sauce`, festival:`🎭 tsechu festivals, with whirling masked dances that tell old stories`,
+          animal:`🦬 the takin, a shaggy goat-antelope that looks assembled from spare parts`, music:`the dramyin lute and deep, droning temple horns`, motif:[60,62,64,67,69,72] },
+        { id:`mumbai`, lat:19.08, lon:72.88, name:`Mumbai`, country:`India`, flag:`🇮🇳`, color:0xffa726, elev:14,
+          wonder:`Home of "Bollywood", which makes more films than anywhere on Earth — most bursting with song and dance.`,
+          hello:`Namaste (nah-mas-TAY)`, kids:`get a hot lunch carried from home by "dabbawalas", who almost never lose a tin`,
+          food:`🥔 vada pav, a spicy potato patty in a soft bun — the city's favourite snack`, festival:`🐘 Ganesh Chaturthi, when clay elephant-god statues are paraded into the sea`,
+          animal:`🐆 leopards that live in a forest park right inside the city`, music:`film songs, plus tabla drums and the wheezy harmonium`, motif:[60,61,64,66,67,70,71] },
+        { id:`borobudur`, lat:-7.61, lon:110.20, name:`Borobudur`, country:`Indonesia`, flag:`🇮🇩`, color:0x9ccc65, elev:265,
+          wonder:`The world's largest Buddhist temple: a stone mountain of 2,672 carved panels, built around the year 800.`,
+          hello:`Halo (HAH-loh)`, kids:`stay up to watch wayang shadow-puppet plays that can last the whole night`,
+          food:`🥜 gado-gado: vegetables and egg smothered in warm peanut sauce`, festival:`🕯️ Vesak, when monks release paper lanterns over the temple at dawn`,
+          animal:`🦎 big monitor lizards in the rivers nearby`, music:`Javanese gamelan, mistier and slower than Bali's`, motif:[60,61,65,67,68,72] },
+        { id:`cappadocia`, lat:38.64, lon:34.83, name:`Cappadocia`, country:`Türkiye`, flag:`🇹🇷`, color:0xffb74d, elev:1100,
+          wonder:`A landscape of soft rock "fairy chimneys" that people hollowed into homes — and even whole underground cities.`,
+          hello:`Merhaba (MER-ha-ba)`, kids:`may still live in a cave house: cool in summer, cosy in winter`,
+          food:`🍲 testi kebab, a stew cooked inside a clay pot you crack open at the table`, festival:`🎈 dawn skies filled with hundreds of hot-air balloons`,
+          animal:`🐴 the region's name means "land of beautiful horses"`, music:`the bağlama, a long-necked lute strummed in a blur`, motif:[60,61,63,65,67,68,70] },
+        { id:`seoul`, lat:37.57, lon:126.98, name:`Seoul`, country:`South Korea`, flag:`🇰🇷`, color:0x7986cb, elev:38,
+          wonder:`600-year-old palaces sit between glass towers, in the city that helped invent K-pop and pro video-gaming.`,
+          hello:`Annyeong (an-NYUNG)`, kids:`slurp seaweed soup on their birthday — and everyone counts up a year together at New Year`,
+          food:`🍚 bibimbap: warm rice topped with vegetables, egg and chilli paste, all mixed in`, festival:`🏮 rivers of paper lanterns for Buddha's Birthday`,
+          animal:`🦝 raccoon dogs snuffling through the city's mountain parks`, music:`the gayageum zither and dramatic pansori story-singing`, motif:[60,62,63,65,67,70] },
+        { id:`grandcanyon`, lat:36.06, lon:-112.14, name:`The Grand Canyon`, country:`United States`, flag:`🇺🇸`, color:0xff8a65, elev:2100,
+          wonder:`A gorge 1.6 km deep — the river at the bottom took millions of years to saw down through rock nearly 2 billion years old.`,
+          hello:`Yá'át'ééh (YAH-ah-teh), in Navajo`, kids:`from the Havasupai and Hualapai peoples have lived in and around the canyon for centuries`,
+          food:`🫓 Navajo fry bread, puffy, golden and warm`, festival:`🪶 powwows, with drum circles and dancing in bright regalia`,
+          animal:`🦅 California condors, among the largest flying birds, riding the updrafts`, music:`the soft, breathy wooden flute`, motif:[60,62,64,67,69,72] },
+        { id:`chichenitza`, lat:20.68, lon:-88.57, name:`Chichén Itzá`, country:`Mexico`, flag:`🇲🇽`, color:0x66bb6a, elev:30,
+          wonder:`Clap near the great Maya pyramid and the echo chirps back like a bird. Twice a year, a snake of shadow slides down the stairs.`,
+          hello:`Ba'ax ka wa'alik (BAH-ash ka wah-LEEK), in Maya`, kids:`still speak Maya at home; their ancestors used a number system with a symbol for zero`,
+          food:`🌮 cochinita pibil, pork slow-roasted in banana leaves`, festival:`💀 Día de los Muertos, welcoming ancestors back with marigolds and their favourite foods`,
+          animal:`🦜 toucans and long-nosed coatis in the surrounding jungle`, music:`clay flutes, conch-shell trumpets and turtle-shell drums`, motif:[60,63,65,67,70,72] },
+        { id:`mexicocity`, lat:19.43, lon:-99.13, name:`Mexico City`, country:`Mexico`, flag:`🇲🇽`, color:0xff7043, elev:2240,
+          wonder:`Built on a drained lake where the Aztec capital once floated — the old cathedral is slowly sinking into the soft ground.`,
+          hello:`Hola (OH-lah)`, kids:`ride the metro while a mariachi band plays in the next carriage`,
+          food:`🌮 tacos al pastor, and hot churros dipped in thick chocolate`, festival:`🐉 parades of "alebrijes": huge, fantastical papier-mâché creatures`,
+          animal:`🐸 the axolotl, a smiling salamander that keeps its baby gills for life, lives only here`, music:`mariachi: trumpets, violins and the big-bellied guitarrón`, motif:[60,62,64,65,67,69,72] },
+        { id:`yellowstone`, lat:44.46, lon:-110.83, name:`Yellowstone`, country:`United States`, flag:`🇺🇸`, color:0xffca28, elev:2400,
+          wonder:`The whole park sits on top of a supervolcano — hot springs glow turquoise and orange, and a geyser erupts almost on schedule.`,
+          hello:`Hello`, kids:`earn "Junior Ranger" badges by spotting wildlife and learning to keep a safe distance`,
+          food:`🥧 huckleberry pie from the late-summer berry patches`, festival:`🐺 dawn "wolf watches", when families gather at the roadside with telescopes`,
+          animal:`🦬 bison herds, 🐺 wolves and grizzly bears`, music:`campfire songs and old fiddle tunes`, motif:[60,64,67,69,67,64] },
+        { id:`nyc`, lat:40.71, lon:-74.01, name:`New York City`, country:`United States`, flag:`🇺🇸`, color:0x9575cd, elev:10,
+          wonder:`More than 800 languages are spoken here — likely more than in any city that has ever existed.`,
+          hello:`"Hey!" — in hundreds of home languages`, kids:`ride the subway to school on their own from a fairly young age`,
+          food:`🍕 a giant pizza slice, folded in half and eaten on the move`, festival:`🎈 the Thanksgiving parade, with balloons as tall as buildings`,
+          animal:`🦅 peregrine falcons nest on the skyscrapers and dive-bomb pigeons`, music:`hip-hop was born in the Bronx; jazz still spills out of downtown clubs`, motif:[60,63,64,65,67,70,72] },
+        { id:`havana`, lat:23.11, lon:-82.37, name:`Havana`, country:`Cuba`, flag:`🇨🇺`, color:0x4dd0e1, elev:15,
+          wonder:`Bright 1950s American cars still cruise the streets, kept running for 70 years with hand-made parts.`,
+          hello:`Hola (OH-lah)`, kids:`play street baseball with a broom handle and a bottle cap`,
+          food:`🍚 rice and black beans, a dish nicknamed "Moros y Cristianos"`, festival:`🥁 summer carnival, conga lines snaking along the seafront wall`,
+          animal:`🐝 the bee hummingbird, the smallest bird on Earth, lives only in Cuba`, music:`son and salsa — claves, congas and blazing horns`, motif:[60,62,64,65,67,69,72] },
+        { id:`amazon`, lat:-3.13, lon:-60.02, name:`The Amazon`, country:`Brazil`, flag:`🇧🇷`, color:0x66bb6a, elev:30,
+          wonder:`This one rainforest holds around one in ten of every known species — and the river is so wide you often can't see the far bank.`,
+          hello:`Olá (oh-LAH)`, kids:`in river villages paddle a canoe to school and know which fruit each fish likes to eat`,
+          food:`🐟 grilled river fish wrapped in leaves, with tart tucumã fruit`, festival:`🐮 Boi-Bumbá, a giant song-and-dance contest about a magical ox`,
+          animal:`🐆 jaguars, pink river dolphins and 🦜 macaws`, music:`seed rattles, clay flutes and interlocking voices`, motif:[60,63,65,67,70,72] },
+        { id:`patagonia`, lat:-50.94, lon:-73.41, name:`Patagonia`, country:`Argentina / Chile`, flag:`🇦🇷`, color:0xb3e5fc, elev:900,
+          wonder:`Windswept grassland runs up to jagged blue peaks and glaciers that crack off into milky lakes with a boom.`,
+          hello:`Hola (OH-lah)`, kids:`on far-flung sheep ranches do school lessons over the radio or internet`,
+          food:`🍖 a whole lamb roasted slowly, splayed on a cross over an open fire (asado)`, festival:`🐑 the shearing festival at the end of the summer`,
+          animal:`🦙 wild guanacos, coastal 🐧 penguins and the huge Andean condor`, music:`lonesome guitar songs of the gaucho horsemen`, motif:[60,63,65,67,70,72] },
+        { id:`galapagos`, lat:-0.74, lon:-90.31, name:`The Galápagos`, country:`Ecuador`, flag:`🇪🇨`, color:0x26c6da, elev:5,
+          wonder:`Animals here never learned to fear people, so they let you walk right up. This is where Darwin worked out how evolution happens.`,
+          hello:`Hola (OH-lah)`, kids:`help scientists count tortoises and pull out plants that don't belong`,
+          food:`🍤 ceviche: seafood "cooked" only by soaking in lime juice`, festival:`🐢 a day celebrating the giant tortoise, the islands' mascot`,
+          animal:`🐢 giant tortoises, 🦎 sea-swimming iguanas and blue-footed boobies`, music:`the gentle Ecuadorian pasillo, just guitar and voice`, motif:[60,62,64,67,69,72] },
+        { id:`uyuni`, lat:-20.13, lon:-67.49, name:`Salar de Uyuni`, country:`Bolivia`, flag:`🇧🇴`, color:0xeceff1, elev:3660,
+          wonder:`The largest salt flat on Earth. After rain it turns into a perfect mirror and you seem to be walking on the sky.`,
+          hello:`Kamisaraki (kah-mee-SAH-rah-kee), in Aymara`, kids:`live in villages where the walls, tables and beds are cut from blocks of salt`,
+          food:`🥔 chuño: potatoes freeze-dried using the freezing night air`, festival:`💃 the nearby Carnaval de Oruro, a dazzling three-day costumed parade`,
+          animal:`🦩 three kinds of flamingo wading the pink and green lagoons`, music:`panpipes and the tiny 10-string charango`, motif:[60,63,65,67,70,72] },
+        { id:`iguazu`, lat:-25.69, lon:-54.44, name:`Iguazú Falls`, country:`Argentina / Brazil`, flag:`🇦🇷`, color:0x4dd0e1, elev:170,
+          wonder:`Not one waterfall but 275, strung across nearly 3 km of rainforest — the biggest is called the Devil's Throat.`,
+          hello:`Mba'éichapa (mbah-EH-cha-pah), in Guaraní`, kids:`nearby speak Guaraní, an Indigenous language shared by millions of people`,
+          food:`🧉 mate, a sharp green tea sipped from a shared cup through a metal straw`, festival:`🎶 a rainforest music festival held right beside the falls`,
+          animal:`🦋 drifting clouds of electric-blue morpho butterflies, and bin-raiding coatis`, music:`the Guaraní harp, bright and tumbling`, motif:[60,62,64,67,69,72] },
+        { id:`cartagena`, lat:10.42, lon:-75.55, name:`Cartagena`, country:`Colombia`, flag:`🇨🇴`, color:0xff7043, elev:2,
+          wonder:`A walled Caribbean city of flower-draped balconies, ringed by a fortress that pirates could never crack.`,
+          hello:`¡Hola! / ¡Ey!`, kids:`buy shaved-ice "raspao" from a cart and dance cumbia at family parties`,
+          food:`🥭 fresh mango with lime and a pinch of salt, sold on the street`, festival:`👑 an independence carnival of drummers and flower crowns`,
+          animal:`🐒 tiny titi monkeys and jewel-bright frogs in the jungle nearby`, music:`cumbia and champeta — drums, accordion and gaita cane flutes`, motif:[60,62,64,65,67,69,72] },
+        { id:`sydney`, lat:-33.86, lon:151.21, name:`Sydney`, country:`Australia`, flag:`🇦🇺`, color:0x4fc3f7, elev:3,
+          wonder:`The Opera House roof looks like billowing sails, or peeled orange segments — over a million tiles cover it.`,
+          hello:`"G'day" — and "Warami" in the local Dharug language`, kids:`do "nippers" surf-lifesaving club on the beach on Saturday mornings`,
+          food:`🥧 a meat pie with tomato sauce, or "fairy bread": buttered bread dipped in sprinkles`, festival:`🎆 harbour fireworks — Sydney is one of the first big cities to reach New Year`,
+          animal:`🦇 rivers of fruit bats across the dusk sky; cockatoos that raid the bins`, music:`the didgeridoo and clapsticks of the world's oldest living culture`, motif:[48,48,55,48,58,48] },
+        { id:`rotorua`, lat:-38.14, lon:176.25, name:`Rotorua`, country:`Aotearoa New Zealand`, flag:`🇳🇿`, color:0xffb300, elev:290,
+          wonder:`The ground steams, mud pools plop and geysers leap — and it smells of eggs. Māori people have lived with it for 700 years.`,
+          hello:`Kia ora (KEE-ah OH-rah)`, kids:`greet with the hongi: pressing noses and foreheads together to share one breath`,
+          food:`🍠 a hāngī — meat and kūmara (sweet potato) steamed in an earth oven`, festival:`🎤 kapa haka, fierce and beautiful group song-and-dance contests`,
+          animal:`🥝 the kiwi, a shy night bird with its nostrils on the tip of its beak`, music:`the pūtātara conch trumpet and chanted karakia`, motif:[60,62,64,67,69,72] },
+        { id:`png`, lat:-5.87, lon:144.23, name:`The Highlands`, country:`Papua New Guinea`, flag:`🇵🇬`, color:0x8d6e63, elev:1600,
+          wonder:`One country, over 800 languages — more than a tenth of all the languages spoken on Earth.`,
+          hello:`Apinun (AH-pee-noon), in Tok Pisin`, kids:`often speak three or four languages while they're still little`,
+          food:`🍠 kaukau (sweet potato) and leafy greens cooked in a "mumu" earth oven`, festival:`🪶 sing-sings, where clans gather in towering feather headdresses and bright paint`,
+          animal:`🦤 birds-of-paradise that dance, shimmer and even hang upside-down to show off`, music:`the hourglass "kundu" drum and big bamboo panpipe bands`, motif:[60,62,65,67,70,72] },
+        { id:`fiji`, lat:-17.71, lon:178.07, name:`Fiji`, country:`Fiji`, flag:`🇫🇯`, color:0x26c6da, elev:4,
+          wonder:`333 islands of white sand and coral reef, where a village welcome still means sharing a bowl of kava.`,
+          hello:`Bula! (BOO-lah) — it also means "life" and "good health"`, kids:`learn to free-dive young and to read the reef for fish`,
+          food:`🥥 kokoda: fish "cooked" in lime juice and coconut cream`, festival:`🔥 firewalking across white-hot stones by the people of Beqa island`,
+          animal:`🐢 nesting sea turtles and the red-and-green Fijian banded iguana`, music:`the lali log-drum and deep, rich choir harmony`, motif:[60,64,67,69,67,64] },
+        { id:`rapanui`, lat:-27.12, lon:-109.35, name:`Rapa Nui (Easter Island)`, country:`Chile`, flag:`🇨🇱`, color:0x8d6e63, elev:50,
+          wonder:`Nearly 1,000 giant stone heads (moai), some 10 m tall, carved by hand and then somehow "walked" across the island.`,
+          hello:`'Iorana (ee-oh-RAH-nah)`, kids:`grow up on one of the loneliest inhabited islands — the nearest neighbours are 2,000 km away`,
+          food:`🐟 tuna and sweet potato cooked in an "umu" earth oven`, festival:`🏆 Tapati: weeks of contests in carving, dancing and sliding down a hillside on banana trunks`,
+          animal:`🐎 wild horses wander freely among the statues`, music:`chanted stories with hand-claps and a stone-filled gourd`, motif:[60,62,64,67,69,72] },
+        { id:`svalbard`, lat:78.22, lon:15.63, name:`Svalbard`, country:`Norway`, flag:`🇳🇴`, color:0xb3e5fc, elev:20,
+          wonder:`So far north the sun doesn't set for four months — then doesn't rise for four. Polar bears outnumber people.`,
+          hello:`Hei (hay)`, kids:`are walked to nursery through the polar night, and everyone takes their shoes off indoors`,
+          food:`🍫 hearty stews — and a vault in the mountain nearby stores back-up seeds for the whole world`, festival:`☀️ "Solfest", a party for the day the sun first peeks back over the mountains`,
+          animal:`🐻‍❄️ polar bears, stubby Svalbard reindeer and Arctic foxes`, music:`quiet folk songs and the buzz of snowmobiles`, motif:[72,71,69,67,64,60] },
+        { id:`faroe`, lat:62.01, lon:-6.77, name:`The Faroe Islands`, country:`Denmark`, flag:`🇫🇴`, color:0x81c784, elev:60,
+          wonder:`Green cliffs, far more sheep than people, and grass growing on the roofs — waterfalls sometimes blow straight upward in the wind.`,
+          hello:`Góðan dag (GOH-an day)`, kids:`might row a small boat to a village that has no road at all`,
+          food:`🐑 ræst kjøt, lamb wind-dried in an open wooden shed`, festival:`⛵ Ólavsøka, with rowing races and huge crowds singing ballads at midnight`,
+          animal:`🐦 puffins nesting in cliff burrows by the million`, music:`the old chain dance: hundreds link arms and sing story-songs with no instruments`, motif:[60,62,64,66,67,69,71] },
+        { id:`tristan`, lat:-37.11, lon:-12.28, name:`Tristan da Cunha`, country:`British Overseas Territory`, flag:`🇬🇧`, color:0x4dd0e1, elev:60,
+          wonder:`The most remote inhabited place on Earth: about 240 people, one shop, no airport, and a six-day boat ride from anywhere.`,
+          hello:`Hello — the whole island shares just seven family surnames`, kids:`all attend the island's single school and help dig the family potato patch`,
+          food:`🦐 rock lobster (they call it crawfish) — the island's main meal and its main export`, festival:`🐀 "Ratting Day", a yearly team contest to catch rats and protect the crops`,
+          animal:`🐧 northern rockhopper penguins with spiky yellow eyebrows`, music:`accordion tunes at the Saturday dance in the community hall`, motif:[60,62,64,65,67,69,71] }
+    ];
+
+    /* ===================== AUDIO ===================== */
+    var audioCtx = null, masterGain = null;
+    var soundOn = function () { return document.getElementById('toggle-sound').checked; };
+
+    /* ---- spoken names: pre-recorded clips in sounds/globe/ (edge-tts) ---- */
+    var sayOn = function () { return document.getElementById('say-names').checked; };
+    var voiceAudio = null;
+    function slug(s) {
+        // NFD splits accented letters into base + combining mark; strip the marks
+        // so "Türkiye" -> "turkiye" (must match the clip generator exactly).
+        return String(s).toLowerCase().normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    }
+    function speak(file) {
+        if (!sayOn()) return;
+        if (voiceAudio) { voiceAudio.pause(); voiceAudio = null; }
+        var a = new Audio(file);
+        voiceAudio = a;
+        a.play().catch(function () {});
+    }
+    function speakCountry(name) { if (name) speak('sounds/globe/' + slug(name) + '.mp3'); }
+    function speakPlace(loc) { if (loc) speak('sounds/globe/place-' + loc.id + '.mp3'); }
+    function initAudio() {
+        if (!audioCtx) {
+            var AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            audioCtx = new AC();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.22;
+            var delay = audioCtx.createDelay(); delay.delayTime.value = 0.28;
+            var fb = audioCtx.createGain(); fb.gain.value = 0.25;
+            delay.connect(fb); fb.connect(delay);
+            masterGain.connect(delay); delay.connect(audioCtx.destination);
+            masterGain.connect(audioCtx.destination);
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function playMotif(notes) {
+        if (!audioCtx || !soundOn() || !notes) return;
+        var t0 = audioCtx.currentTime;
+        notes.forEach(function (midi, i) {
+            var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = 'triangle';
+            o.frequency.value = 440 * Math.pow(2, (midi - 69) / 12);
+            o.connect(g); g.connect(masterGain);
+            var t = t0 + i * 0.26;
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(0.5, t + 0.05);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+            o.start(t); o.stop(t + 0.9);
+        });
+    }
+    function playBlip() {
+        if (!audioCtx || !soundOn()) return;
+        var o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(920, audioCtx.currentTime);
+        o.connect(g); g.connect(masterGain);
+        g.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        o.start(); o.stop(audioCtx.currentTime + 0.12);
+    }
+
+    /* ===================== SCENE ===================== */
+    var container = document.getElementById('globe-canvas');
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 2000);
+    camera.position.set(1.5, 1.6, 5.4);
+    var renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true; controls.dampingFactor = 0.06;
+    controls.enablePan = false; controls.minDistance = 2.6; controls.maxDistance = 9;
+    controls.rotateSpeed = 0.55; controls.zoomSpeed = 0.8;
+    controls.autoRotate = true; controls.autoRotateSpeed = 0.35;
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.22));
+    scene.add(new THREE.HemisphereLight(0x88bbff, 0x0a0a12, 0.22));
+    var sun = new THREE.DirectionalLight(0xffffff, 1.35);
+    scene.add(sun);
+
+    /* geo helpers — matched to r128 SphereGeometry's default UVs so lines,
+       markers and the equirectangular photo texture all line up (Greenwich
+       at the texture's centre = +X). Kept as an exact inverse pair. */
+    function llToVec(lat, lon, r) {
+        var phi = (90 - lat) * DEG, theta = (lon + 180) * DEG;
+        return new THREE.Vector3(
+            -(r * Math.sin(phi) * Math.cos(theta)),
+             (r * Math.cos(phi)),
+             (r * Math.sin(phi) * Math.sin(theta))
+        );
+    }
+    function vecToLL(v) {
+        var n = v.clone().normalize();
+        var lat = 90 - Math.acos(Math.max(-1, Math.min(1, n.y))) / DEG;
+        var lon = Math.atan2(n.z, -n.x) / DEG - 180;
+        while (lon < -180) lon += 360;
+        while (lon > 180) lon -= 360;
+        return { lat: lat, lon: lon };
+    }
+    function gcKm(a, b) {
+        var la1 = a.lat * DEG, la2 = b.lat * DEG;
+        var dla = (b.lat - a.lat) * DEG, dlo = (b.lon - a.lon) * DEG;
+        var h = Math.sin(dla / 2) * Math.sin(dla / 2) +
+                Math.cos(la1) * Math.cos(la2) * Math.sin(dlo / 2) * Math.sin(dlo / 2);
+        return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+    }
+
+    /* ===================== EARTH ===================== */
+    var earth = new THREE.Mesh(
+        new THREE.SphereGeometry(EARTH_R, 64, 64),
+        new THREE.MeshPhongMaterial({ color: 0x2a4a63, specular: 0x223344, shininess: 12 })
+    );
+    scene.add(earth);
+
+    var tl = new THREE.TextureLoader(); tl.crossOrigin = 'anonymous';
+    // npm 'three' does not publish examples/textures — pull the binaries straight
+    // from the tagged repo via jsdelivr's GitHub endpoint instead.
+    var BASE = 'https://cdn.jsdelivr.net/gh/mrdoob/three.js@r128/examples/textures/planets/';
+    var normalTex = null;
+    var texFail = function (u) { return function () { console.warn('globe: texture failed to load —', u); }; };
+    tl.load(BASE + 'earth_atmos_2048.jpg',
+        function (t) { earth.material.map = t; earth.material.color.set(0xffffff); earth.material.needsUpdate = true; },
+        undefined, texFail('earth_atmos_2048.jpg'));
+    tl.load(BASE + 'earth_normal_2048.jpg',
+        function (t) {
+            normalTex = t;
+            if (document.getElementById('layer-topo').checked) {
+                earth.material.normalMap = t;
+                earth.material.normalScale = new THREE.Vector2(1.4, 1.4);
+                earth.material.needsUpdate = true;
+            }
+        },
+        undefined, texFail('earth_normal_2048.jpg'));
+    tl.load(BASE + 'earth_specular_2048.jpg',
+        function (t) { earth.material.specularMap = t; earth.material.specular = new THREE.Color(0x555555); earth.material.needsUpdate = true; },
+        undefined, texFail('earth_specular_2048.jpg'));
+
+    /* atmosphere glow */
+    var atmo = new THREE.Mesh(
+        new THREE.SphereGeometry(EARTH_R * 1.055, 48, 48),
+        new THREE.ShaderMaterial({
+            uniforms: { glow: { value: new THREE.Color(0x3aa3ff) } },
+            vertexShader: 'varying vec3 vN; void main(){ vN = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+            fragmentShader: 'varying vec3 vN; uniform vec3 glow; void main(){ float i = pow(0.72 - dot(vN, vec3(0.0,0.0,1.0)), 3.0); gl_FragColor = vec4(glow, 1.0) * clamp(i,0.0,1.0); }',
+            side: THREE.BackSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false
+        })
+    );
+    scene.add(atmo);
+
+    /* starfield */
+    (function () {
+        var N = 1600, pos = new Float32Array(N * 3);
+        for (var i = 0; i < N; i++) {
+            var u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, s = Math.sqrt(1 - u * u), r = 120;
+            pos[i * 3] = r * s * Math.cos(a); pos[i * 3 + 1] = r * u; pos[i * 3 + 2] = r * s * Math.sin(a);
+        }
+        var g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        scene.add(new THREE.Points(g, new THREE.PointsMaterial({ color: 0xffffff, size: 0.4, sizeAttenuation: true, transparent: true, opacity: 0.85 })));
+    })();
+
+    /* real-time sun direction */
+    function updateSun() {
+        var d = new Date();
+        var start = Date.UTC(d.getUTCFullYear(), 0, 0);
+        var doy = (d - start) / 86400000;
+        var decl = -23.44 * Math.cos((360 / 365) * (doy + 10) * DEG);
+        var utcH = d.getUTCHours() + d.getUTCMinutes() / 60;
+        var lon = -(utcH - 12) * 15;
+        sun.position.copy(llToVec(decl, lon, 1).normalize().multiplyScalar(10));
+    }
+    updateSun();
+    setInterval(updateSun, 30000);
+
+    /* ===================== BORDERS ===================== */
+    var bordersGroup = new THREE.Group(); earth.add(bordersGroup);
+    var borderLines = [], countryMap = {};
+    var matDefault = new THREE.LineBasicMaterial({ color: 0x00e5ff, transparent: true, opacity: 0.22 });
+    var matHover = new THREE.LineBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 1 });
+
+    fetch('https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            data.features.forEach(function (f) {
+                var nm = (f.properties && f.properties.name) || 'Somewhere';
+                countryMap[nm] = countryMap[nm] || [];
+                var polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates[0]]
+                          : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.map(function (p) { return p[0]; })
+                          : [];
+                polys.forEach(function (ring) {
+                    var pts = ring.map(function (c) { return llToVec(c[1], c[0], EARTH_R * 1.004); });
+                    var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), matDefault);
+                    line.userData.country = nm;
+                    bordersGroup.add(line); borderLines.push(line); countryMap[nm].push(line);
+                });
+            });
+        })
+        .catch(function () { document.getElementById('layer-borders').checked = false; });
+
+    /* ===================== GRID + LABELS ===================== */
+    function latCircle(lat, color) {
+        var pts = [];
+        for (var i = 0; i <= 128; i++) pts.push(llToVec(lat, -180 + i * 360 / 128, EARTH_R * 1.005));
+        return new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(pts),
+            new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.45 }));
+    }
+    var gridGroup = new THREE.Group(); gridGroup.visible = false; earth.add(gridGroup);
+    [[0, 0xffeb3b], [23.44, 0x00e5ff], [-23.44, 0x00e5ff], [66.56, 0x88aaff], [-66.56, 0x88aaff]]
+        .forEach(function (p) { gridGroup.add(latCircle(p[0], p[1])); });
+
+    function textSprite(txt) {
+        var c = document.createElement('canvas'); c.width = 256; c.height = 64;
+        var g = c.getContext('2d');
+        g.font = 'bold 30px "Courier New", monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.shadowColor = '#00e5ff'; g.shadowBlur = 10; g.fillStyle = 'rgba(180,245,255,0.95)';
+        g.fillText(txt.toUpperCase(), 128, 34);
+        var tex = new THREE.CanvasTexture(c);
+        var sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false }));
+        sp.scale.set(1.5, 0.375, 1);
+        return sp;
+    }
+    var labelGroup = new THREE.Group(); labelGroup.visible = false; earth.add(labelGroup);
+    [['North America', 42, -100], ['South America', -14, -58], ['Europe', 52, 12], ['Africa', 3, 21],
+     ['Asia', 46, 94], ['Australia', -25, 134], ['Antarctica', -80, 25]]
+        .forEach(function (r) { var s = textSprite(r[0]); s.position.copy(llToVec(r[1], r[2], EARTH_R * 1.12)); labelGroup.add(s); });
+
+    /* ===================== MARKERS ===================== */
+    function haloTexture() {
+        var c = document.createElement('canvas'); c.width = c.height = 64;
+        var g = c.getContext('2d');
+        var grd = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grd.addColorStop(0, 'rgba(255,255,255,1)');
+        grd.addColorStop(0.3, 'rgba(255,255,255,0.5)');
+        grd.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = grd; g.fillRect(0, 0, 64, 64);
+        return new THREE.CanvasTexture(c);
+    }
+    var HALO = haloTexture();
+    var pinsGroup = new THREE.Group();
+    earth.add(pinsGroup);
+    var markers = [];
+    LOCATIONS.forEach(function (loc) {
+        var p = llToVec(loc.lat, loc.lon, EARTH_R * 1.012);
+        loc._pos = p.clone();
+        var col = new THREE.Color(loc.color);
+        var dot = new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 10), new THREE.MeshBasicMaterial({ color: col }));
+        dot.position.copy(p); dot.userData = loc;
+        var halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: HALO, color: col, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+        halo.position.copy(p); halo.scale.setScalar(0.4); halo.userData = loc;
+        loc._halo = halo;
+        pinsGroup.add(dot); pinsGroup.add(halo);
+        markers.push(dot, halo);
+    });
+    function pinsOn() { return document.getElementById('layer-pins').checked; }
+
+    var beam = null;
+    function showBeam(loc) {
+        if (beam) earth.remove(beam);
+        var h = 1.0;
+        var g = new THREE.CylinderGeometry(0.007, 0.007, h, 6); g.translate(0, h / 2, 0);
+        beam = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: loc.color, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false }));
+        beam.position.copy(loc._pos);
+        beam.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), loc._pos.clone().normalize());
+        beam.visible = pinsOn();
+        earth.add(beam);
+    }
+
+    /* travel arcs */
+    var arcs = [], lastPoint = null;
+    function drawArc(aVec, bVec) {
+        var a = aVec.clone().normalize(), b = bVec.clone().normalize();
+        var lift = 1.15 + 0.35 * a.distanceTo(b);
+        var mid = a.clone().add(b).normalize().multiplyScalar(EARTH_R * lift);
+        var curve = new THREE.QuadraticBezierCurve3(
+            a.clone().multiplyScalar(EARTH_R * 1.012), mid, b.clone().multiplyScalar(EARTH_R * 1.012));
+        var line = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(curve.getPoints(48)),
+            new THREE.LineBasicMaterial({ color: 0xffeb3b, transparent: true, opacity: 0.95 }));
+        earth.add(line);
+        arcs.push({ line: line, born: performance.now() });
+    }
+
+    /* ===================== INTERACTION ===================== */
+    var raycaster = new THREE.Raycaster();
+    raycaster.params.Line.threshold = 0.03;
+    var pointer = new THREE.Vector2();
+    var tooltip = document.getElementById('tooltip');
+    var hoveredCountry = null;
+    var sayTimer = null;
+    var tweening = false, homeMode = false, home = null, homePin = null, homeLL = null;
+    var spinTimer = null;
+
+    function setPointer(e) {
+        var r = renderer.domElement.getBoundingClientRect();
+        pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+        pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+    }
+    function pauseSpin() { controls.autoRotate = false; if (spinTimer) clearTimeout(spinTimer); }
+    function resumeSpinSoon() { if (spinTimer) clearTimeout(spinTimer); spinTimer = setTimeout(function () { controls.autoRotate = true; }, 4500); }
+
+    var hintEl = document.getElementById('hint');
+    var hintTimer = null;
+    function hint(msg, ms) {
+        hintEl.innerHTML = msg; hintEl.classList.remove('hide');
+        if (hintTimer) clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () { hintEl.classList.add('hide'); }, ms || 4000);
+    }
+    setTimeout(function () { hintEl.classList.add('hide'); }, 7000);
+
+    var downXY = null, moved = false;
+    renderer.domElement.addEventListener('pointerdown', function (e) {
+        downXY = [e.clientX, e.clientY]; moved = false;
+        initAudio(); pauseSpin();
+        hintEl.classList.add('hide');
+    });
+    renderer.domElement.addEventListener('pointermove', throttle(function (e) {
+        if (downXY) {
+            if (Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]) > 5) moved = true;
+        }
+        if (moved || tweening) { tooltip.style.display = 'none'; return; }
+        if (!document.getElementById('layer-borders').checked) return;
+        setPointer(e); raycaster.setFromCamera(pointer, camera);
+        var hit = raycaster.intersectObjects(borderLines, false)[0];
+        if (hit) {
+            var nm = hit.object.userData.country;
+            if (hoveredCountry !== nm) {
+                if (hoveredCountry && countryMap[hoveredCountry]) countryMap[hoveredCountry].forEach(function (l) { l.material = matDefault; });
+                hoveredCountry = nm;
+                if (countryMap[nm]) countryMap[nm].forEach(function (l) { l.material = matHover; });
+                if (sayTimer) clearTimeout(sayTimer);
+                sayTimer = setTimeout(function () { speakCountry(nm); }, 280);
+            }
+            var cr = container.getBoundingClientRect();
+            tooltip.style.display = 'block';
+            tooltip.textContent = nm;
+            tooltip.style.left = (e.clientX - cr.left + 14) + 'px';
+            tooltip.style.top = (e.clientY - cr.top + 14) + 'px';
+        } else {
+            if (hoveredCountry && countryMap[hoveredCountry]) countryMap[hoveredCountry].forEach(function (l) { l.material = matDefault; });
+            hoveredCountry = null; tooltip.style.display = 'none';
+            if (sayTimer) clearTimeout(sayTimer);
+        }
+    }, 55));
+
+    renderer.domElement.addEventListener('pointerup', function (e) {
+        resumeSpinSoon();
+        if (!downXY) return;
+        var far = Math.hypot(e.clientX - downXY[0], e.clientY - downXY[1]) > 6;
+        downXY = null;
+        if (far) return;
+        setPointer(e); raycaster.setFromCamera(pointer, camera);
+        if (homeMode) {
+            var hitE = raycaster.intersectObject(earth, false)[0];
+            if (hitE) setHome(earth.worldToLocal(hitE.point.clone()));
+            homeMode = false;
+            return;
+        }
+        if (!pinsOn()) return;
+        var hit = raycaster.intersectObjects(markers, false)[0];
+        if (hit) selectLocation(hit.object.userData);
+    });
+
+    function throttle(fn, ms) {
+        var last = 0, tid = null;
+        return function (e) {
+            var now = performance.now();
+            if (now - last >= ms) { last = now; fn(e); }
+            else { clearTimeout(tid); tid = setTimeout(function () { last = performance.now(); fn(e); }, ms); }
+        };
+    }
+
+    /* ===================== PASSPORT ===================== */
+    var $ = function (id) { return document.getElementById(id); };
+    var currentLoc = null;
+
+    function selectLocation(loc) {
+        currentLoc = loc;
+        playBlip();
+        speakPlace(loc);
+
+        $('empty-state').style.display = 'none';
+        $('content').style.display = 'block';
+        $('p-flag').textContent = loc.flag;
+        $('p-title').textContent = loc.name;
+        $('p-title').style.color = '#' + loc.color.toString(16).padStart(6, '0');
+        $('p-country').textContent = loc.country;
+        $('p-wonder').textContent = loc.wonder;
+        $('p-hello').textContent = loc.hello;
+        $('p-kids').textContent = loc.kids;
+        $('p-food').textContent = loc.food;
+        $('p-festival').textContent = loc.festival;
+        $('p-animal').textContent = loc.animal;
+        $('p-music').textContent = loc.music;
+        $('p-elev').textContent = loc.elev.toLocaleString();
+        var bar = $('p-elev-bar');
+        bar.style.width = '0%';
+        bar.style.background = '#' + loc.color.toString(16).padStart(6, '0');
+        setTimeout(function () { bar.style.width = Math.max(2, (loc.elev / 8849) * 100) + '%'; }, 60);
+
+        renderHomeInfo();
+        showBeam(loc);
+
+        if (lastPoint && lastPoint.distanceTo(loc._pos) > 0.05) {
+            drawArc(lastPoint, loc._pos);
+            var prev = vecToLL(lastPoint);
+            var km = gcKm(prev, { lat: loc.lat, lon: loc.lon });
+            flashDist('✈ ' + Math.round(km / 100) * 100 + ' km travelled');
+        }
+        lastPoint = loc._pos.clone();
+
+        flyTo(earth.localToWorld(loc._pos.clone()));
+    }
+
+    function renderHomeInfo() {
+        var el = $('p-home');
+        if (!homeLL || !currentLoc) { el.style.display = 'none'; return; }
+        var km = gcKm(homeLL, { lat: currentLoc.lat, lon: currentLoc.lon });
+        var dlon = currentLoc.lon - homeLL.lon;
+        while (dlon > 180) dlon -= 360;
+        while (dlon < -180) dlon += 360;
+        var hrs = Math.round(dlon / 15);
+        var tstr = hrs === 0 ? 'the same time as home' :
+            (Math.abs(hrs) + 'h ' + (hrs > 0 ? 'ahead of' : 'behind') + ' home');
+        el.style.display = 'block';
+        el.innerHTML = '🏠 About <b>' + km.toLocaleString(undefined, { maximumFractionDigits: 0 }) +
+            ' km</b> from home &mdash; ' + tstr + '.';
+    }
+
+    var distEl = $('dist-flash');
+    function flashDist(txt) {
+        distEl.textContent = txt; distEl.classList.add('show');
+        setTimeout(function () { distEl.classList.remove('show'); }, 2600);
+    }
+
+    /* ===================== HOME ===================== */
+    function setHome(localVec) {
+        homeLL = vecToLL(localVec);
+        var p = llToVec(homeLL.lat, homeLL.lon, EARTH_R * 1.012);
+        if (homePin) earth.remove(homePin);
+        homePin = new THREE.Group();
+        var pin = new THREE.Mesh(new THREE.SphereGeometry(0.035, 14, 14), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        var ring = new THREE.Sprite(new THREE.SpriteMaterial({ map: HALO, color: 0xffffff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false }));
+        ring.scale.setScalar(0.55);
+        homePin.add(pin); homePin.add(ring); homePin.position.copy(p);
+        earth.add(homePin);
+        $('btn-home').textContent = '📍 Home set';
+        hint('🏠 Home planted! Passport Cards now show how far away places are.', 4000);
+        renderHomeInfo();
+    }
+    $('btn-home').addEventListener('click', function () {
+        homeMode = true;
+        hint('Click the spot on the globe where you live 🏠', 6000);
+    });
+
+    /* ===================== SURPRISE ===================== */
+    $('btn-surprise').addEventListener('click', function () {
+        initAudio();
+        var next;
+        do { next = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)]; } while (next === currentLoc && LOCATIONS.length > 1);
+        $('layer-pins').checked = true; pinsGroup.visible = true;
+        pauseSpin();
+        selectLocation(next);
+    });
+    $('p-play').addEventListener('click', function () { initAudio(); if (currentLoc) playMotif(currentLoc.motif); });
+    $('p-say').addEventListener('click', function () { if (currentLoc) { document.getElementById('say-names').checked = true; speakPlace(currentLoc); } });
+
+    /* ===================== TOGGLES ===================== */
+    $('layer-borders').addEventListener('change', function () {
+        bordersGroup.visible = this.checked;
+        if (!this.checked && hoveredCountry) {
+            if (countryMap[hoveredCountry]) countryMap[hoveredCountry].forEach(function (l) { l.material = matDefault; });
+            hoveredCountry = null; tooltip.style.display = 'none';
+            if (sayTimer) clearTimeout(sayTimer);
+        }
+    });
+    $('layer-topo').addEventListener('change', function () {
+        earth.material.normalMap = (this.checked && normalTex) ? normalTex : null;
+        earth.material.normalScale = new THREE.Vector2(1.4, 1.4);
+        earth.material.needsUpdate = true;
+    });
+    $('layer-grid').addEventListener('change', function () { gridGroup.visible = this.checked; });
+    $('layer-labels').addEventListener('change', function () { labelGroup.visible = this.checked; });
+    $('layer-pins').addEventListener('change', function () {
+        pinsGroup.visible = this.checked;
+        if (beam) beam.visible = this.checked;
+    });
+    document.getElementById('toggle-sound').addEventListener('change', initAudio);
+
+    /* ===================== CAMERA FLY ===================== */
+    function flyTo(worldTarget) {
+        tweening = true; pauseSpin();
+        var from = camera.position.clone();
+        var dist = Math.max(controls.minDistance + 0.4, Math.min(camera.position.length(), 5.2));
+        var to = worldTarget.clone().normalize().multiplyScalar(dist);
+        var t0 = performance.now(), dur = reduced ? 1 : 1100;
+        (function step() {
+            var k = Math.min(1, (performance.now() - t0) / dur);
+            var e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+            camera.position.lerpVectors(from, to, e);
+            camera.lookAt(0, 0, 0);
+            renderer.render(scene, camera);
+            if (k < 1) requestAnimationFrame(step);
+            else { tweening = false; controls.update(); resumeSpinSoon(); }
+        })();
+    }
+
+    /* ===================== "LOOKING AT" ===================== */
+    var REGIONS = [
+        { n: 'North America', lat: 45, lon: -100 }, { n: 'South America', lat: -15, lon: -60 },
+        { n: 'Europe', lat: 50, lon: 15 }, { n: 'Africa', lat: 2, lon: 20 },
+        { n: 'Asia', lat: 45, lon: 90 }, { n: 'Australia', lat: -25, lon: 135 },
+        { n: 'Antarctica', lat: -82, lon: 0 }, { n: 'the Arctic', lat: 85, lon: 0 },
+        { n: 'the Pacific Ocean', lat: 0, lon: -150 }, { n: 'the Pacific Ocean', lat: 0, lon: 170 },
+        { n: 'the Atlantic Ocean', lat: 10, lon: -35 }, { n: 'the Indian Ocean', lat: -25, lon: 78 }
+    ];
+    var facingEl = document.querySelector('#facing b');
+    function updateFacing() {
+        var local = earth.worldToLocal(camera.position.clone());
+        var ll = vecToLL(local);
+        var best = REGIONS[0], bd = Infinity;
+        REGIONS.forEach(function (r) { var d = gcKm(ll, r); if (d < bd) { bd = d; best = r; } });
+        facingEl.textContent = best.n;
+    }
+
+    /* ===================== LOOP ===================== */
+    var clock = new THREE.Clock();
+    function animate() {
+        requestAnimationFrame(animate);
+        if (tweening) return;
+        var t = clock.getElapsedTime();
+
+        if (pinsGroup.visible) {
+            for (var i = 0; i < LOCATIONS.length; i++) {
+                var pulse = 0.38 + 0.08 * Math.sin(t * 2.5 + i);
+                LOCATIONS[i]._halo.scale.setScalar(currentLoc === LOCATIONS[i] ? pulse * 1.6 : pulse);
+            }
+        }
+        if (beam && beam.visible) beam.material.opacity = 0.4 + 0.2 * Math.sin(t * 4);
+
+        var now = performance.now();
+        for (var j = arcs.length - 1; j >= 0; j--) {
+            var age = (now - arcs[j].born) / 4200;
+            if (age >= 1) { earth.remove(arcs[j].line); arcs.splice(j, 1); }
+            else arcs[j].line.material.opacity = 0.95 * (1 - age);
+        }
+
+        controls.update();
+        if (Math.floor(t * 5) % 2 === 0) updateFacing();
+        renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', function () {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+})();
+</script>
+</body>
+</html>

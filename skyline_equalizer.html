@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>The Skyline Equalizer</title>
     <style>
-        :root { --unit: 16px; --target: 10; }
+        :root { --unit: 16px; --target: 8; }
 
         * { box-sizing: border-box; }
 
@@ -18,7 +18,7 @@
         }
 
         h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0,229,255,.5); margin: 0 0 4px; letter-spacing: 2px; font-size: clamp(20px, 5vw, 30px); }
-        p.intro { font-size: 14px; color: #b2ebf2; margin: 0 0 16px; max-width: 520px; }
+        p.intro { font-size: 13px; color: #b2ebf2; margin: 0 0 16px; max-width: 560px; line-height: 1.5; }
 
         .btn {
             background: #ffeb3b; color: #000; border: none; padding: 10px 20px;
@@ -27,28 +27,31 @@
             transition: transform .1s;
         }
         .btn:active { transform: scale(.95); }
+        .btn.sm { padding: 8px 14px; font-size: 12px; box-shadow: none; }
+        .btn:disabled { opacity: .35; cursor: default; }
 
         /* --- HUD --- */
         .hud {
-            display: flex; gap: 14px; align-items: center; justify-content: center; flex-wrap: wrap;
+            display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
             background: #111; border: 1px solid #2a2a30; border-radius: 12px;
-            padding: 10px 18px; margin-bottom: 14px; width: min(940px, 100%);
+            padding: 10px 16px; margin-bottom: 14px; width: min(940px, 100%);
         }
-        .hud .level  { color: #00e5ff; font-size: 18px; font-weight: bold; letter-spacing: 1px; }
-        .hud .target { color: #ff4081; font-size: 18px; font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
-                       text-shadow: 0 0 15px rgba(255,64,129,.5); }
-        #btn-reset { padding: 8px 16px; font-size: 13px; }
+        .chip { font-size: 13px; letter-spacing: 1px; color: #8b98a5; text-transform: uppercase; }
+        .chip b { color: #fff; font-size: 16px; }
+        .chip.line b { color: #ff4081; text-shadow: 0 0 12px rgba(255,64,129,.6); }
+        .chip.moves b { color: #00e5ff; }
+        #par-num { color: #6b7580; }
 
         /* --- PLAY AREA --- */
-        .play-area { position: relative; width: min(940px, 100%); display: flex; flex-direction: column; gap: 14px; }
+        .play-area { position: relative; width: min(940px, 100%); }
 
         .skyline {
             position: relative; width: 100%;
-            height: clamp(240px, 44vh, 340px);
+            height: clamp(250px, 48vh, 360px);
             background: #0a0a0d; border: 1px solid #1e1e24; border-radius: 14px;
             box-shadow: inset 0 0 40px rgba(0,0,0,.8);
             display: flex; justify-content: space-evenly; align-items: flex-end;
-            padding: 0 10px; overflow: visible;
+            padding: 0 10px; overflow: hidden;
         }
 
         .target-line {
@@ -65,17 +68,21 @@
         /* --- TOWERS --- */
         .tower {
             position: relative; height: 100%;
-            width: clamp(48px, 15vw, 82px);
+            width: clamp(48px, 15vw, 88px);
             display: flex; flex-direction: column; justify-content: flex-end; align-items: center;
             transition: background .15s;
         }
         .tower.drop-target { background: rgba(255,255,255,.07); border-radius: 10px; }
+        .tower.perfect-fit { background: rgba(105,240,174,.12); outline: 2px dashed rgba(105,240,174,.55); border-radius: 10px; }
+        .tower.would-fuse  { background: rgba(255,82,82,.10);  outline: 2px dashed rgba(255,82,82,.45);  border-radius: 10px; }
         .tower.wobble { animation: wobble .4s ease; }
         @keyframes wobble {
             0%,100% { transform: translateX(0); }
             20% { transform: translateX(-6px); } 40% { transform: translateX(5px); }
             60% { transform: translateX(-3px); } 80% { transform: translateX(2px); }
         }
+        .tower.reject { animation: wobble .35s ease; }
+        .tower.reject .tower-base { background: #ff5252; box-shadow: 0 0 18px rgba(255,82,82,.8); }
 
         .stack {
             position: relative; z-index: 3; width: 82%;
@@ -101,9 +108,9 @@
         .tower-hint .hi { font-size: 13px; }
         .tower-hint.under { color: #ffca28; }
         .tower-hint.ok    { color: #69f0ae; text-shadow: 0 0 10px rgba(105,240,174,.6); }
-        .tower-hint.over  { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,.6); }
+        .tower-hint.over  { color: #ff5252; text-shadow: 0 0 10px rgba(255,82,82,.7); }
         .tower.perfect-fit .tower-hint { animation: pulseText 1s ease-in-out infinite; }
-        @keyframes pulseText { 50% { transform: translateX(-50%) scale(1.18); } }
+        @keyframes pulseText { 50% { transform: translateX(-50%) scale(1.16); } }
 
         /* --- PIECES --- */
         .piece {
@@ -115,12 +122,8 @@
         }
         .piece:active { cursor: grabbing; }
 
-        #tray .piece {
-            width: 44px; height: 44px; border-radius: 50%; font-size: 20px;
-            box-shadow: 0 3px 0 rgba(0,0,0,.4), inset 0 0 10px rgba(255,255,255,.45);
-        }
         .stack .piece {
-            width: 100%; height: calc(var(--val) * var(--unit)); min-height: 15px;
+            width: 100%; height: calc(var(--val) * var(--unit)); min-height: 12px;
             border-radius: 5px; margin-top: 2px;
             font-size: clamp(10px, calc(var(--unit) * 0.85), 15px);
             box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), inset 0 0 12px rgba(255,255,255,.22);
@@ -139,35 +142,22 @@
 
         .piece.dragging { opacity: .2; }
         .piece.selected { outline: 3px solid #ffeb3b; outline-offset: 2px; box-shadow: 0 0 18px #ffeb3b; z-index: 20; }
-        #tray .piece.can-complete { animation: pulseGreen 1.1s ease-in-out infinite; }
-        @keyframes pulseGreen {
-            0%,100% { box-shadow: 0 3px 0 rgba(0,0,0,.4), 0 0 0 0 rgba(105,240,174,0); }
-            50%     { box-shadow: 0 3px 0 rgba(0,0,0,.4), 0 0 16px 3px rgba(105,240,174,.9); }
-        }
 
         .tower.perfect .stack .piece { box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 0 14px rgba(255,64,129,.7); }
-        .tower.over    .stack .piece { box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 0 12px rgba(255,82,82,.6); }
-
-        /* --- TRAY --- */
-        .tray {
-            min-height: 72px; display: flex; flex-wrap: wrap; gap: 10px; align-content: flex-start;
-            background: #0a0a0d; border: 1px solid #1e1e24; border-radius: 14px; padding: 12px;
-            transition: background .15s;
-        }
-        .tray.drop-target { background: rgba(255,255,255,.07); }
-        .tray-label, .tray-note { width: 100%; flex-basis: 100%; }
-        .tray-label { font-size: 11px; color: #7a8a90; letter-spacing: 1.5px; text-transform: uppercase; text-align: left; }
-        .tray-note  { color: #69f0ae; font-size: 14px; font-weight: bold; padding: 8px 0; }
+        .tower.over    { background: rgba(255,82,82,.08); }
+        .tower.over    .stack .piece { box-shadow: inset 0 -3px 0 rgba(0,0,0,.2), 0 0 12px rgba(255,82,82,.65); }
 
         /* --- OVERLAY --- */
         .win-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,.86);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+            position: absolute; inset: 0; background: rgba(0,0,0,.88);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
             z-index: 100; opacity: 0; pointer-events: none; transition: opacity .4s; border-radius: 14px;
         }
         .win-overlay.show { opacity: 1; pointer-events: auto; }
-        .win-title { font-size: clamp(30px, 8vw, 58px); color: #ffeb3b; text-shadow: 0 0 30px #ffeb3b; }
-        .win-sub { color: #b2ebf2; letter-spacing: 1px; }
+        .win-title { font-size: clamp(26px, 7vw, 52px); color: #ffeb3b; text-shadow: 0 0 30px #ffeb3b; }
+        .win-stars { font-size: 34px; letter-spacing: 8px; color: #ffeb3b; text-shadow: 0 0 20px #ffeb3b; }
+        .win-sub { color: #b2ebf2; letter-spacing: 1px; font-size: 14px; }
+        .win-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 
         .toggle-container {
             display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -197,28 +187,30 @@
 <a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,0.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:0.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,0.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
 
     <h1>🌆 The Skyline Equalizer 🌆</h1>
-    <p class="intro">Every tower must reach the glowing line. Drag or tap the balls between towers — and use <b>every</b> ball.</p>
+    <p class="intro">Move balls between the towers until <b>every</b> tower reaches the glowing line.
+       There is no spare pile — to fill one tower you must borrow from another. Go over the line and the tower blows a fuse ⚡</p>
 
     <div class="hud">
-        <div class="level">Level <span id="level-num">1</span></div>
-        <div class="target">Target <span id="target-num">10</span></div>
-        <button class="btn" id="btn-reset">↺ Reset</button>
+        <div class="chip">Level <b id="level-num">1</b></div>
+        <div class="chip line">Line <b id="target-num">8</b></div>
+        <div class="chip moves">Moves <b id="move-num">0</b> <span id="par-num">par 4</span></div>
+        <button class="btn sm" id="btn-undo">↶ Undo</button>
+        <button class="btn sm" id="btn-reset">↺ Reset</button>
     </div>
 
     <div class="play-area">
         <div class="skyline" id="skyline">
-            <div class="target-line" id="target-line"><span id="target-line-label">10</span></div>
-        </div>
-
-        <div class="tray" id="tray" data-drop="tray">
-            <div class="tray-label">Balls to place</div>
-            <div class="tray-note" id="tray-note" hidden>✨ All balls placed — now rebalance the towers!</div>
+            <div class="target-line" id="target-line"><span id="target-line-label">8</span></div>
         </div>
 
         <div class="win-overlay" id="win-screen">
             <div class="win-title">CITY BALANCED! 🎉</div>
-            <div class="win-sub">Level <span id="win-level">1</span> complete</div>
-            <button class="btn" id="btn-next">Next Level →</button>
+            <div class="win-stars" id="win-stars">★★★</div>
+            <div class="win-sub" id="win-detail"></div>
+            <div class="win-btns">
+                <button class="btn sm" id="btn-retry">↺ Retry</button>
+                <button class="btn" id="btn-next">Next Level →</button>
+            </div>
         </div>
     </div>
 
@@ -232,6 +224,11 @@
     'use strict';
 
     var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // A tower may not be pushed more than this far above the line. CAP >= 6
+    // guarantees a legal move always exists (any ball fits any under-line
+    // tower), so the puzzle can never deadlock — and it keeps stacks in frame.
+    var OVER_CAP = 6;
 
     /* ================= AUDIO ================= */
     var audioCtx, masterGain;
@@ -253,8 +250,7 @@
 
     function tone(type, freq, dur, opts) {
         opts = opts || {};
-        var when = opts.when || 0;
-        var t = audioCtx.currentTime + when;
+        var t = audioCtx.currentTime + (opts.when || 0);
         var o = audioCtx.createOscillator();
         var g = audioCtx.createGain();
         o.type = type;
@@ -272,7 +268,8 @@
         if (kind === 'select')      tone('sine', 680, 0.05, { vol: 0.14 });
         else if (kind === 'place')  tone('triangle', 330, 0.09, { vol: 0.24, slideTo: 180 });
         else if (kind === 'lock') { tone('sine', 740, 0.5, { vol: 0.34 }); tone('sine', 1108, 0.5, { vol: 0.18, when: 0.04 }); }
-        else if (kind === 'over')   tone('sawtooth', 150, 0.28, { vol: 0.26, slideTo: 80 });
+        else if (kind === 'over')   tone('sawtooth', 150, 0.28, { vol: 0.26, slideTo: 70 });
+        else if (kind === 'undo')   tone('sine', 420, 0.08, { vol: 0.16, slideTo: 560 });
         else if (kind === 'win')    [523, 659, 784, 1046, 1319].forEach(function (f, i) { tone('triangle', f, 0.5, { vol: 0.26, when: i * 0.11 }); });
     }
 
@@ -310,20 +307,9 @@
         }
     }
 
-    /* ================= STATE ================= */
-    var skyline = document.getElementById('skyline');
-    var tray = document.getElementById('tray');
-    var note = document.getElementById('tray-note');
-    var winScreen = document.getElementById('win-screen');
-
-    var state = null;
-    var towerNodes = [], stackNodes = [], hintNodes = [];
-    var selected = null;
-    var gesture = null;          // active piece drag/tap
-    var containerGesture = null; // tap on empty container
-    var currentHighlight = null;
-
+    /* ================= HELPERS ================= */
     var rand = function (a, b) { return a + Math.floor(Math.random() * (b - a + 1)); };
+    function sumArr(a) { return a.reduce(function (s, x) { return s + x; }, 0); }
     function shuffle(arr) {
         for (var i = arr.length - 1; i > 0; i--) {
             var j = Math.floor(Math.random() * (i + 1));
@@ -336,29 +322,74 @@
         while (n > 0) { var v = rand(1, Math.min(6, n)); out.push(v); n -= v; }
         return out;
     }
+    function pickIndex(arr, pred) {
+        var idx = [];
+        for (var i = 0; i < arr.length; i++) if (pred(arr[i], i)) idx.push(i);
+        return idx.length ? idx[Math.floor(Math.random() * idx.length)] : -1;
+    }
 
-    /* ================= LEVEL ================= */
+    /* ================= LEVEL GENERATION (backward) ================= */
     function savedLevel() {
         try { return Math.max(1, parseInt(localStorage.getItem('skyline_level'), 10) || 1); }
         catch (e) { return 1; }
     }
     function saveLevel(n) { try { localStorage.setItem('skyline_level', n); } catch (e) {} }
 
-    function genBlueprint(level) {
-        var towerCount = level < 3 ? 3 : (level < 5 ? 4 : 5);
-        var target = Math.min(13, 6 + level);
-        var towers = [], supply = [];
-        for (var i = 0; i < towerCount; i++) {
-            var maxGap = Math.min(target - 1, 9);
-            var gap = rand(3, Math.max(3, maxGap));
-            var startSum = target - gap;
-            towers.push({ start: partition(startSum) });
-            partition(gap).forEach(function (v) { supply.push(v); });
+    function genLevel(level) {
+        var N = level < 3 ? 3 : (level < 5 ? 4 : 5);
+        var T = Math.min(12, 4 + level);
+        var depth = Math.min(9, 1 + level);
+
+        // 1. solved state: each tower a partition of T, balls tagged with their home tower
+        var towers = [];
+        for (var i = 0; i < N; i++) {
+            towers.push(partition(T).map(function (v) { return { v: v, home: i }; }));
         }
-        shuffle(supply);
-        return { target: target, towers: towers, supply: supply };
+
+        // 2. scramble backward with single-ball moves (guarantees solvability).
+        //    Never let a tower exceed the in-game cap, so the start state is
+        //    always inside the frame and inside the rules.
+        var tsum = function (t) { return t.reduce(function (s, b) { return s + b.v; }, 0); };
+        var applied = 0, guard = 0;
+        while (applied < depth && guard < depth * 60) {
+            guard++;
+            var from = pickIndex(towers, function (t) { return t.length > 0; });
+            if (from < 0) break;
+            var bi = Math.floor(Math.random() * towers[from].length);
+            var ball = towers[from][bi];
+            var to = pickIndex(towers, function (t, k) {
+                return k !== from && tsum(t) + ball.v <= T + OVER_CAP;
+            });
+            if (to < 0) continue;
+            towers[to].push(towers[from].splice(bi, 1)[0]);
+            applied++;
+        }
+
+        // 3. par = number of balls now away from home (= optimal solution length)
+        var par = 0;
+        towers.forEach(function (t, ti) { t.forEach(function (b) { if (b.home !== ti) par++; }); });
+        if (par === 0) {
+            var s = pickIndex(towers, function (t) { return t.length > 1; });
+            if (s < 0) s = pickIndex(towers, function (t) { return t.length > 0; });
+            if (s >= 0) { towers[(s + 1) % N].push(towers[s].pop()); par = 1; }
+        }
+
+        towers.forEach(shuffle);
+        return { T: T, par: par, towers: towers.map(function (t) { return t.map(function (b) { return b.v; }); }) };
     }
 
+    /* ================= STATE ================= */
+    var skyline = document.getElementById('skyline');
+    var winScreen = document.getElementById('win-screen');
+
+    var state = null;
+    var towerNodes = [], stackNodes = [], hintNodes = [];
+    var selected = null;
+    var gesture = null;
+    var containerGesture = null;
+    var currentHighlight = null;
+
+    /* ================= BUILD ================= */
     function makePiece(val) {
         var p = document.createElement('div');
         p.className = 'piece v' + val;
@@ -370,19 +401,19 @@
     }
 
     function buildLevel(level, blueprint) {
-        var bp = blueprint || genBlueprint(level);
-        state = { level: level, target: bp.target, blueprint: bp, won: false, towers: [] };
+        var bp = blueprint || genLevel(level);
+        state = {
+            level: level, N: bp.towers.length, target: bp.T, par: bp.par,
+            moves: 0, won: false, busy: 0, history: [], blueprint: bp, towers: []
+        };
 
-        document.getElementById('level-num').textContent = level;
-        document.getElementById('target-num').textContent = bp.target;
-        document.getElementById('target-line-label').textContent = bp.target;
-        document.documentElement.style.setProperty('--target', bp.target);
+        document.documentElement.style.setProperty('--target', bp.T);
+        document.getElementById('target-line-label').textContent = bp.T;
 
         skyline.querySelectorAll('.tower').forEach(function (n) { n.remove(); });
-        tray.querySelectorAll('.piece').forEach(function (n) { n.remove(); });
         towerNodes = []; stackNodes = []; hintNodes = [];
 
-        bp.towers.forEach(function (t, i) {
+        bp.towers.forEach(function (vals, i) {
             var tower = document.createElement('div');
             tower.className = 'tower';
             tower.dataset.drop = 'tower';
@@ -395,7 +426,7 @@
             wireDrop(tower);
 
             var stack = tower.querySelector('.stack');
-            t.start.forEach(function (v) { stack.appendChild(makePiece(v)); });
+            vals.forEach(function (v) { stack.appendChild(makePiece(v)); });
 
             towerNodes.push(tower);
             stackNodes.push(stack);
@@ -403,20 +434,29 @@
             state.towers.push({ sum: 0, need: 0, wasOk: false, wasOver: false });
         });
 
-        bp.supply.forEach(function (v) { tray.appendChild(makePiece(v)); });
-
         setSelected(null);
         winScreen.classList.remove('show');
         computeUnit();
         recalc({ fx: false });
+        updateHud();
         requestAnimationFrame(function () { computeUnit(); recalc({ measureOnly: true }); });
     }
 
     function computeUnit() {
-        var usable = skyline.clientHeight - 12 - 8;
-        var u = Math.floor(usable / (state.target + 4));
+        // reserve 12px for the base and 26px of headroom above a fully-capped
+        // tower (target + OVER_CAP tall) so nothing can climb out of the frame
+        var usable = skyline.clientHeight - 12 - 26;
+        var u = Math.floor(usable / (state.target + OVER_CAP));
         u = Math.max(9, Math.min(22, u));
         document.documentElement.style.setProperty('--unit', u + 'px');
+    }
+
+    function updateHud() {
+        document.getElementById('level-num').textContent = state.level;
+        document.getElementById('target-num').textContent = state.target;
+        document.getElementById('move-num').textContent = state.moves;
+        document.getElementById('par-num').textContent = 'par ' + state.par;
+        document.getElementById('btn-undo').disabled = state.history.length === 0 || state.won || state.busy > 0;
     }
 
     /* ================= RECALC ================= */
@@ -424,7 +464,7 @@
         opts = opts || {};
         var measureOnly = !!opts.measureOnly;
         var fx = opts.fx !== false && !measureOnly;
-        var perfect = 0;
+        var allPerfect = true;
 
         state.towers.forEach(function (tw, i) {
             var sum = 0;
@@ -445,15 +485,13 @@
             tw.wasOver = over;
             towerNodes[i].classList.toggle('perfect', ok);
             towerNodes[i].classList.toggle('over', over);
-            if (ok) perfect++;
+            if (!ok) allPerfect = false;
         });
 
         if (measureOnly) return;
 
-        markCompletable();
-        updateTrayNote();
-
-        if (fx && !state.won && perfect === state.towers.length) win();
+        updateFitHints();
+        if (fx && !state.won && allPerfect) win();
     }
 
     function renderHint(i) {
@@ -461,23 +499,11 @@
         var icon, cls, delta;
         if (tw.need === 0) { icon = '✓'; cls = 'ok'; delta = ''; }
         else if (tw.need > 0) { icon = '⬆'; cls = 'under'; delta = '+' + tw.need; }
-        else { icon = '⬇'; cls = 'over'; delta = '−' + (-tw.need); }
+        else { icon = '⚡'; cls = 'over'; delta = '−' + (-tw.need); }
         hintNodes[i].className = 'tower-hint ' + cls;
         hintNodes[i].innerHTML =
             '<span class="row"><span class="hs">' + tw.sum + '</span><span class="ht">/' + state.target + '</span></span>' +
             '<span class="row">' + (delta ? '<span class="hd">' + delta + '</span>' : '') + '<span class="hi">' + icon + '</span></span>';
-    }
-
-    function markCompletable() {
-        var needs = state.towers.map(function (t) { return t.need; }).filter(function (n) { return n > 0; });
-        tray.querySelectorAll('.piece').forEach(function (p) {
-            p.classList.toggle('can-complete', needs.indexOf(+p.dataset.val) !== -1);
-        });
-    }
-
-    function updateTrayNote() {
-        var count = tray.querySelectorAll('.piece').length;
-        note.hidden = !(count === 0 && !state.won);
     }
 
     function perfectFx(i) {
@@ -496,27 +522,50 @@
     function win() {
         state.won = true;
         saveLevel(state.level + 1);
-        document.getElementById('win-level').textContent = state.level;
+        var stars = state.moves <= state.par ? 3 : (state.moves <= state.par + 3 ? 2 : 1);
+        document.getElementById('win-stars').textContent =
+            '★★★☆☆☆'.slice(3 - stars, 6 - stars);
+        document.getElementById('win-detail').textContent =
+            'Balanced in ' + state.moves + (state.moves === 1 ? ' move' : ' moves') + ' · par ' + state.par;
         winScreen.classList.add('show');
+        updateHud();
         play('win');
         confetti();
+    }
+
+    /* ================= FIT HINTS (coupling made visible) ================= */
+    function showFitHints(val, homeIdx) {
+        state.towers.forEach(function (t, i) {
+            var fit = i !== homeIdx && t.need === val;
+            var fuse = i !== homeIdx && (t.sum + val) > state.target;
+            towerNodes[i].classList.toggle('perfect-fit', fit);
+            towerNodes[i].classList.toggle('would-fuse', fuse && !fit);
+        });
+    }
+    function clearFitHints() {
+        towerNodes.forEach(function (n) { n.classList.remove('perfect-fit', 'would-fuse'); });
+    }
+    function updateFitHints() {
+        if (selected) showFitHints(+selected.dataset.val, towerIndexOf(selected));
+        else if (gesture && gesture.moved) showFitHints(+gesture.piece.dataset.val, towerIndexOf(gesture.piece));
+        else clearFitHints();
+    }
+
+    function towerIndexOf(el) {
+        var t = el && el.closest('.tower');
+        return t ? +t.dataset.tower : -1;
     }
 
     /* ================= SELECTION (tap) ================= */
     function setSelected(piece) {
         if (selected) selected.classList.remove('selected');
-        towerNodes.forEach(function (t) { t.classList.remove('perfect-fit'); });
         selected = piece || null;
-        if (selected) {
-            selected.classList.add('selected');
-            var v = +selected.dataset.val;
-            state.towers.forEach(function (t, i) {
-                if (t.need === v) towerNodes[i].classList.add('perfect-fit');
-            });
-        }
+        if (selected) selected.classList.add('selected');
+        updateFitHints();
     }
 
     function handlePieceTap(piece) {
+        if (state.won) return;
         if (selected === piece) { setSelected(null); play('select'); return; }
         if (selected) {
             var drop = piece.parentElement.closest('[data-drop]');
@@ -531,7 +580,7 @@
 
     /* ================= DRAG (pointer events) ================= */
     function onPiecePointerDown(e, piece) {
-        if (gesture) return;
+        if (gesture || state.won) return;
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         initAudio();
         e.stopPropagation();
@@ -551,6 +600,7 @@
             gesture.piece.classList.add('dragging');
             gesture.clone = spawnClone(gesture.piece);
             positionClone(e.clientX, e.clientY);
+            showFitHints(+gesture.piece.dataset.val, towerIndexOf(gesture.piece));
         }
         if (gesture.moved) {
             e.preventDefault();
@@ -571,6 +621,7 @@
 
         if (g.moved) {
             g.piece.classList.remove('dragging');
+            clearFitHints();
             var under = e.type === 'pointercancel' ? null : document.elementFromPoint(e.clientX, e.clientY);
             var drop = under && under.closest('[data-drop]');
             if (drop) {
@@ -619,24 +670,50 @@
         setTimeout(done, 320);
     }
 
-    /* ================= PLACEMENT + FLY ================= */
-    function attach(piece, dropEl) {
-        if (dropEl.dataset.drop === 'tray') tray.appendChild(piece);
-        else dropEl.querySelector('.stack').appendChild(piece);
+    function rejectMove(dropEl, fromClone, piece, wasTap) {
+        var i = +dropEl.dataset.tower;
+        towerNodes[i].classList.remove('reject');
+        void towerNodes[i].offsetWidth;
+        towerNodes[i].classList.add('reject');
+        setTimeout(function () { towerNodes[i].classList.remove('reject'); }, 400);
+        play('over');
+        if (fromClone) snapBack(fromClone, piece);
+        if (wasTap) setSelected(piece);
     }
 
+    /* ================= PLACEMENT + FLY ================= */
     function placePiece(piece, dropEl, opts) {
         opts = opts || {};
         var fromClone = opts.fromClone || null;
+        var fromIdx = towerIndexOf(piece);
+        var toIdx = +dropEl.dataset.tower;
+        var val = +piece.dataset.val;
+
+        // never let a tower be pushed more than OVER_CAP above the line
+        if (!opts.undo && toIdx !== fromIdx &&
+            state.towers[toIdx].sum + val > state.target + OVER_CAP) {
+            rejectMove(dropEl, fromClone, piece, !fromClone);
+            return;
+        }
+
+        var counts = !opts.undo && fromIdx !== toIdx && fromIdx !== -1;
         var startRect = (fromClone || piece).getBoundingClientRect();
 
-        attach(piece, dropEl);
+        dropEl.querySelector('.stack').appendChild(piece);
+
+        if (counts) {
+            state.moves++;
+            state.history.push({ piece: piece, from: fromIdx });
+        } else if (opts.undo) {
+            state.moves = Math.max(0, state.moves - 1);
+        }
         recalc({ measureOnly: true });
+        updateHud();
 
         if (reducedMotion) {
             if (fromClone) fromClone.remove();
             recalc();
-            play('place');
+            play(opts.undo ? 'undo' : 'place');
             return;
         }
 
@@ -647,6 +724,8 @@
             clone.style.top = (startRect.top + startRect.height / 2 - 22) + 'px';
         }
         piece.style.visibility = 'hidden';
+        state.busy++;
+        updateHud();
 
         requestAnimationFrame(function () {
             var r = piece.getBoundingClientRect();
@@ -659,8 +738,10 @@
                 finished = true;
                 clone.remove();
                 piece.style.visibility = '';
+                state.busy = Math.max(0, state.busy - 1);
                 recalc();
-                play('place');
+                updateHud();
+                play(opts.undo ? 'undo' : 'place');
             };
             clone.addEventListener('transitionend', finish);
             setTimeout(finish, 400);
@@ -670,7 +751,7 @@
     /* ================= CONTAINER TAP ================= */
     function wireDrop(el) {
         el.addEventListener('pointerdown', function (e) {
-            if (gesture) return;
+            if (gesture || state.won) return;
             if (e.target.closest('.piece')) return;
             containerGesture = { el: el, x: e.clientX, y: e.clientY };
         });
@@ -686,10 +767,20 @@
             }
         });
     }
-    wireDrop(tray);
 
     /* ================= BUTTONS ================= */
+    function undo() {
+        if (state.busy || state.won || !state.history.length) return;
+        var last = state.history.pop();
+        placePiece(last.piece, towerNodes[last.from], { undo: true });
+    }
+
+    document.getElementById('btn-undo').addEventListener('click', undo);
     document.getElementById('btn-reset').addEventListener('click', function () {
+        if (state.busy) return;
+        buildLevel(state.level, state.blueprint);
+    });
+    document.getElementById('btn-retry').addEventListener('click', function () {
         buildLevel(state.level, state.blueprint);
     });
     document.getElementById('btn-next').addEventListener('click', function () {

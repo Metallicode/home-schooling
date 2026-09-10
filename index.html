@@ -135,6 +135,7 @@
         .subj-btn[data-subject="music"].active    { background: #cc5de8; }
         .subj-btn[data-subject="creative"].active { background: #ff6b6b; }
         .subj-btn[data-subject="mathlab"].active  { background: #7c4dff; }
+        .subj-btn[data-subject="world"].active    { background: #1e88e5; }
 
         .search-box {
             font-family: var(--font);
@@ -194,6 +195,7 @@
         .recent-card.subject-music    { border-left-color: #cc5de8; }
         .recent-card.subject-creative { border-left-color: #ff6b6b; }
         .recent-card.subject-mathlab  { border-left-color: #7c4dff; }
+        .recent-card.subject-world    { border-left-color: #1e88e5; }
 
         /* ── SUBJECT SECTIONS ── */
         .subject-section { margin-bottom: 44px; }
@@ -346,6 +348,7 @@
         .subject-music    .play-btn { background: linear-gradient(90deg, #845ef7, #cc5de8); }
         .subject-creative .play-btn { background: linear-gradient(90deg, #ff6b6b, #f06595); }
         .subject-mathlab  .play-btn { background: linear-gradient(90deg, #7c4dff, #00e5ff); }
+        .subject-world    .play-btn { background: linear-gradient(90deg, #1e88e5, #43a047); }
 
         .subject-math     .card-header { border-top: 5px solid #ffa94d; }
         .subject-shapes   .card-header { border-top: 5px solid #74c0fc; }
@@ -354,6 +357,7 @@
         .subject-music    .card-header { border-top: 5px solid #cc5de8; }
         .subject-creative .card-header { border-top: 5px solid #ff6b6b; }
         .subject-mathlab  .card-header { border-top: 5px solid #7c4dff; }
+        .subject-world    .card-header { border-top: 5px solid #1e88e5; }
 
         /* ── EMPTY STATE ── */
         .empty-state {
@@ -403,6 +407,7 @@
         <button class="subj-btn" data-subject="music">🎵 Music</button>
         <button class="subj-btn" data-subject="creative">🎨 Creative</button>
         <button class="subj-btn" data-subject="mathlab">🔬 Math Lab</button>
+        <button class="subj-btn" data-subject="world">🌍 World</button>
     </div>
     <div class="ctrl-row">
         <input type="search" class="search-box" id="search" placeholder="🔍 Search games…" autocomplete="off">
@@ -1201,6 +1206,28 @@
         </div>
     </section>
 
+    <!-- ══════════════════════════════════════════ -->
+    <!-- WORLD & CULTURES                          -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="subject-section subject-world" data-subject="world">
+        <h2 class="section-title"><span class="section-icon">🌍</span><span class="section-name">World &amp; Cultures</span><span class="sec-count">1</span><span class="chev">▾</span></h2>
+        <div class="card-grid">
+
+            <div class="tool-card subject-world" data-ages="all">
+                <div class="card-header">
+                    <span class="card-emoji">🌍</span>
+                    <div class="card-titles">
+                        <div class="card-name">Wander the World</div>
+                        <span class="age-badge age-all">All Ages</span>
+                    </div>
+                </div>
+                <div class="card-desc">Spin a 3D Earth with real day and night. Hover a border to hear the country's name out loud, or open a Passport Card to meet 64 places — how to say hello, what kids eat, festivals and music.</div>
+                <div class="card-footer"><a class="play-btn" href="globe.html">▶ Play!</a></div>
+            </div>
+
+        </div>
+    </section>
+
     <div class="empty-state" id="empty-state">
         😅 No games match your filters. Try a different age, subject or search!
     </div>
@@ -1208,7 +1235,7 @@
 </main>
 
 <footer>
-    Learning Adventures &mdash; Homeschool Tools &mdash; 56 games &mdash; Last updated September 2026
+    Learning Adventures &mdash; Homeschool Tools &mdash; 57 games &mdash; Last updated September 2026
 </footer>
 
 <script>

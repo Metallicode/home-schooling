@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Fibonacci Explorer</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+            overflow-x: hidden;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0;}
+
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 1000px; 
+            gap: 20px; justify-content: center; align-items: center;
+        }
+
+        /* --- INTERACTIVE CANVAS --- */
+        .canvas-wrapper {
+            width: 100%; height: 500px; background: radial-gradient(circle at center, #111a24 0%, #020205 100%);
+            border-radius: 15px; border: 1px solid #222; box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+            position: relative; overflow: hidden;
+        }
+
+        canvas {
+            width: 100%; height: 100%; display: block; cursor: crosshair;
+        }
+
+        .hover-hint {
+            position: absolute; top: 15px; left: 15px; font-size: 12px;
+            color: #888; text-transform: uppercase; letter-spacing: 1px;
+            pointer-events: none; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px;
+        }
+
+        /* --- CONTROLS --- */
+        .controls-panel {
+            width: 100%; display: flex; gap: 20px; background: #0a0a0d;
+            border-radius: 15px; border: 1px solid #222; padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); align-items: center; justify-content: space-between;
+        }
+
+        .timeline {
+            flex: 1; display: flex; align-items: center; gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1; height: 6px; -webkit-appearance: none; background: #333;
+            border-radius: 3px; outline: none; cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+            background: #00e5ff; box-shadow: 0 0 10px #00e5ff; cursor: pointer;
+        }
+
+        .btn {
+            background: #222; color: #fff; border: 2px solid #444; border-radius: 8px;
+            padding: 10px 20px; font-size: 14px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .btn:hover { background: #333; border-color: #00e5ff; color: #00e5ff; }
+        .btn.playing { background: #00e5ff; color: #000; border-color: #00e5ff; box-shadow: 0 0 15px rgba(0,229,255,0.4); }
+
+        /* --- MATH INSPECTOR --- */
+        .math-inspector {
+            width: 100%; background: #111; border-radius: 15px; border: 1px solid #333;
+            padding: 20px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 100px; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+
+        .equation-box {
+            display: flex; align-items: center; gap: 15px; font-size: 32px; font-weight: bold;
+            color: #555; transition: all 0.2s;
+        }
+
+        .eq-num {
+            background: #222; padding: 10px 20px; border-radius: 10px; border: 2px solid #444;
+            min-width: 60px; text-align: center; color: #fff; transition: all 0.2s;
+        }
+
+        .eq-operator { color: #888; font-size: 24px; }
+
+        .eq-result {
+            background: #0a0a0d; padding: 10px 20px; border-radius: 10px; border: 2px solid #00e5ff;
+            min-width: 60px; text-align: center; color: #00e5ff; text-shadow: 0 0 15px rgba(0,229,255,0.5);
+            box-shadow: inset 0 0 15px rgba(0,229,255,0.2); transition: all 0.2s;
+        }
+
+        /* Hover states for the math inspector */
+        .math-inspector.active .eq-num { border-color: #ffeb3b; color: #ffeb3b; background: rgba(255,235,59,0.1); }
+        .math-inspector.active .eq-result { transform: scale(1.1); }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,0.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:0.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,0.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>🌀 The Fibonacci Explorer 🌀</h1>
+    <p>Use the slider to grow the spiral. <strong>Hover over any square</strong> to reveal the math that built it.</p>
+
+    <div class="dashboard">
+
+        <!-- INTERACTIVE CANVAS -->
+        <div class="canvas-wrapper">
+            <div class="hover-hint">🔍 Hover to inspect</div>
+            <canvas id="fibCanvas"></canvas>
+        </div>
+
+        <!-- MATH INSPECTOR -->
+        <div class="math-inspector" id="math-inspector">
+            <div style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">The Geometry Formula</div>
+            <div class="equation-box" id="equation">
+                <div class="eq-num" id="eq-n1">?</div>
+                <div class="eq-operator">+</div>
+                <div class="eq-num" id="eq-n2">?</div>
+                <div class="eq-operator">=</div>
+                <div class="eq-result" id="eq-res">?</div>
+            </div>
+        </div>
+
+        <!-- TIMELINE CONTROLS -->
+        <div class="controls-panel">
+            <button class="btn" id="btn-play" onclick="togglePlay()">▶ Auto-Grow</button>
+            <div class="timeline">
+                <span style="font-weight: bold; color: #888;">N=1</span>
+                <input type="range" id="n-slider" min="1" max="30" value="1" oninput="manualScrub(this.value)">
+                <span style="font-weight: bold; color: #00e5ff;">N=<span id="n-display">1</span></span>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // --- MATHEMATICS ENGINE ---
+    // Generate the exact sequence and coordinates for MAX_N squares
+    const MAX_N = 30;
+    const squares = [];
+    
+    // We start with F_1 = 1, F_2 = 1
+    let fibs = [1, 1];
+    for (let i = 2; i <= MAX_N; i++) {
+        fibs.push(fibs[i-1] + fibs[i-2]);
+    }
+
+    // Mathematical coordinate generation for the spiral grid
+    let px = 0, py = 0, pF = 1;
+    let dir = 1; // Start by building upwards
+
+    // Square 1 is special (the origin)
+    squares.push({ n: 1, F: 1, x: 0, y: 0, dir: 0, p1: 0, p2: 1 });
+
+    for (let i = 1; i < MAX_N; i++) {
+        let F = fibs[i];
+        let nx, ny;
+        
+        // The pattern of where to place the next square based on direction
+        if (dir === 0) { nx = px + pF; ny = py + pF - F; }      // Right
+        else if (dir === 1) { nx = px + pF - F; ny = py - F; }  // Up
+        else if (dir === 2) { nx = px - F; ny = py; }           // Left
+        else if (dir === 3) { nx = px; ny = py + pF; }          // Down
+
+        squares.push({ 
+            n: i + 1, 
+            F: F, 
+            x: nx, y: ny, 
+            dir: dir, 
+            p1: (i > 1 ? fibs[i-2] : 0), 
+            p2: fibs[i-1] 
+        });
+
+        px = nx; py = ny; pF = F;
+        dir = (dir + 1) % 4;
+    }
+
+    // --- STATE & INTERACTION ---
+    let currentSteps = 1; // How many squares are visible right now
+    let hoveredSquare = null;
+    
+    // Camera / Viewport Physics
+    let currentScale = 100; // Starts zoomed in on the 1x1 block
+    let targetScale = 100;
+    let currentOffset = { x: -0.5, y: -0.5 };
+    let targetOffset = { x: -0.5, y: -0.5 };
+    
+    // Playback
+    let isPlaying = false;
+    let playTimer = null;
+
+    // Audio
+    let audioCtx;
+    function playTick(index) {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        
+        osc.type = 'sine';
+        osc.frequency.value = 400 + (index * 40); // Pitch goes up with growth
+        
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // --- CANVAS RENDERER ---
+    const canvas = document.getElementById('fibCanvas');
+    const ctx = canvas.getContext('2d');
+    let dpr = 1;
+
+    function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function updateCameraTarget() {
+        // Calculate the bounding box of all CURRENTLY VISIBLE squares
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+
+        for (let i = 0; i < currentSteps; i++) {
+            let s = squares[i];
+            if (s.x < minX) minX = s.x;
+            if (s.x + s.F > maxX) maxX = s.x + s.F;
+            if (s.y < minY) minY = s.y;
+            if (s.y + s.F > maxY) maxY = s.y + s.F;
+        }
+
+        // Calculate how much we need to zoom to fit that box in the canvas
+        const padX = canvas.width / dpr * 0.8; 
+        const padY = canvas.height / dpr * 0.8;
+        
+        let scaleX = padX / (maxX - minX);
+        let scaleY = padY / (maxY - minY);
+        
+        // Don't zoom in *too* much on step 1
+        targetScale = Math.min(scaleX, scaleY);
+        if (targetScale > 150) targetScale = 150;
+
+        // Center the camera on the bounding box
+        targetOffset.x = -(minX + maxX) / 2;
+        targetOffset.y = -(minY + maxY) / 2;
+    }
+
+    function render() {
+        requestAnimationFrame(render);
+        
+        // 1. Smooth Camera Physics (Lerping)
+        currentScale += (targetScale - currentScale) * 0.1;
+        currentOffset.x += (targetOffset.x - currentOffset.x) * 0.1;
+        currentOffset.y += (targetOffset.y - currentOffset.y) * 0.1;
+
+        // 2. Setup Canvas
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.scale(dpr, dpr);
+        
+        // Move to center of screen, apply zoom, apply offset
+        const cx = (canvas.width / dpr) / 2;
+        const cy = (canvas.height / dpr) / 2;
+        ctx.translate(cx, cy);
+        ctx.scale(currentScale, currentScale);
+        ctx.translate(currentOffset.x, currentOffset.y);
+
+        // 3. Draw the Squares
+        for (let i = 0; i < currentSteps; i++) {
+            let s = squares[i];
+            let isHovered = (hoveredSquare && hoveredSquare.n === s.n);
+
+            ctx.beginPath();
+            ctx.rect(s.x, s.y, s.F, s.F);
+            
+            // Highlight styling
+            if (isHovered) {
+                ctx.fillStyle = "rgba(0, 229, 255, 0.2)";
+                ctx.strokeStyle = "#fff";
+                ctx.lineWidth = 2 / currentScale; // Keep line thin regardless of zoom
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = "#00e5ff";
+            } else {
+                ctx.fillStyle = hoveredSquare ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.05)";
+                ctx.strokeStyle = "rgba(0, 229, 255, 0.3)";
+                ctx.lineWidth = 1 / currentScale;
+                ctx.shadowBlur = 0;
+            }
+            
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw the Number inside the square
+            // Only draw numbers if the square is big enough visually
+            let visualSize = s.F * currentScale;
+            if (visualSize > 25) {
+                ctx.save();
+                ctx.fillStyle = isHovered ? "#fff" : "#00e5ff";
+                // Scale text down so it stays a consistent size in world space,
+                // and shrink it further for the many-digit numbers the wider
+                // range now reaches so long labels still fit their square.
+                let digits = String(s.F).length;
+                let fontSize = Math.min(s.F * 0.4, 20 / currentScale, (s.F * 1.4) / digits);
+                ctx.font = `bold ${fontSize}px Courier New`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowBlur = 0;
+                ctx.fillText(s.F, s.x + s.F/2, s.y + s.F/2);
+                ctx.restore();
+            }
+        }
+
+        // 4. Draw the Golden Spiral Over Top
+        //
+        // Each square contributes one quarter-circle, radius = its own side
+        // length, centred on one of its four corners. Two things must match
+        // at every square-to-square join for this to read as one continuous
+        // spiral rather than a wobbly chain: the arcs must meet at the same
+        // POINT (easy - several corner choices satisfy this), and they must
+        // meet with the same TANGENT direction, i.e. no kink where one curls
+        // one way and the next curls back the other way. Only one choice of
+        // centre per direction satisfies both, all the way around: right
+        // squares centre on their top-left corner, up on bottom-left, left
+        // on bottom-right, down on top-right - each swept anticlockwise.
+        const ARC_BY_DIR = {
+            0: { cxF: 0, cyF: 0 }, // right -> top-left
+            1: { cxF: 0, cyF: 1 }, // up    -> bottom-left
+            2: { cxF: 1, cyF: 1 }, // left  -> bottom-right
+            3: { cxF: 1, cyF: 0 }  // down  -> top-right
+        };
+        ctx.beginPath();
+        for (let i = 0; i < currentSteps; i++) {
+            let s = squares[i];
+            let c = ARC_BY_DIR[s.dir];
+            let startAngle = (1 - s.dir) * Math.PI / 2;
+            let endAngle = startAngle - Math.PI / 2;
+            ctx.arc(s.x + c.cxF * s.F, s.y + c.cyF * s.F, s.F, startAngle, endAngle, true);
+        }
+        ctx.strokeStyle = "#ffeb3b";
+        ctx.lineWidth = 2.5 / currentScale;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "#ffeb3b";
+        ctx.stroke();
+    }
+
+    // --- INTERACTION LOGIC ---
+    
+    // Mouse Hover Detection
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        // Mouse relative to canvas center
+        const mx = (e.clientX - rect.left) - (rect.width / 2);
+        const my = (e.clientY - rect.top) - (rect.height / 2);
+        
+        // Inverse transform to get World Coordinates!
+        const worldX = (mx / currentScale) - currentOffset.x;
+        const worldY = (my / currentScale) - currentOffset.y;
+
+        // Check which visible square contains the mouse
+        let hit = null;
+        // Search backwards so we hit smaller nested squares first
+        for (let i = currentSteps - 1; i >= 0; i--) {
+            let s = squares[i];
+            if (worldX >= s.x && worldX <= s.x + s.F && worldY >= s.y && worldY <= s.y + s.F) {
+                hit = s;
+                break;
+            }
+        }
+
+        if (hit !== hoveredSquare) {
+            hoveredSquare = hit;
+            updateInspector();
+        }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+        hoveredSquare = null;
+        updateInspector();
+    });
+
+    // Math Panel Updates
+    function updateInspector() {
+        const inspector = document.getElementById('math-inspector');
+        if (hoveredSquare) {
+            inspector.classList.add('active');
+            document.getElementById('eq-n1').innerText = hoveredSquare.p1;
+            document.getElementById('eq-n2').innerText = hoveredSquare.p2;
+            document.getElementById('eq-res').innerText = hoveredSquare.F;
+        } else {
+            inspector.classList.remove('active');
+            
+            // Show the highest step currently visible as default
+            let s = squares[currentSteps - 1];
+            document.getElementById('eq-n1').innerText = s.p1;
+            document.getElementById('eq-n2').innerText = s.p2;
+            document.getElementById('eq-res').innerText = s.F;
+        }
+    }
+
+    function setSteps(n) {
+        currentSteps = parseInt(n);
+        document.getElementById('n-display').innerText = currentSteps;
+        document.getElementById('n-slider').value = currentSteps;
+        updateCameraTarget();
+        updateInspector();
+    }
+
+    function manualScrub(val) {
+        if (isPlaying) togglePlay();
+        playTick(val);
+        setSteps(val);
+    }
+
+    function togglePlay() {
+        const btn = document.getElementById('btn-play');
+        if (isPlaying) {
+            isPlaying = false;
+            clearInterval(playTimer);
+            btn.innerText = "▶ Auto-Grow";
+            btn.classList.remove('playing');
+        } else {
+            isPlaying = true;
+            btn.innerText = "⏸ Pause";
+            btn.classList.add('playing');
+            
+            // If at the end, restart
+            if (currentSteps === MAX_N) setSteps(1);
+            
+            playTimer = setInterval(() => {
+                if (currentSteps < MAX_N) {
+                    playTick(currentSteps + 1);
+                    setSteps(currentSteps + 1);
+                } else {
+                    togglePlay(); // Auto-stop at the end
+                }
+            }, 600);
+        }
+    }
+
+    // Launch
+    updateCameraTarget();
+    updateInspector();
+    render();
+
+</script>
+</body>
+</html>

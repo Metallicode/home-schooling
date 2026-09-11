@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Golden Ratio Lab</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; text-align: center;
+        }
+
+        h1 { color: #00e676; text-shadow: 0 0 15px rgba(0, 230, 118, 0.5); margin: 0 0 5px 0; letter-spacing: 2px; font-size: clamp(22px,5vw,32px); }
+        p { font-size: 15px; color: #b2ebf2; margin: 0 0 20px 0; max-width: 800px; line-height: 1.55; }
+        .section-intro { margin-left: auto; margin-right: auto; }
+
+        /* --- SECTION NAV --- */
+        .section-nav {
+            position: sticky; top: 0; z-index: 50; width: 100%; max-width: 1000px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+            background: rgba(5,5,8,0.92); backdrop-filter: blur(4px);
+            border: 1px solid #222; border-radius: 12px; padding: 10px; margin-bottom: 10px;
+        }
+        .nav-link {
+            color: #00e5ff; text-decoration: none; font-size: 12px; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 1px; padding: 8px 14px; border-radius: 20px;
+            border: 1px solid #1c3a40; transition: all 0.2s;
+        }
+        .nav-link:hover { background: rgba(0,229,255,0.12); border-color: #00e5ff; }
+
+        /* --- SECTIONS --- */
+        .page-section { width: 100%; max-width: 1000px; padding: 34px 0 10px; border-top: 1px dashed #232323; }
+        .page-section:first-of-type { border-top: none; }
+        .section-title { font-size: clamp(20px,4vw,26px); margin: 0 0 8px; letter-spacing: 1px; }
+
+        .dashboard {
+            display: flex; flex-wrap: wrap; width: 100%;
+            gap: 20px; justify-content: center; align-items: stretch;
+        }
+
+        /* --- CONTROLS --- */
+        .controls-panel {
+            flex: 1; min-width: 300px; background: #111; border-radius: 15px; border: 1px solid #333;
+            padding: 25px; display: flex; flex-direction: column; text-align: left;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); justify-content: center;
+        }
+
+        .control-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 1px; font-weight: bold; margin-bottom: 10px;}
+
+        .slider-row { display: flex; align-items: center; gap: 15px; margin-bottom: 20px;}
+        input[type="range"] { flex: 1; height: 6px; -webkit-appearance: none; background: #333; border-radius: 3px; outline: none; cursor: pointer; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #00e676; box-shadow: 0 0 10px #00e676; cursor: pointer; }
+
+        .angle-display { font-size: 22px; font-weight: bold; color: #00e676; width: 80px; text-align: right;}
+
+        .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 25px; }
+        .btn {
+            background: #222; color: #fff; border: 1px solid #444; border-radius: 8px;
+            padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .btn:hover { background: #333; border-color: #00e676; }
+        .btn-golden { background: #332d00; border-color: #ffeb3b; color: #ffeb3b; grid-column: span 2; font-size: 15px; padding: 14px; box-shadow: 0 0 15px rgba(255, 235, 59, 0.2); width: 100%; margin-bottom: 18px; }
+        .btn-golden:hover { background: #4d4400; box-shadow: 0 0 20px rgba(255, 235, 59, 0.6); }
+
+        .toggle-row { display: flex; align-items: center; gap: 9px; color: #00e5ff; font-weight: bold; font-size: 13px; cursor: pointer; margin-bottom: 12px; }
+        .toggle-row input { width: 15px; height: 15px; accent-color: #00e5ff; cursor: pointer; }
+
+        /* --- METRICS / READOUTS --- */
+        .metric-box { background: #0a0a0d; border: 1px solid #222; border-radius: 10px; padding: 15px; margin-top: auto;}
+        .metric-title { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 5px; font-weight: bold;}
+        .metric-bar-bg { width: 100%; height: 12px; background: #222; border-radius: 6px; overflow: hidden; position: relative;}
+        .metric-bar-fill { height: 100%; width: 0%; transition: width 0.3s, background 0.3s; background: #ff5252; }
+        .metric-readout { font-size: 18px; font-weight: bold; margin-top: 5px; text-align: right;}
+
+        .spiral-readout { font-size: 14px; line-height: 1.5; padding: 4px 2px; }
+        .spiral-readout.perfect { color: #ffeb3b; }
+        .spiral-readout.ok { color: #ffa726; }
+        .spiral-readout.bad { color: #ff5252; }
+
+        .callout {
+            background: #0a0a0d; border: 1px solid #00e5ff; border-radius: 10px;
+            padding: 14px 18px; margin: 0 0 20px; font-size: 14px; color: #b2ebf2; text-align: left;
+        }
+        .callout b { color: #ffeb3b; }
+
+        /* --- CANVAS --- */
+        .canvas-container {
+            flex: 2; min-width: 320px; height: 440px; background: radial-gradient(circle at center, #111a24 0%, #020205 100%);
+            border-radius: 15px; border: 1px solid #222; box-shadow: inset 0 0 40px rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .sunlight-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
+            background: radial-gradient(circle at center, rgba(255, 235, 59, 0.1) 0%, transparent 70%);
+        }
+
+        /* --- HERO PHI --- */
+        .hero-phi { display: flex; align-items: baseline; justify-content: center; gap: 16px; margin: 6px 0 22px; flex-wrap: wrap; }
+        .phi-symbol { font-size: clamp(64px,14vw,110px); color: #ffeb3b; text-shadow: 0 0 30px rgba(255,235,59,0.6); line-height: 1; }
+        .phi-value { font-size: clamp(20px,4vw,30px); color: #00e5ff; font-weight: bold; }
+
+        .identity-row { display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; margin-bottom: 24px; }
+        .identity-card {
+            flex: 1; min-width: 280px; max-width: 440px; background: #111; border: 1px solid #333;
+            border-radius: 14px; padding: 18px 20px; text-align: left; box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .identity-label { font-size: 12px; color: #888; margin: 10px 0 4px; }
+        .identity-label:first-child { margin-top: 0; }
+        .identity-eq { font-size: 18px; font-weight: bold; color: #fff; }
+        .match-check { display: block; font-size: 12px; color: #00e676; margin-top: 4px; font-weight: bold; }
+
+        /* --- FIBONACCI LADDER --- */
+        .ladder-wrap { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 24px; }
+        .ladder-row { display: grid; grid-template-columns: 90px 1fr 110px; align-items: center; gap: 14px; }
+        .ladder-frac { font-size: 14px; color: #b2ebf2; text-align: right; }
+        .ladder-track { position: relative; height: 10px; background: #1a1a1e; border-radius: 5px; }
+        .ladder-phi-mark { position: absolute; top: -4px; width: 2px; height: 18px; background: #ffeb3b; box-shadow: 0 0 8px #ffeb3b; }
+        .ladder-dot { position: absolute; top: -3px; width: 16px; height: 16px; border-radius: 50%; transform: translateX(-50%); border: 2px solid #050508; }
+        .ladder-dot.over  { background: #29b6f6; }
+        .ladder-dot.under { background: #ff7043; }
+        .ladder-val { font-size: 13px; color: #fff; font-weight: bold; }
+
+        .toggle-container { display: flex; align-items: center; justify-content: center; gap: 10px; color: #ffeb3b; font-weight: bold; cursor: pointer; margin: 4px 0 22px; font-size: 13px; }
+        .toggle-container input { width: 16px; height: 16px; accent-color: #ffeb3b; cursor: pointer; }
+
+        footer { color: #444; font-size: 12px; margin-top: 30px; padding-bottom: 10px; }
+
+        @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01s !important; } }
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,0.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:0.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,0.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>✨ The Golden Ratio Lab ✨</h1>
+    <p>One number, four different disguises: a self-repeating rectangle, a hidden triangle inside a star, a ladder of fractions, and the reason a sunflower's leaves never block each other's sun.</p>
+
+    <label class="toggle-container"><input type="checkbox" id="sound-toggle" checked> 🎵 Enable sound</label>
+
+    <nav class="section-nav">
+        <a class="nav-link" href="#meet-phi">✨ Meet φ</a>
+        <a class="nav-link" href="#golden-triangle">⭐ Golden Triangle</a>
+        <a class="nav-link" href="#closing-in">🔢 Closing In</a>
+        <a class="nav-link" href="#natures-angle">🌿 Nature's Angle</a>
+    </nav>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION 1: MEET PHI                       -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="page-section" id="meet-phi">
+        <h2 class="section-title">✨ Meet φ (Phi)</h2>
+        <p class="section-intro">Every idea on this page comes from one number. It has no simple fraction, but it has a very simple personality: it's the only positive number where squaring it, and just adding 1 to it, land you in exactly the same place.</p>
+
+        <div class="hero-phi">
+            <div class="phi-symbol">φ</div>
+            <div class="phi-value">= 1.6180339887...</div>
+        </div>
+
+        <div class="identity-row">
+            <div class="identity-card">
+                <div class="identity-label">Multiply φ by itself...</div>
+                <div class="identity-eq">1.618034 &times; 1.618034 = <span id="id-sq">?</span></div>
+                <div class="identity-label">...and it's exactly one more than φ:</div>
+                <div class="identity-eq">1.618034 + 1 = <span id="id-plus1">?</span></div>
+                <div class="match-check" id="id-check1">✓ same number!</div>
+            </div>
+            <div class="identity-card">
+                <div class="identity-label">Flip φ upside down (1 &divide; φ)...</div>
+                <div class="identity-eq">1 &divide; 1.618034 = <span id="id-inv">?</span></div>
+                <div class="identity-label">...and it's exactly one less than φ:</div>
+                <div class="identity-eq">1.618034 &minus; 1 = <span id="id-minus1">?</span></div>
+                <div class="match-check" id="id-check2">✓ same number!</div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="controls-panel">
+                <div class="control-label">Rectangle Width : Height Ratio</div>
+                <div class="slider-row">
+                    <input type="range" id="ratio-slider" min="1.05" max="2.6" step="0.005" value="1.40" oninput="updateRatio(this.value)">
+                    <div class="angle-display" id="ratio-val">1.400</div>
+                </div>
+                <button class="btn-golden" onclick="snapToPhi()">✨ Snap to the Golden Ratio ✨</button>
+                <div class="metric-box">
+                    <div class="metric-title">Keep slicing the biggest square off the end...</div>
+                    <div class="spiral-readout" id="spiral-readout">...</div>
+                </div>
+            </div>
+            <div class="canvas-container" id="rect-canvas-wrap">
+                <canvas id="rectCanvas"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION 2: THE GOLDEN TRIANGLE             -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="page-section" id="golden-triangle">
+        <h2 class="section-title">⭐ The Golden Triangle</h2>
+        <p class="section-intro">Draw a regular five-pointed star by connecting every point of a pentagon to every other point. Hidden inside it are triangles where the long side, divided by the short side, always gives you φ.</p>
+
+        <div class="dashboard">
+            <div class="controls-panel">
+                <div class="metric-box" style="margin-top:0;">
+                    <div class="metric-title">Measured straight off the drawing</div>
+                    <div class="spiral-readout perfect" id="triangle-readout">...</div>
+                </div>
+                <div style="height:18px;"></div>
+                <label class="toggle-row"><input type="checkbox" id="show-star" checked onchange="drawPentagon()"> Show the pentagram (star lines)</label>
+                <label class="toggle-row"><input type="checkbox" id="show-spiral" onchange="drawPentagon()"> Show the spiral of shrinking triangles</label>
+                <div class="control-label" style="margin-top:10px;">Spiral depth</div>
+                <div class="slider-row">
+                    <input type="range" id="gnomon-slider" min="0" max="10" step="1" value="6" oninput="drawPentagon()">
+                    <div class="angle-display" id="gnomon-val">6</div>
+                </div>
+            </div>
+            <div class="canvas-container" id="pent-canvas-wrap">
+                <canvas id="pentCanvas"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION 3: CLOSING IN ON PHI               -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="page-section" id="closing-in">
+        <h2 class="section-title">🔢 Closing In On φ</h2>
+        <p class="section-intro">Take the Fibonacci numbers (1, 1, 2, 3, 5, 8, 13...) and divide each one by the one before it. The answers zig-zag past φ, a little closer every single time.</p>
+
+        <div class="ladder-wrap" id="ladder-wrap"></div>
+
+        <div style="text-align:center;margin-top:6px;">
+            <a class="btn" style="display:inline-block;text-decoration:none;padding:12px 22px;" href="fibonacci.html">🌀 Explore the Fibonacci Spiral &rarr;</a>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════ -->
+    <!-- SECTION 4: NATURE'S FAVORITE ANGLE (Sun-Catcher) -->
+    <!-- ══════════════════════════════════════════ -->
+    <section class="page-section" id="natures-angle">
+        <h2 class="section-title">🌿 Nature's Favorite Angle 🌿</h2>
+        <p class="section-intro">A plant must grow its leaves without them overlapping, or it will starve in its own shadow. Test different angles to see how φ dictates survival.</p>
+
+        <div class="callout" id="angle-callout">Turning by <b>137.5&deg;</b> between leaves comes straight from φ: 360&deg; &times; (2 &minus; φ) = <b id="angle-callout-val">137.5077...&deg;</b> &mdash; the one angle a simple fraction can never sneak up on.</div>
+
+        <div class="dashboard">
+
+            <div class="controls-panel">
+                <div class="control-label">Leaf Growth Angle (Degrees)</div>
+                <div class="slider-row">
+                    <input type="range" id="angle-slider" min="1" max="180" step="0.1" value="90" oninput="updateAngle(this.value)">
+                    <div class="angle-display" id="angle-val">90.0°</div>
+                </div>
+
+                <div class="control-label">Test Simple Fractions</div>
+                <div class="preset-grid">
+                    <button class="btn" onclick="setAngle(180)">1/2 Turn (180°)</button>
+                    <button class="btn" onclick="setAngle(120)">1/3 Turn (120°)</button>
+                    <button class="btn" onclick="setAngle(90)">1/4 Turn (90°)</button>
+                    <button class="btn" onclick="setAngle(72)">1/5 Turn (72°)</button>
+                    <button class="btn-golden" style="grid-column:span 2;margin-bottom:0;" onclick="setAngle(137.5)">✨ The Golden Angle (137.5°) ✨</button>
+                </div>
+
+                <div class="metric-box">
+                    <div class="metric-title">Sunlight Efficiency Score</div>
+                    <div class="metric-bar-bg">
+                        <div class="metric-bar-fill" id="efficiency-bar"></div>
+                    </div>
+                    <div class="metric-readout" id="efficiency-val" style="color: #ff5252;">0% - Starving</div>
+                </div>
+            </div>
+
+            <!-- CANVAS -->
+            <div class="canvas-container">
+                <div class="sunlight-overlay"></div>
+                <canvas id="plantCanvas"></canvas>
+            </div>
+
+        </div>
+    </section>
+
+    <footer>The Golden Ratio Lab &mdash; part of the Homeschool Tools collection</footer>
+
+<script>
+    const PHI = (1 + Math.sqrt(5)) / 2;
+    const fmt = (n, d = 6) => n.toFixed(d);
+
+    function soundOn() { return document.getElementById('sound-toggle').checked; }
+
+    /* ===================== SHARED AUDIO ===================== */
+    let audioCtx;
+    function ensureAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function chime(freq, dur, type, vol) {
+        if (!soundOn()) return;
+        ensureAudio();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = type || 'sine';
+        o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        g.gain.setValueAtTime(0, audioCtx.currentTime);
+        g.gain.linearRampToValueAtTime(vol || 0.15, audioCtx.currentTime + 0.02);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        o.start(); o.stop(audioCtx.currentTime + dur + 0.02);
+    }
+
+    /* ===================== SECTION 1: MEET PHI ===================== */
+    function renderIdentities() {
+        document.getElementById('id-sq').textContent = fmt(PHI * PHI);
+        document.getElementById('id-plus1').textContent = fmt(PHI + 1);
+        document.getElementById('id-inv').textContent = fmt(1 / PHI);
+        document.getElementById('id-minus1').textContent = fmt(PHI - 1);
+    }
+
+    // Generalised square-spiral builder: works for ANY starting ratio (not
+    // just Fibonacci integers), by repeatedly cutting the largest possible
+    // square off the remaining rectangle - the same process, and the same
+    // proven right/up/left/down rotation + arc geometry, as fibonacci.html.
+    function buildSpiralSquares(ratio, maxSteps, minSize) {
+        const squares = [{ F: 1, x: 0, y: 0, dir: 3 }];
+        let px = 0, py = 0, pF = 1, dir = 0;
+        let w = ratio - 1, h = 1, steps = 1;
+        while (steps < maxSteps) {
+            if (Math.min(w, h) < minSize) break;
+            const F = Math.min(w, h);
+            let nx, ny;
+            if (dir === 0) { nx = px + pF; ny = py + pF - F; }
+            else if (dir === 1) { nx = px + pF - F; ny = py - F; }
+            else if (dir === 2) { nx = px - F; ny = py; }
+            else { nx = px; ny = py + pF; }
+            squares.push({ F, x: nx, y: ny, dir });
+            px = nx; py = ny; pF = F;
+            const rest = Math.max(w, h) - F;
+            w = F; h = rest;
+            dir = (dir + 1) % 4;
+            steps++;
+            if (rest < minSize) break;
+        }
+        return squares;
+    }
+    const RECT_ARC_BY_DIR = { 0: { cxF: 0, cyF: 0 }, 1: { cxF: 0, cyF: 1 }, 2: { cxF: 1, cyF: 1 }, 3: { cxF: 1, cyF: 0 } };
+
+    let currentRatio = 1.40;
+    function updateRatio(v) {
+        currentRatio = parseFloat(v);
+        document.getElementById('ratio-val').textContent = currentRatio.toFixed(3);
+        drawRectSpiral();
+    }
+    function snapToPhi() {
+        document.getElementById('ratio-slider').value = PHI;
+        updateRatio(PHI);
+        chime(880, 0.45, 'triangle', 0.18);
+    }
+
+    function drawRectSpiral() {
+        const canvas = document.getElementById('rectCanvas');
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const W = rect.width, H = rect.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const squares = buildSpiralSquares(currentRatio, 15, 0.003);
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        squares.forEach(s => {
+            minX = Math.min(minX, s.x); maxX = Math.max(maxX, s.x + s.F);
+            minY = Math.min(minY, s.y); maxY = Math.max(maxY, s.y + s.F);
+        });
+        const pad = 36;
+        const scale = Math.min((W - pad * 2) / (maxX - minX), (H - pad * 2) / (maxY - minY));
+        const ox = W / 2 - scale * (minX + maxX) / 2;
+        const oy = H / 2 - scale * (minY + maxY) / 2;
+
+        squares.forEach((s, i) => {
+            const x = ox + s.x * scale, y = oy + s.y * scale, f = s.F * scale;
+            const hue = 90 + i * 8;
+            ctx.fillStyle = `hsla(${hue},70%,45%,0.15)`;
+            ctx.strokeStyle = `hsla(${hue},80%,65%,0.7)`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.rect(x, y, f, f); ctx.fill(); ctx.stroke();
+        });
+
+        ctx.beginPath();
+        squares.forEach(s => {
+            const c = RECT_ARC_BY_DIR[s.dir];
+            const cx = ox + (s.x + c.cxF * s.F) * scale, cy = oy + (s.y + c.cyF * s.F) * scale;
+            const startAngle = (1 - s.dir) * Math.PI / 2;
+            const endAngle = startAngle - Math.PI / 2;
+            ctx.arc(cx, cy, s.F * scale, startAngle, endAngle, true);
+        });
+        ctx.strokeStyle = "#ffeb3b"; ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 12; ctx.shadowColor = "#ffeb3b";
+        ctx.stroke(); ctx.shadowBlur = 0;
+
+        const shrink = [];
+        for (let i = 1; i < squares.length; i++) shrink.push(squares[i - 1].F / squares[i].F);
+        const box = document.getElementById('spiral-readout');
+        let msg, cls;
+        if (squares.length < 10) {
+            msg = `Ran out of room after just ${squares.length} square${squares.length === 1 ? '' : 's'} — this shape doesn't repeat forever.`;
+            cls = 'bad';
+        } else {
+            const tail = shrink.slice(2);
+            const spread = Math.max(...tail) - Math.min(...tail);
+            if (spread < 0.01) {
+                msg = `Shrinks by the exact same amount every time (&times;${shrink[shrink.length - 1].toFixed(4)}) — a perfectly endless spiral. This is the Golden Rectangle!`;
+                cls = 'perfect';
+            } else {
+                msg = `Keeps going, but the shrink amount changes each time (${shrink.slice(0, 5).map(v => v.toFixed(2)).join(' &rarr; ')}...) — not quite self-similar.`;
+                cls = 'ok';
+            }
+        }
+        box.innerHTML = msg;
+        box.className = 'spiral-readout ' + cls;
+        if (cls === 'perfect' && Math.abs(currentRatio - PHI) < 0.01) chime(660, 0.3, 'sine', 0.08);
+    }
+
+    /* ===================== SECTION 2: GOLDEN TRIANGLE ===================== */
+    function drawPentagon() {
+        const canvas = document.getElementById('pentCanvas');
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const W = rect.width, H = rect.height;
+        ctx.clearRect(0, 0, W, H);
+
+        const cx = W / 2, cy = H / 2 + 6;
+        const R = Math.min(W, H) * 0.36;
+        const verts = [];
+        for (let k = 0; k < 5; k++) {
+            const a = -Math.PI / 2 + k * (2 * Math.PI / 5);
+            verts.push([cx + R * Math.cos(a), cy + R * Math.sin(a)]);
+        }
+
+        ctx.beginPath();
+        verts.forEach((p, i) => i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1]));
+        ctx.closePath();
+        ctx.strokeStyle = "rgba(0,230,118,0.5)"; ctx.lineWidth = 2; ctx.stroke();
+
+        if (document.getElementById('show-star').checked) {
+            ctx.beginPath();
+            for (let k = 0; k < 5; k++) {
+                ctx.moveTo(verts[k][0], verts[k][1]);
+                ctx.lineTo(verts[(k + 2) % 5][0], verts[(k + 2) % 5][1]);
+            }
+            ctx.strokeStyle = "rgba(0,229,255,0.35)"; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+
+        // The golden triangle: pick vertex 0 as the apex and vertices 2 & 3
+        // as the base - two diagonals plus one side, apex angle exactly 36°.
+        const A = verts[0], B = verts[2], C = verts[3];
+        ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); ctx.lineTo(C[0], C[1]); ctx.closePath();
+        ctx.fillStyle = "rgba(255,235,59,0.18)"; ctx.fill();
+        ctx.strokeStyle = "#ffeb3b"; ctx.lineWidth = 2.5;
+        ctx.shadowColor = "#ffeb3b"; ctx.shadowBlur = 10; ctx.stroke(); ctx.shadowBlur = 0;
+
+        const dist = (P, Q) => Math.hypot(P[0] - Q[0], P[1] - Q[1]);
+        const leg = dist(A, B), base = dist(B, C);
+        document.getElementById('triangle-readout').innerHTML =
+            `Leg = ${leg.toFixed(1)}px &nbsp;&divide;&nbsp; Base = ${base.toFixed(1)}px &nbsp;=&nbsp; <b>${(leg / base).toFixed(4)}</b> &nbsp;&asymp; φ`;
+
+        if (document.getElementById('show-spiral').checked) {
+            const steps = parseInt(document.getElementById('gnomon-slider').value, 10);
+            document.getElementById('gnomon-val').textContent = steps;
+            let apex = A, b1 = B, b2 = C;
+            const pts = [apex];
+            for (let i = 0; i < steps; i++) {
+                // Bisecting the base angle at b1 splits the golden triangle into
+                // a golden gnomon and a smaller golden triangle (b1, D, b2),
+                // exactly 1/phi the size - repeat to spiral inward.
+                const D = [apex[0] + (b2[0] - apex[0]) / PHI, apex[1] + (b2[1] - apex[1]) / PHI];
+                ctx.beginPath(); ctx.moveTo(b1[0], b1[1]); ctx.lineTo(D[0], D[1]); ctx.lineTo(b2[0], b2[1]); ctx.closePath();
+                ctx.strokeStyle = `hsla(${45 - i * 4},90%,60%,0.85)`; ctx.lineWidth = 1.5; ctx.stroke();
+                pts.push(D);
+                apex = b1; b1 = D; b2 = b2;
+            }
+            ctx.beginPath();
+            ctx.moveTo(pts[0][0], pts[0][1]);
+            for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+            ctx.strokeStyle = "rgba(255,255,255,0.45)"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+            ctx.stroke(); ctx.setLineDash([]);
+        }
+
+        verts.forEach(p => {
+            ctx.beginPath(); ctx.arc(p[0], p[1], 4, 0, Math.PI * 2);
+            ctx.fillStyle = "#fff"; ctx.fill();
+        });
+    }
+
+    /* ===================== SECTION 3: FIBONACCI LADDER ===================== */
+    function buildLadder() {
+        const fibs = [1, 1];
+        for (let i = 2; i < 15; i++) fibs.push(fibs[i - 1] + fibs[i - 2]);
+        const wrap = document.getElementById('ladder-wrap');
+        const lo = 1, hi = 2.1;
+        const toPct = v => Math.max(0, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+        const phiPct = toPct(PHI);
+        let html = '';
+        for (let i = 1; i < fibs.length - 1; i++) {
+            const num = fibs[i + 1], den = fibs[i];
+            const ratio = num / den;
+            const side = ratio > PHI ? 'over' : (ratio < PHI ? 'under' : 'exact');
+            html += `<div class="ladder-row">
+                <div class="ladder-frac">${num} &frasl; ${den}</div>
+                <div class="ladder-track">
+                    <div class="ladder-phi-mark" style="left:${phiPct}%"></div>
+                    <div class="ladder-dot ${side}" style="left:${toPct(ratio)}%"></div>
+                </div>
+                <div class="ladder-val">${ratio.toFixed(6)}</div>
+            </div>`;
+        }
+        wrap.innerHTML = html;
+    }
+
+    /* ===================== SECTION 4: SUN-CATCHER (existing, kept) ===================== */
+    let currentAngle = 90;
+    const NUM_LEAVES = 150;
+
+    function playSweep(efficiency) {
+        if (!soundOn()) return;
+        ensureAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+
+        if (efficiency > 95) {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+        } else {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        }
+
+        gain.gain.setValueAtTime(0, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.1, audioCtx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+
+        osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+    }
+
+    function setAngle(val) {
+        document.getElementById('angle-slider').value = val;
+        updateAngle(val);
+    }
+
+    function updateAngle(val) {
+        currentAngle = parseFloat(val);
+        document.getElementById('angle-val').innerText = currentAngle.toFixed(1) + "°";
+        drawPlant();
+    }
+
+    function calculateEfficiency(angle) {
+        let fraction = angle / 360;
+        let distanceToGolden = Math.min(
+            Math.abs(fraction - 0.381966),
+            Math.abs(fraction - (1 - 0.381966))
+        );
+        let score = Math.max(0, 100 - (distanceToGolden * 400));
+        if (angle % 30 === 0 || angle % 45 === 0) score = Math.min(score, 15);
+        if (angle % 72 === 0) score = Math.min(score, 35);
+        if (Math.abs(angle - 137.5) < 0.2) score = 100;
+        return score;
+    }
+
+    function updateMetrics(score) {
+        const bar = document.getElementById('efficiency-bar');
+        const text = document.getElementById('efficiency-val');
+        bar.style.width = `${score}%`;
+        if (score > 90) {
+            bar.style.background = "#ffeb3b"; text.style.color = "#ffeb3b"; text.innerText = "100% - PERFECT!";
+        } else if (score > 60) {
+            bar.style.background = "#00e676"; text.style.color = "#00e676"; text.innerText = "Good - Surviving";
+        } else if (score > 30) {
+            bar.style.background = "#ffa726"; text.style.color = "#ffa726"; text.innerText = "Poor - Struggling";
+        } else {
+            bar.style.background = "#ff5252"; text.style.color = "#ff5252"; text.innerText = "Fatal - Blocked";
+        }
+    }
+
+    function drawPlant() {
+        const canvas = document.getElementById('plantCanvas');
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr; canvas.height = rect.height * dpr;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const width = rect.width, height = rect.height;
+        const cx = width / 2, cy = height / 2;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const rads = currentAngle * (Math.PI / 180);
+        const c = Math.min(width, height) / 28;
+
+        function drawLeaf(radius) {
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(radius / 2, radius / 2, radius, radius / 4, radius, 0);
+            ctx.bezierCurveTo(radius, -radius / 4, radius / 2, -radius / 2, 0, 0);
+            ctx.fill();
+            ctx.stroke();
+        }
+
+        for (let i = NUM_LEAVES; i >= 1; i--) {
+            let r = c * Math.sqrt(i);
+            let theta = i * rads;
+            let x = cx + r * Math.cos(theta);
+            let y = cy + r * Math.sin(theta);
+
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(theta);
+
+            let hue = 140 + (i / NUM_LEAVES) * 60;
+            ctx.fillStyle = `hsla(${hue}, 100%, 40%, 0.6)`;
+            ctx.strokeStyle = `hsla(${hue}, 100%, 70%, 0.8)`;
+            ctx.lineWidth = 1;
+
+            let leafSize = 10 + (i * 0.4);
+            drawLeaf(leafSize);
+
+            ctx.restore();
+        }
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffeb3b";
+        ctx.fill();
+
+        let score = calculateEfficiency(currentAngle);
+        updateMetrics(score);
+    }
+
+    let audioTimeout;
+    document.getElementById('angle-slider').addEventListener('input', () => {
+        clearTimeout(audioTimeout);
+        audioTimeout = setTimeout(() => {
+            let score = calculateEfficiency(currentAngle);
+            playSweep(score);
+        }, 100);
+    });
+
+    /* ===================== STARTUP ===================== */
+    document.getElementById('angle-callout-val').textContent = (360 * (2 - PHI)).toFixed(4) + '°';
+    renderIdentities();
+    buildLadder();
+
+    function drawAll() { drawRectSpiral(); drawPentagon(); drawPlant(); }
+    window.addEventListener('resize', drawAll);
+    setTimeout(drawAll, 100);
+</script>
+</body>
+</html>

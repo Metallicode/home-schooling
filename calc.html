@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Math Mapper</title>
+    <style>
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: #050508; color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+        }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0; max-width: 800px;}
+
+        .dashboard {
+            display: flex; flex-wrap: wrap; width: 100%; max-width: 1000px; 
+            gap: 20px; justify-content: center; align-items: stretch;
+        }
+
+        /* --- CALCULATOR --- */
+        .calc-panel {
+            flex: 1; min-width: 300px; max-width: 350px; background: #111; border-radius: 15px; 
+            border: 1px solid #333; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        .screen {
+            width: 100%; height: 80px; background: #0a0a0d; border-radius: 10px; border: 2px solid #222;
+            display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+            padding: 10px 15px; box-sizing: border-box; box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+        .screen-history { font-size: 14px; color: #888; min-height: 16px; letter-spacing: 1px;}
+        .screen-main { font-size: 32px; font-weight: bold; color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+
+        .keypad {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+        }
+
+        .btn {
+            background: #222; color: #fff; border: 2px solid #333; border-radius: 10px;
+            height: 60px; font-size: 24px; font-family: inherit; font-weight: bold;
+            cursor: pointer; transition: all 0.1s; display: flex; justify-content: center; align-items: center;
+        }
+        .btn:active { transform: scale(0.9); }
+        
+        .btn-num { background: #1a1a24; border-color: #333; }
+        .btn-num:hover { background: #2a2a35; border-color: #00e5ff; box-shadow: 0 0 10px rgba(0,229,255,0.3); }
+        
+        .btn-op { background: #311b2b; border-color: #ff4081; color: #ff4081; }
+        .btn-op:hover { background: #4a233e; box-shadow: 0 0 10px rgba(255,64,129,0.3); }
+        .btn-op.active { background: #ff4081; color: #fff; box-shadow: 0 0 15px rgba(255,64,129,0.6); }
+
+        .btn-eq { background: #332d00; border-color: #ffeb3b; color: #ffeb3b; grid-column: span 2;}
+        .btn-eq:hover { background: #4d4400; box-shadow: 0 0 15px rgba(255,235,59,0.3); }
+
+        .btn-clear { background: #3e1616; border-color: #ff5252; color: #ff5252;}
+        .btn-clear:hover { background: #5c1e1e; box-shadow: 0 0 15px rgba(255,82,82,0.3); }
+
+        /* --- GRAPH PANEL --- */
+        .graph-panel {
+            flex: 2; min-width: 350px; background: #0a0a0d; border-radius: 15px; border: 1px solid #222;
+            padding: 20px; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); display: flex; flex-direction: column;
+        }
+
+        .graph-header {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+        }
+        .graph-title { font-size: 14px; color: #888; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;}
+        
+        .canvas-container {
+            flex: 1; width: 100%; position: relative; border: 1px solid #1a1a24; border-radius: 8px;
+            background: linear-gradient(to bottom, #0d111a 0%, #050508 100%); overflow: hidden;
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        .toggle-container {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            color: #00e5ff; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 14px;
+        }
+        .toggle-container input { width: 16px; height: 16px; accent-color: #00e5ff; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,0.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:0.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,0.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>📈 The Math Mapper 📈</h1>
+    <p>Every time you hit equals, your answer is plotted. Watch how multiplication builds mountains and division carves cliffs!</p>
+
+    <div class="dashboard">
+
+        <!-- CALCULATOR -->
+        <div class="calc-panel">
+            <div class="screen">
+                <div class="screen-history" id="screen-hist"></div>
+                <div class="screen-main" id="screen-main">0</div>
+            </div>
+
+            <div class="keypad">
+                <button class="btn btn-clear" onclick="clearCalc()">C</button>
+                <button class="btn btn-op" onclick="setOp('/')">÷</button>
+                <button class="btn btn-op" onclick="setOp('*')">×</button>
+                <button class="btn btn-op" onclick="setOp('-')">−</button>
+                
+                <button class="btn btn-num" onclick="inputNum('7')">7</button>
+                <button class="btn btn-num" onclick="inputNum('8')">8</button>
+                <button class="btn btn-num" onclick="inputNum('9')">9</button>
+                <button class="btn btn-op" onclick="setOp('+')" style="grid-row: span 2; height: 100%;">+</button>
+                
+                <button class="btn btn-num" onclick="inputNum('4')">4</button>
+                <button class="btn btn-num" onclick="inputNum('5')">5</button>
+                <button class="btn btn-num" onclick="inputNum('6')">6</button>
+                
+                <button class="btn btn-num" onclick="inputNum('1')">1</button>
+                <button class="btn btn-num" onclick="inputNum('2')">2</button>
+                <button class="btn btn-num" onclick="inputNum('3')">3</button>
+                <button class="btn btn-eq" onclick="calculate()" style="grid-row: span 2; height: 100%;">=</button>
+                
+                <button class="btn btn-num" onclick="inputNum('0')" style="grid-column: span 2;">0</button>
+                <button class="btn btn-num" onclick="inputNum('.')">.</button>
+            </div>
+        </div>
+
+        <!-- GRAPH -->
+        <div class="graph-panel">
+            <div class="graph-header">
+                <div class="graph-title">Value History (Last 50 Answers)</div>
+                <button onclick="clearGraph()" style="background:transparent; color:#ff5252; border:1px solid #ff5252; padding:3px 8px; border-radius:5px; cursor:pointer; font-size: 12px;">Clear Graph</button>
+            </div>
+            <div class="canvas-container">
+                <canvas id="graphCanvas"></canvas>
+            </div>
+        </div>
+
+    </div>
+    
+    <label class="toggle-container">
+        <input type="checkbox" id="toggle-sound" checked onchange="initAudio()">
+        🎵 Enable Calculator Sounds
+    </label>
+
+<script>
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    let masterGain;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.2;
+            masterGain.connect(audioCtx.destination);
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type, val = null) {
+        if (!document.getElementById('toggle-sound').checked) return;
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(masterGain);
+
+        if (type === 'num') {
+            osc.type = 'triangle';
+            const pitch = val ? 400 + (parseInt(val) * 20) : 400; 
+            osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } 
+        else if (type === 'op') {
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+        } 
+        else if (type === 'eq') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1046.5, audioCtx.currentTime + 0.2); 
+            gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        }
+        else if (type === 'clear') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+    }
+
+    // --- CALCULATOR LOGIC ---
+    let currentInput = '0';
+    let previousValue = null;
+    let operator = null;
+    let waitingForNewValue = false;
+    
+    const MAX_HISTORY = 50; // Increased to 50
+    let historyData = [0]; 
+
+    const scrMain = document.getElementById('screen-main');
+    const scrHist = document.getElementById('screen-hist');
+
+    function updateDisplay() {
+        let displayVal = currentInput;
+        if (displayVal.length > 12) {
+            displayVal = parseFloat(displayVal).toPrecision(8);
+        }
+        scrMain.innerText = displayVal;
+
+        if (operator && previousValue !== null) {
+            scrHist.innerText = `${previousValue} ${operator}`;
+        } else {
+            scrHist.innerText = '';
+        }
+    }
+
+    function inputNum(num) {
+        playSound('num', num);
+        
+        if (waitingForNewValue) {
+            currentInput = num;
+            waitingForNewValue = false;
+        } else {
+            if (currentInput === '0' && num !== '.') {
+                currentInput = num;
+            } else if (num === '.' && currentInput.includes('.')) {
+                return; 
+            } else {
+                currentInput += num;
+            }
+        }
+        updateDisplay();
+    }
+
+    function setOp(op) {
+        playSound('op');
+        
+        if (operator && !waitingForNewValue) {
+            calculate(false);
+        } else {
+            previousValue = parseFloat(currentInput);
+        }
+        
+        operator = op;
+        waitingForNewValue = true;
+        updateDisplay();
+    }
+
+    function calculate(playSoundAndGraph = true) {
+        if (!operator || previousValue === null) return;
+        
+        if (playSoundAndGraph) playSound('eq');
+
+        let current = parseFloat(currentInput);
+        let result = 0;
+
+        switch(operator) {
+            case '+': result = previousValue + current; break;
+            case '-': result = previousValue - current; break;
+            case '*': result = previousValue * current; break;
+            case '/': 
+                if (current === 0) {
+                    alert("Math Rule: You cannot divide by zero!");
+                    clearCalc();
+                    return;
+                }
+                result = previousValue / current; 
+                break;
+        }
+
+        result = Math.round(result * 100000000) / 100000000;
+
+        currentInput = result.toString();
+        operator = null;
+        previousValue = null;
+        waitingForNewValue = true;
+        
+        updateDisplay();
+
+        if (playSoundAndGraph) {
+            historyData.push(result);
+            if (historyData.length > MAX_HISTORY) {
+                historyData.shift(); 
+            }
+            drawGraph();
+        }
+    }
+
+    function clearCalc() {
+        playSound('clear');
+        currentInput = '0';
+        previousValue = null;
+        operator = null;
+        waitingForNewValue = false;
+        updateDisplay();
+    }
+
+    function clearGraph() {
+        playSound('clear');
+        historyData = [0];
+        drawGraph();
+    }
+
+    // --- GRAPHING ENGINE ---
+    const canvas = document.getElementById('graphCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeGraph() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        drawGraph();
+    }
+    window.addEventListener('resize', resizeGraph);
+
+    function drawGraph() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width;
+        const h = canvas.height;
+        
+        ctx.clearRect(0, 0, w, h);
+
+        if (historyData.length === 0) return;
+
+        let maxVal = Math.max(...historyData);
+        let minVal = Math.min(...historyData);
+        
+        if (maxVal === minVal) {
+            maxVal += 10;
+            minVal -= 10;
+        }
+        let range = maxVal - minVal;
+        
+        const paddingY = 40 * dpr;
+        const paddingX = 30 * dpr;
+        const usableW = w - (paddingX * 2);
+        const usableH = h - (paddingY * 2);
+
+        function mapY(val) {
+            const normalized = (val - minVal) / range;
+            return h - paddingY - (normalized * usableH);
+        }
+
+        // Draw Zero Line
+        if (minVal <= 0 && maxVal >= 0) {
+            const zeroY = mapY(0);
+            ctx.beginPath();
+            ctx.moveTo(paddingX, zeroY);
+            ctx.lineTo(w - paddingX, zeroY);
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.lineWidth = 2 * dpr;
+            ctx.setLineDash([5 * dpr, 5 * dpr]);
+            ctx.stroke();
+            ctx.setLineDash([]); 
+            
+            ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            ctx.font = `${10*dpr}px Courier New`;
+            ctx.textAlign = "right";
+            ctx.fillText("0", paddingX - 5, zeroY + 4);
+        }
+
+        const stepX = historyData.length > 1 ? usableW / (historyData.length - 1) : 0;
+
+        // Plot the Line
+        ctx.beginPath();
+        historyData.forEach((val, index) => {
+            let x = paddingX + (index * stepX);
+            let y = mapY(val);
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+
+        ctx.strokeStyle = "#00e5ff";
+        ctx.lineWidth = 2.5 * dpr;
+        ctx.shadowBlur = 10 * dpr;
+        ctx.shadowColor = "#00e5ff";
+        ctx.lineJoin = "round";
+        ctx.stroke();
+        ctx.shadowBlur = 0; 
+
+        // Smart Labeling System
+        // Shrink dots if there are many of them
+        const dotRadius = historyData.length > 25 ? 2.5 * dpr : 5 * dpr;
+
+        historyData.forEach((val, index) => {
+            let x = paddingX + (index * stepX);
+            let y = mapY(val);
+
+            // Draw Node Dot
+            ctx.beginPath();
+            ctx.arc(x, y, dotRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#050508"; 
+            ctx.fill();
+            ctx.lineWidth = 2 * dpr;
+            ctx.strokeStyle = "#ffeb3b";
+            ctx.stroke();
+
+            // Smart Text Labels - Prevent overlapping when there are 50 dots
+            let showLabel = false;
+            if (historyData.length <= 15) {
+                showLabel = true; // Show all if few
+            } else {
+                // Show only the extremes and the final current value
+                if (index === historyData.length - 1) showLabel = true;
+                if (val === maxVal) showLabel = true;
+                if (val === minVal) showLabel = true;
+            }
+
+            if (showLabel) {
+                ctx.fillStyle = "#fff";
+                ctx.font = `bold ${12*dpr}px Courier New`;
+                ctx.textAlign = "center";
+                
+                let label = val.toString();
+                if (label.length > 6) label = val.toExponential(1);
+                
+                let labelY = (y < paddingY + 20) ? y + 20*dpr : y - 15*dpr;
+                
+                // If it's the current latest value, highlight it
+                if (index === historyData.length - 1) {
+                    ctx.fillStyle = "#00e5ff";
+                }
+
+                ctx.fillText(label, x, labelY);
+            }
+        });
+    }
+
+    // Startup
+    setTimeout(() => {
+        resizeGraph();
+    }, 100);
+
+</script>
+</body>
+</html>

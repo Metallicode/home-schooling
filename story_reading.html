@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Story Stepper</title>
+    <style>
+        /* --- WARM, ACCESSIBLE READING THEME --- */
+        :root {
+            --bg-color: #fdfbf7; /* Soft cream/off-white to reduce eye strain */
+            --text-color: #2c2c2c; /* Soft charcoal */
+            --highlight-bg: #ffeb3b; /* Bright sunny yellow */
+            --highlight-color: #000;
+            --tab-bg: #e0dcd3;
+            --tab-active: #4a90e2;
+        }
+
+        body { 
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Helvetica Neue', sans-serif; /* Kid-friendly, legible fonts */
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: var(--bg-color); color: var(--text-color);
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box;
+        }
+
+        /* --- TABS NAVIGATION --- */
+        .tabs {
+            display: flex; gap: 15px; margin-bottom: 40px; flex-wrap: wrap; justify-content: center;
+            background: #fff; padding: 15px 25px; border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .tab-btn {
+            background: var(--tab-bg); color: var(--text-color); border: none; border-radius: 30px;
+            padding: 12px 25px; font-size: 18px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .tab-btn:hover { background: #d1ccc0; }
+        .tab-btn.active { background: var(--tab-active); color: #fff; box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4); }
+
+        /* --- STORY CONTAINER --- */
+        .reader-board {
+            width: 100%; max-width: 800px; display: flex; flex-direction: column;
+            align-items: center; text-align: center; padding-bottom: 100px;
+        }
+
+        .story-title {
+            font-size: 42px; font-weight: bold; color: var(--tab-active);
+            margin-bottom: 30px; text-transform: uppercase; letter-spacing: 2px;
+        }
+
+        .story-content {
+            font-size: 38px; /* Massive, legible font */
+            line-height: 1.8;
+            width: 100%;
+        }
+
+        .story-line {
+            margin-bottom: 15px;
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 12px;
+        }
+        
+        /* Spacer for paragraph breaks */
+        .story-break { height: 30px; width: 100%; }
+
+        /* --- THE WORDS --- */
+        .word {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            /* Prevent text selection when clicking rapidly */
+            user-select: none; 
+            -webkit-user-select: none;
+        }
+
+        /* The Highlight Effect */
+        .word.active {
+            background-color: var(--highlight-bg);
+            color: var(--highlight-color);
+            transform: scale(1.25) translateY(-3px); /* Pop out and up slightly */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            font-weight: bold;
+            z-index: 10;
+            position: relative;
+        }
+
+        /* --- INSTRUCTIONS --- */
+        .instructions {
+            position: fixed; bottom: 20px; background: rgba(0,0,0,0.8); color: #fff;
+            padding: 10px 20px; border-radius: 30px; font-size: 16px; font-family: sans-serif;
+            pointer-events: none; opacity: 0.7;
+        }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" id="home-link" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(255,255,255,0.9);border:2px solid #ddd;border-radius:50px;padding:6px 16px;font-family:'Comic Sans MS','Chalkboard SE',cursive;font-size:0.9rem;font-weight:bold;color:#555;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,0.13);white-space:nowrap;" title="Back to Home">🏠 Back to Home</a>
+
+    <!-- NAVIGATION TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="loadStory(0)" id="tab-0">The Singing Tree</button>
+        <button class="tab-btn" onclick="loadStory(1)" id="tab-1">The Counting Frogs</button>
+        <button class="tab-btn" onclick="loadStory(2)" id="tab-2">Mess Sandwich</button>
+    </div>
+
+    <!-- READING AREA -->
+    <div class="reader-board">
+        <div class="story-title" id="story-title">Title</div>
+        <div class="story-content" id="story-content">
+            <!-- Words injected here -->
+        </div>
+    </div>
+
+    <div class="instructions">
+        Press <b>[SPACEBAR]</b> to read the next word. Click any word to jump to it.
+    </div>
+
+<script>
+    // --- THE STORIES LIBRARY ---
+    const STORIES = [
+        {
+            title: "The Singing Tree",
+            text: `Gili is a little girl.
+She likes to play.
+She likes to climb.
+Gili climbs the big tree in her yard.
+Up, up, up!
+
+Gili sits on a thick branch.
+She likes to sing.
+"La, la, la," sings Gili.
+It is a sweet and happy song.
+
+Gili does not know it, but a little bird is there.
+It is a small blue bird.
+The bird sits in the tree.
+The bird listens to Gili sing.
+The bird loves the sweet song.
+
+Time goes by. Gili grows up.
+She is big now. She moves away.
+But the little bird stays.
+The little bird sings Gili's song.
+
+One day, Gili comes back to visit her old town.
+She walks to the big tree.
+She stops. She hears a sound.
+"La, la, la!"
+
+Gili looks up.
+She is amazed!
+It is not just one bird. It is many birds!
+All the birds in the valley are singing her song.
+
+The small blue bird taught them all.
+Gili smiles a big smile.
+Her song is still in the tree.`
+        },
+        {
+            title: "The Counting Frogs",
+            text: `Meet the frog family.
+Here is Mummy Frog.
+Here is Daddy Frog.
+Here are three girl frogs.
+Here is one baby boy frog.
+
+The frog family likes to count.
+They count all day long.
+
+In the morning, they count bugs.
+"One, two, three flies," says Daddy.
+Yum, yum, yum!
+
+In the sun, they count flowers.
+"Four, five, six flowers," say the girls.
+They are red and pink.
+
+In the wind, they count leaves.
+"Seven, eight, nine leaves," says Mummy.
+They float on the pond.
+
+At night, the frogs sit on a log.
+They look up at the dark sky.
+"Let us count the stars," says the baby boy.
+"One, two, three, four, five..."
+
+They count and count.
+They are very full.
+They are very tired.
+
+"BURP!" goes the baby frog.
+"BURP!" go all the frogs.
+
+They close their eyes.
+They sleep on the log.
+Goodnight, counting frogs.`
+        },
+        {
+            title: "Mess Sandwich",
+            text: `Three girls play in the yard.
+They mix. They stir.
+They act like silly witches.
+"Hee, hee, hee!" they say.
+
+"Let us make a sandwich!"
+
+They get cardboard for the bread.
+They slap on wet mud. Splat!
+They put on green leaves.
+They put on a pink worm. Wiggle, wiggle!
+They add soft feathers.
+They add hard pebbles.
+Last, they add cracked chalk.
+"Our sandwich is done!" say the girls.
+
+Their dog, Salem, sits by a tree.
+Salem looks at the mess.
+He sniffs the mud. He sees the worm.
+Will he have to eat it?
+Salem puts his ears down. Oh no!
+
+Daddy walks outside.
+He sees the leaves.
+He sees the mud and the chalk.
+"Wow, what a mess!" says Daddy.
+"Please put it in the bin."
+"Wash your dirty hands."
+"It is time for real dinner inside."
+
+The girls clean up. They wash their hands.
+Salem the dog wags his tail.
+He is very happy.
+No mess sandwich for him!`
+        }
+    ];
+
+    // --- STATE MANAGEMENT ---
+    let currentStoryIndex = 0;
+    let wordElements = [];
+    let currentWordIndex = -1; // -1 means no word is highlighted yet
+
+    // --- ENGINE ---
+    function loadStory(index) {
+        currentStoryIndex = index;
+        currentWordIndex = -1; // Reset highlight
+        wordElements = []; // Clear array
+
+        // Update Tabs UI
+        document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+            if (i === index) btn.classList.add('active');
+            else btn.classList.remove('active');
+        });
+
+        const story = STORIES[index];
+        document.getElementById('story-title').innerText = story.title;
+        
+        const contentDiv = document.getElementById('story-content');
+        contentDiv.innerHTML = ''; // Clear old content
+
+        // Parse the text
+        const lines = story.text.split('\n');
+        
+        lines.forEach(line => {
+            // Handle empty lines (paragraph breaks)
+            if (line.trim() === '') {
+                const br = document.createElement('div');
+                br.className = 'story-break';
+                contentDiv.appendChild(br);
+                return;
+            }
+
+            // Create a line container to keep text centered cleanly
+            const lineDiv = document.createElement('div');
+            lineDiv.className = 'story-line';
+
+            const words = line.trim().split(/\s+/); // Split by 1 or more spaces
+            
+            words.forEach(wordText => {
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.innerText = wordText;
+                
+                // Store the global index so we know which word it is across the whole story
+                const globalIndex = wordElements.length;
+                
+                // Click interaction
+                span.onclick = () => jumpToWord(globalIndex);
+                
+                wordElements.push(span);
+                lineDiv.appendChild(span);
+            });
+
+            contentDiv.appendChild(lineDiv);
+        });
+
+        // Ensure we scroll to the top when a new story loads
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Move the highlight to a specific word index
+    function setHighlight(index) {
+        // Range check
+        if (index < 0 || index >= wordElements.length) return;
+
+        // Remove old highlight
+        if (currentWordIndex >= 0 && currentWordIndex < wordElements.length) {
+            wordElements[currentWordIndex].classList.remove('active');
+        }
+
+        // Apply new highlight
+        currentWordIndex = index;
+        const targetWord = wordElements[currentWordIndex];
+        targetWord.classList.add('active');
+
+        // Scroll the page automatically if the word goes out of view
+        const rect = targetWord.getBoundingClientRect();
+        const offset = 150; // Keep the word somewhat near the top/middle of the screen
+        
+        if (rect.bottom > window.innerHeight - 100 || rect.top < 100) {
+            window.scrollBy({
+                top: rect.top - offset,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    // Called when the user clicks a specific word
+    function jumpToWord(index) {
+        setHighlight(index);
+    }
+
+    // Keyboard listener for the Spacebar
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault(); // Stop the spacebar from scrolling the page down
+            
+            if (currentWordIndex < wordElements.length - 1) {
+                setHighlight(currentWordIndex + 1);
+            } else {
+                // If we are at the end, hitting space clears the highlight
+                if (currentWordIndex >= 0 && currentWordIndex < wordElements.length) {
+                    wordElements[currentWordIndex].classList.remove('active');
+                }
+                currentWordIndex = -1;
+            }
+        }
+    });
+
+    // Boot up the first story automatically
+    loadStory(0);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Star-Jar Combinator</title>
+    <style>
+        :root {
+            --bg-color: #050508;
+            --text-cyan: #00e5ff;
+            --text-pink: #ff4081;
+            --text-yellow: #ffeb3b;
+            --jar-glass: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+            background-color: var(--bg-color); color: #fff;
+            margin: 0; padding: 20px; min-height: 100vh; box-sizing: border-box; text-align: center;
+            overflow-x: hidden;
+        }
+
+        h1 { color: var(--text-cyan); text-shadow: 0 0 15px rgba(0, 229, 255, 0.5); margin: 0 0 5px 0; letter-spacing: 2px;}
+        p { font-size: 16px; color: #b2ebf2; margin: 0 0 20px 0; max-width: 800px; line-height: 1.5;}
+
+        .dashboard {
+            display: flex; flex-direction: column; width: 100%; max-width: 1000px; 
+            gap: 20px; justify-content: center; align-items: center;
+        }
+
+        /* --- TOP STATS --- */
+        .stats-panel {
+            width: 100%; background: #111; border-radius: 15px; border: 1px solid #333;
+            padding: 15px 30px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;
+        }
+        .level-badge { background: var(--text-pink); color: #fff; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; text-transform: uppercase;}
+        .progress-text { font-size: 24px; font-weight: bold; color: var(--text-yellow); }
+        .stats-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+        .btn-restart { background: transparent; color: #888; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-family: inherit; font-size: 13px; }
+        .btn-restart:hover { color: #fff; border-color: #fff; }
+        .btn-restart.danger:hover { color: var(--text-pink); border-color: var(--text-pink); }
+
+        /* --- THE STAGE (JARS & STARS) --- */
+        .stage {
+            width: 100%; background: #0a0a0d; border-radius: 15px; border: 1px solid #222;
+            padding: 30px; box-shadow: inset 0 0 40px rgba(0,0,0,0.8); display: flex;
+            flex-direction: column; align-items: center; gap: 30px; box-sizing: border-box;
+        }
+
+        .star-pool {
+            display: flex; gap: 10px; min-height: 50px; align-items: center; justify-content: center;
+            padding: 10px 30px; border: 2px dashed #444; border-radius: 30px;
+        }
+
+        .star {
+            width: 40px; height: 40px; background: var(--text-yellow); border-radius: 50%;
+            box-shadow: 0 0 15px var(--text-yellow), inset 0 0 10px #fff;
+            display: flex; justify-content: center; align-items: center; font-size: 24px;
+            animation: pulse 2s infinite alternate; transition: all 0.2s; cursor: pointer;
+        }
+        .star::after { content: '★'; color: #b7a100; text-shadow: none; }
+        
+        @keyframes pulse { 0% { transform: scale(0.95); box-shadow: 0 0 10px var(--text-yellow); } 100% { transform: scale(1.05); box-shadow: 0 0 25px var(--text-yellow); } }
+
+        .jars-container {
+            display: flex; gap: 30px; justify-content: center; align-items: flex-end; flex-wrap: wrap;
+        }
+
+        .jar-wrapper {
+            display: flex; flex-direction: column; align-items: center; gap: 10px;
+        }
+
+        .jar-label {
+            font-weight: bold; color: var(--text-cyan); font-size: 14px; letter-spacing: 1px;
+            background: rgba(0, 229, 255, 0.1); border: 1px solid rgba(0, 229, 255, 0.4);
+            border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .jar {
+            width: 100px; height: 120px; background: var(--jar-glass); border: 4px solid #555;
+            border-top: none; border-radius: 0 0 20px 20px; position: relative; box-sizing: border-box;
+            display: flex; flex-wrap: wrap-reverse; align-content: flex-start; justify-content: center; gap: 5px; padding: 10px;
+            cursor: pointer; transition: all 0.2s; box-shadow: inset 0 -10px 20px rgba(0,0,0,0.5);
+        }
+        .jar:hover { border-color: var(--text-cyan); background: rgba(0, 229, 255, 0.1); }
+        .jar .star { width: 30px; height: 30px; font-size: 18px; animation: none; }
+
+        /* --- MOBILE --- */
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            h1 { font-size: 1.3rem; }
+            .stats-panel { flex-wrap: wrap; gap: 10px; justify-content: center; }
+            .stats-actions { justify-content: center; width: 100%; }
+            .jars-container { gap: 12px; }
+            .jar { width: 68px; height: 90px; padding: 6px; }
+            .jar .star { width: 22px; height: 22px; font-size: 13px; }
+            .star { width: 32px; height: 32px; font-size: 18px; }
+            .btn-record { padding: 12px 20px; font-size: 16px; }
+        }
+
+        .jar-controls { display: flex; gap: 10px; }
+        .btn-jar { width: 30px; height: 30px; border-radius: 50%; border: none; font-weight: bold; font-size: 18px; cursor: pointer; background: #333; color: #fff; }
+        .btn-jar:hover { background: var(--text-cyan); color: #000; }
+
+        .btn-record {
+            background: #333; color: #666; border: 2px solid #444; border-radius: 10px;
+            padding: 15px 40px; font-size: 20px; font-weight: bold; cursor: not-allowed;
+            transition: all 0.3s; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .btn-record.ready {
+            background: var(--text-pink); color: #fff; border-color: var(--text-pink);
+            cursor: pointer; box-shadow: 0 0 20px rgba(255, 64, 129, 0.5);
+        }
+        .btn-record.ready:active { transform: scale(0.95); }
+
+        .btn-hint {
+            background: transparent; color: var(--text-yellow); border: 1px solid var(--text-yellow);
+            padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer;
+            font-family: inherit; transition: all 0.2s;
+        }
+        .btn-hint:hover { background: rgba(255, 235, 59, 0.15); box-shadow: 0 0 10px rgba(255, 235, 59, 0.3); }
+
+        /* --- GALLERY --- */
+        .gallery-panel {
+            width: 100%; background: #111; border-radius: 15px; border: 1px solid #333;
+            padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .gallery-title { font-size: 14px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; font-weight: bold;}
+        
+        .gallery-grid {
+            display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+        }
+        
+        .combo-card {
+            background: #0a0a0d; border: 1px solid #333; border-radius: 8px; padding: 8px;
+            display: flex; gap: 5px; align-items: flex-end; animation: slideIn 0.3s ease-out;
+        }
+        @keyframes slideIn { 0% { transform: translateY(20px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+
+        .mini-jar {
+            width: 25px; height: 35px; border: 2px solid #555; border-top: none; border-radius: 0 0 5px 5px;
+            display: flex; flex-direction: column-reverse; align-items: center; padding-bottom: 2px; gap: 2px;
+        }
+        .mini-star { width: 6px; height: 6px; background: var(--text-yellow); border-radius: 50%; box-shadow: 0 0 5px var(--text-yellow);}
+
+        /* --- STARS AND BARS DECODER (WIN SCREEN) --- */
+        .decoder-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+        }
+        .decoder-overlay.show { opacity: 1; pointer-events: all; }
+        
+        .decoder-title { font-size: 36px; color: var(--text-cyan); text-shadow: 0 0 20px var(--text-cyan); margin-bottom: 20px;}
+        .decoder-text { font-size: 18px; color: #ccc; max-width: 600px; line-height: 1.5; margin-bottom: 30px;}
+        
+        .decoder-visuals { display: flex; flex-direction: column; gap: 20px; align-items: center; margin-bottom: 40px;}
+        .decoder-row { display: flex; align-items: center; gap: 15px; font-size: 32px; font-weight: bold; background: #111; padding: 15px 30px; border-radius: 10px; border: 1px solid #333;}
+        
+        .dec-star { color: var(--text-yellow); text-shadow: 0 0 10px var(--text-yellow); }
+        .dec-bar { color: var(--text-pink); text-shadow: 0 0 15px var(--text-pink); margin: 0 5px;}
+
+        .decoder-formula {
+            font-size: 17px; color: var(--text-yellow); max-width: 640px; line-height: 1.6;
+            margin: -10px 0 30px 0; background: #111; border: 1px solid #333; border-radius: 10px; padding: 15px 25px;
+        }
+        .decoder-formula b { color: #fff; }
+
+        .btn-next { background: var(--text-cyan); color: #000; font-weight: bold; font-size: 20px; padding: 15px 40px; border-radius: 10px; border: none; cursor: pointer; box-shadow: 0 0 20px rgba(0,229,255,0.5); }
+
+        .toggle-container { display: flex; align-items: center; justify-content: center; gap: 10px; color: #888; font-weight: bold; cursor: pointer; margin-top: 15px; font-size: 14px; }
+        .toggle-container input { accent-color: #888; cursor: pointer; }
+
+    </style>
+</head>
+<body>
+
+<a href="index.html" style="position:fixed;top:12px;left:12px;z-index:9999;background:rgba(10,10,13,0.9);border:2px solid #00e5ff;border-radius:50px;padding:6px 16px;font-family:'Courier New',Courier,monospace;font-size:0.85rem;font-weight:bold;color:#00e5ff;text-decoration:none;box-shadow:0 0 15px rgba(0,229,255,0.35);white-space:nowrap;" title="Back to Index">🏠 Back to Index</a>
+
+    <h1>✨ The Star-Jar Combinator ✨</h1>
+    <p>Distribute the stars into the jars. Find every unique combination to unlock the mathematical secret!</p>
+
+    <div class="dashboard">
+
+        <!-- STATS -->
+        <div class="stats-panel">
+            <div class="level-badge" id="level-badge">Level 1</div>
+            <div class="progress-text" id="progress-text">Found: 0 / 3</div>
+            <div class="stats-actions">
+                <button class="btn-restart" onclick="clearJars()" title="Empty the jars back into the pool - keeps your discoveries">↺ Clear Jars</button>
+                <button class="btn-restart danger" onclick="confirmRestartLevel()" title="Wipes your discovery gallery and starts this level over">⟲ Restart Level</button>
+            </div>
+        </div>
+
+        <!-- STAGE -->
+        <div class="stage">
+            <div class="star-pool" id="star-pool">
+                <!-- Stars rendered here -->
+            </div>
+
+            <div class="jars-container" id="jars-container">
+                <!-- Jars rendered here -->
+            </div>
+
+            <div style="display:flex; gap:15px; flex-wrap:wrap; justify-content:center;">
+                <button class="btn-record" id="btn-record" onclick="recordDiscovery()">Record Discovery</button>
+                <button class="btn-hint" onclick="showHint()">💡 Hint</button>
+            </div>
+        </div>
+
+        <!-- GALLERY -->
+        <div class="gallery-panel">
+            <div class="gallery-title">Discovery Gallery</div>
+            <div class="gallery-grid" id="gallery-grid">
+                <!-- Discovered combos rendered here -->
+            </div>
+        </div>
+        
+        <label class="toggle-container">
+            <input type="checkbox" id="toggle-sound" checked onchange="initAudio()"> Enable Audio
+        </label>
+
+    </div>
+
+    <!-- DECODER OVERLAY -->
+    <div class="decoder-overlay" id="decoder-overlay">
+        <div class="decoder-title">The "Stars and Bars" Secret</div>
+        <div class="decoder-text">
+            Combinatorics is about changing your perspective! Instead of putting stars into jars, what if we just lined up the stars and used <b>bars ( | )</b> to separate them?
+        </div>
+        <div class="decoder-visuals" id="decoder-visuals">
+            <!-- Populated dynamically based on level -->
+        </div>
+        <div class="decoder-formula" id="decoder-formula">
+            <!-- Populated dynamically based on level -->
+        </div>
+        <button class="btn-next" onclick="nextLevel()">Play Next Level</button>
+    </div>
+
+<script>
+    // --- AUDIO ENGINE ---
+    let audioCtx;
+    let masterGain;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.2;
+            masterGain.connect(audioCtx.destination);
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSound(type) {
+        if (!document.getElementById('toggle-sound').checked) return;
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(masterGain);
+
+        if (type === 'move') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        } else if (type === 'success') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(440, audioCtx.currentTime); // A4
+            osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1); // C#5
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        } else if (type === 'duplicate') {
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+        } else if (type === 'win') {
+            osc.type = 'square';
+            [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+                let o = audioCtx.createOscillator(); let g = audioCtx.createGain();
+                o.connect(g); g.connect(masterGain); o.type = 'triangle';
+                o.frequency.setValueAtTime(freq, audioCtx.currentTime + (i*0.15));
+                g.gain.setValueAtTime(0.3, audioCtx.currentTime + (i*0.15));
+                g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + (i*0.15) + 0.6);
+                o.start(audioCtx.currentTime + (i*0.15)); o.stop(audioCtx.currentTime + (i*0.15) + 0.6);
+            });
+        }
+    }
+
+    // --- MATH UTILS ---
+    function factorial(n) { return n <= 1 ? 1 : n * factorial(n - 1); }
+    // Stars and Bars formula: (n + k - 1) C (k - 1)
+    function calcTotalCombinations(n, k) {
+        return Math.round(factorial(n + k - 1) / (factorial(n) * factorial(k - 1)));
+    }
+
+    // Enumerates every way to split `remaining` stars across `jarsLeft` jars.
+    // Used only for the hint feature - the formula above is what actually predicts the count.
+    function* generateCombos(remaining, jarsLeft) {
+        if (jarsLeft === 1) { yield [remaining]; return; }
+        for (let i = 0; i <= remaining; i++) {
+            for (const rest of generateCombos(remaining - i, jarsLeft - 1)) {
+                yield [i, ...rest];
+            }
+        }
+    }
+
+    // --- LEVEL DESIGN (Expanded to 7 Levels) ---
+    const LEVELS = [
+        { stars: 2, jars: 2 }, // Lvl 1: 3 combos
+        { stars: 3, jars: 2 }, // Lvl 2: 4 combos
+        { stars: 2, jars: 3 }, // Lvl 3: 6 combos
+        { stars: 4, jars: 3 }, // Lvl 4: 15 combos
+        { stars: 5, jars: 2 }, // Lvl 5: 6 combos (Breather level, reinforces 2 jar pattern)
+        { stars: 3, jars: 4 }, // Lvl 6: 20 combos
+        { stars: 4, jars: 4 }, // Lvl 7: 35 combos (Boss Level)
+    ];
+
+    let currentLevel = 0;
+    let maxStars = 0;
+    let numJars = 0;
+    let totalCombos = 0;
+    
+    let starsInPool = 0;
+    let jarState = [];
+    let discoveredHistory = new Set();
+
+    // --- ENGINE ---
+    function loadLevel() {
+        const lvl = LEVELS[currentLevel];
+        maxStars = lvl.stars;
+        numJars = lvl.jars;
+        totalCombos = calcTotalCombinations(maxStars, numJars);
+        
+        starsInPool = maxStars;
+        jarState = Array(numJars).fill(0);
+        discoveredHistory.clear();
+
+        document.getElementById('level-badge').innerText = `Level ${currentLevel + 1} of ${LEVELS.length}`;
+        document.getElementById('decoder-overlay').classList.remove('show');
+        document.getElementById('gallery-grid').innerHTML = '';
+        
+        buildUI();
+        updateUI();
+    }
+
+    // Empties the jars back into the pool WITHOUT touching discovered combos -
+    // the non-destructive counterpart to Restart Level.
+    function clearJars() {
+        starsInPool = maxStars;
+        jarState = Array(numJars).fill(0);
+        updateUI();
+    }
+
+    function confirmRestartLevel() {
+        if (discoveredHistory.size > 0) {
+            const ok = confirm(`Restart this level? You'll lose all ${discoveredHistory.size} discovered combination${discoveredHistory.size > 1 ? 's' : ''}.`);
+            if (!ok) return;
+        }
+        loadLevel();
+    }
+
+    function buildUI() {
+        const jarsContainer = document.getElementById('jars-container');
+        jarsContainer.innerHTML = '';
+        
+        for (let i = 0; i < numJars; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'jar-wrapper';
+
+            const label = document.createElement('div');
+            label.className = 'jar-label';
+            label.innerText = String.fromCharCode(65 + i); // Jar A, B, C, ...
+
+            const jar = document.createElement('div');
+            jar.className = 'jar';
+            jar.id = `jar-${i}`;
+            jar.onclick = () => addStarToJar(i);
+
+            const controls = document.createElement('div');
+            controls.className = 'jar-controls';
+            controls.innerHTML = `
+                <button class="btn-jar" onclick="removeStarFromJar(${i})">-</button>
+                <button class="btn-jar" onclick="addStarToJar(${i})">+</button>
+            `;
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(jar);
+            wrapper.appendChild(controls);
+            jarsContainer.appendChild(wrapper);
+        }
+    }
+
+    function updateUI() {
+        // Update Pool
+        const pool = document.getElementById('star-pool');
+        pool.innerHTML = '';
+        for (let i = 0; i < starsInPool; i++) {
+            let s = document.createElement('div'); s.className = 'star'; pool.appendChild(s);
+        }
+
+        // Update Jars
+        for (let i = 0; i < numJars; i++) {
+            const jar = document.getElementById(`jar-${i}`);
+            jar.innerHTML = '';
+            for (let s = 0; s < jarState[i]; s++) {
+                let st = document.createElement('div'); st.className = 'star'; jar.appendChild(st);
+            }
+        }
+
+        // Update Button
+        const btn = document.getElementById('btn-record');
+        if (starsInPool === 0) {
+            btn.classList.add('ready');
+            btn.innerText = "Save Combination";
+        } else {
+            btn.classList.remove('ready');
+            btn.innerText = `Place ${starsInPool} more star${starsInPool>1?'s':''}`;
+        }
+
+        // Update Stats
+        document.getElementById('progress-text').innerText = `Found: ${discoveredHistory.size} / ${totalCombos}`;
+    }
+
+    function addStarToJar(jarIdx) {
+        if (starsInPool > 0) {
+            playSound('move');
+            starsInPool--;
+            jarState[jarIdx]++;
+            updateUI();
+        }
+    }
+
+    function removeStarFromJar(jarIdx) {
+        if (jarState[jarIdx] > 0) {
+            playSound('move');
+            jarState[jarIdx]--;
+            starsInPool++;
+            updateUI();
+        }
+    }
+
+    function recordDiscovery() {
+        if (starsInPool > 0) return; // Must place all stars
+
+        const comboString = jarState.join(',');
+        
+        if (discoveredHistory.has(comboString)) {
+            playSound('duplicate');
+            // Shake button to indicate error
+            const btn = document.getElementById('btn-record');
+            btn.style.transform = "translateX(10px)";
+            setTimeout(() => btn.style.transform = "translateX(-10px)", 50);
+            setTimeout(() => btn.style.transform = "translateX(0)", 100);
+            btn.innerText = "Already Found!";
+        } else {
+            playSound('success');
+            discoveredHistory.add(comboString);
+            
+            // Add to visual gallery
+            const gallery = document.getElementById('gallery-grid');
+            const card = document.createElement('div');
+            card.className = 'combo-card';
+            
+            for (let i = 0; i < numJars; i++) {
+                const miniJar = document.createElement('div');
+                miniJar.className = 'mini-jar';
+                for (let s = 0; s < jarState[i]; s++) {
+                    let st = document.createElement('div'); st.className = 'mini-star'; miniJar.appendChild(st);
+                }
+                card.appendChild(miniJar);
+            }
+            gallery.appendChild(card);
+
+            updateUI();
+            checkWin();
+        }
+    }
+
+    // Shows one not-yet-discovered arrangement IN the jars, but doesn't record it for
+    // the player - they still have to hit "Save Combination" themselves to bank it.
+    function showHint() {
+        for (const combo of generateCombos(maxStars, numJars)) {
+            if (!discoveredHistory.has(combo.join(','))) {
+                jarState = combo;
+                starsInPool = 0;
+                playSound('move');
+                updateUI();
+                return;
+            }
+        }
+    }
+
+    function checkWin() {
+        if (discoveredHistory.size === totalCombos) {
+            setTimeout(() => {
+                playSound('win');
+                showDecoder();
+            }, 500);
+        }
+    }
+
+    function showDecoder() {
+        const visuals = document.getElementById('decoder-visuals');
+        visuals.innerHTML = '';
+
+        // Generate 3 sample rows from their history to explain Stars and Bars
+        let count = 0;
+        for (let comboStr of discoveredHistory) {
+            if (count >= 3) break; // Just show 3 examples
+            
+            const arr = comboStr.split(',').map(Number);
+            const row = document.createElement('div');
+            row.className = 'decoder-row';
+            
+            let htmlStr = "";
+            for (let i = 0; i < arr.length; i++) {
+                for (let s = 0; s < arr[i]; s++) {
+                    htmlStr += `<span class="dec-star">★</span>`;
+                }
+                // Add a "Bar" between jars (so N jars means N-1 bars)
+                if (i < arr.length - 1) {
+                    htmlStr += `<span class="dec-bar">|</span>`;
+                }
+            }
+            
+            row.innerHTML = htmlStr;
+            visuals.appendChild(row);
+            count++;
+        }
+
+        // Close the loop: name the actual counting argument, with this level's own numbers.
+        const totalSlots = maxStars + numJars - 1;
+        const barsNeeded = numJars - 1;
+        document.getElementById('decoder-formula').innerHTML =
+            `Every row above is just <b>${maxStars} stars</b> and <b>${barsNeeded} bar${barsNeeded !== 1 ? 's' : ''}</b> lined up in ${totalSlots} slots. ` +
+            `All we're really choosing is <i>which ${barsNeeded} of those ${totalSlots} slots are bars</i> — ` +
+            `that's <b>C(${totalSlots}, ${barsNeeded}) = ${totalCombos}</b>. That's why there were exactly ${totalCombos} ways, no matter how you arranged them!`;
+
+        document.getElementById('decoder-overlay').classList.add('show');
+    }
+
+    function nextLevel() {
+        currentLevel++;
+        if (currentLevel >= LEVELS.length) {
+            currentLevel = 0;
+            alert("Incredible! You have mastered the Combinator. Returning to Level 1.");
+        }
+        loadLevel();
+    }
+
+    // Launch
+    loadLevel();
+
+</script>
+</body>
+</html>

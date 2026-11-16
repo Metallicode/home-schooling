@@ -332,10 +332,16 @@
     let currentAudio = null;
     const audioCache = new Map(); // session cache: text -> Audio object
 
+    // Pre-recorded clips in sounds/first_reading/ (made by generate.py there with edge-tts).
+    // Words: w-<word>.mp3, sentences: s-<slug>.mp3. Re-run generate.py after editing the sentences.
+    function audioUrl(text) {
+        const slug = text.toLowerCase().replace(/[^a-z]+/g, '-').replace(/^-|-$/g, '');
+        return `sounds/first_reading/${text.includes(' ') ? 's' : 'w'}-${slug}.mp3`;
+    }
+
     function getAudio(text) {
         if (!audioCache.has(text)) {
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=en-US&client=tw-ob&q=${encodeURIComponent(text)}`;
-            const audio = new Audio(url);
+            const audio = new Audio(audioUrl(text));
             audio.preload = 'auto';
             audioCache.set(text, audio);
         }
@@ -401,13 +407,13 @@
         getAudio(sentence);
     }
 
-    // --- CLOUD AUDIO LOGIC ---
+    // --- AUDIO LOGIC ---
     function playSingleWord(word) {
         if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0; }
 
         currentAudio = getAudio(word);
         currentAudio.currentTime = 0;
-        currentAudio.play().catch(e => console.error("Audio play blocked by browser. Click the screen first.", e));
+        currentAudio.play().catch(e => console.error("Audio play failed:", e));
     }
 
     function playFullSentence() {
@@ -423,7 +429,7 @@
             wordSpans.forEach(span => span.classList.remove('playing'));
         };
 
-        currentAudio.play().catch(e => console.error("Audio play blocked by browser. Click the screen first.", e));
+        currentAudio.play().catch(e => console.error("Audio play failed:", e));
     }
 
     // Initialize first load

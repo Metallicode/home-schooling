@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A4 Art Studio</title>
+    <!-- PDF.js for rendering PDF stamps (optional; SVG/PNG and built-in stamps work 100% offline) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style id="print-page-style">
+        @page { size: A4 landscape; margin: 0; }
+    </style>
+    <style>
+        :root {
+            --desk-bg: #1e222b;
+            --panel-bg: #282d39;
+            --panel-border: #3a4152;
+            --accent: #38bdf8;
+            --text: #f1f5f9;
+            --muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--desk-bg);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- TOP BAR --- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--panel-border);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            background: #333a4a;
+            color: var(--text);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .action-btn:hover:not(:disabled) { background: #414a5e; transform: translateY(-1px); }
+        .action-btn:active:not(:disabled) { transform: scale(0.96); }
+        .action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .action-btn.undo-btn { background: #3b3556; border-color: #a78bfa; color: #ede9fe; }
+        .action-btn.undo-btn:hover:not(:disabled) { background: #4c4270; }
+        .action-btn.danger { background: #4c1d24; border-color: #ef4444; color: #fecaca; }
+        .action-btn.danger:hover { background: #7f1d1d; }
+        .action-btn.primary { background: #0284c7; border-color: #38bdf8; color: #fff; }
+        .action-btn.primary:hover { background: #0369a1; }
+
+        /* --- MAIN WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* --- LEFT TOOLBAR --- */
+        .sidebar {
+            width: 86px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 8px;
+            gap: 8px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .tool-section-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .tool-btn {
+            width: 64px;
+            height: 52px;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            background: #333a4a;
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            font-size: 11px;
+            font-weight: 700;
+            transition: all 0.15s;
+        }
+        .tool-btn span.icon { font-size: 19px; line-height: 1; }
+        .tool-btn:hover { background: #414a5e; }
+        .tool-btn.active {
+            background: rgba(56, 189, 248, 0.2);
+            border-color: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.3);
+        }
+
+        .divider {
+            width: 80%;
+            height: 1px;
+            background: var(--panel-border);
+            margin: 4px 0;
+        }
+
+        /* 4 Size Buttons */
+        .size-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            width: 100%;
+            padding: 0 4px;
+        }
+
+        .size-btn {
+            height: 34px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background: #333a4a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .size-btn:hover { background: #414a5e; }
+        .size-btn.active {
+            border-color: var(--accent);
+            background: rgba(56, 189, 248, 0.2);
+        }
+        .size-dot {
+            background: #fff;
+            border-radius: 50%;
+            display: block;
+        }
+
+        /* --- SIDE DRAWERS (Stamp & Count) --- */
+        .side-drawer {
+            width: 220px;
+            background: #232834;
+            border-right: 1px solid var(--panel-border);
+            padding: 14px 12px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        .side-drawer.open { display: flex; }
+
+        .drawer-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #1a1e28;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .toggle-row input {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .segmented-control {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            background: #1a1e28;
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            gap: 4px;
+        }
+        .seg-btn {
+            background: transparent;
+            color: var(--muted);
+            border: none;
+            border-radius: 7px;
+            padding: 7px 4px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .seg-btn.active {
+            background: var(--accent);
+            color: #0f172a;
+        }
+
+        .stamp-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .stamp-item {
+            aspect-ratio: 1;
+            background: #fff;
+            border-radius: 10px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 6px;
+            overflow: hidden;
+            transition: all 0.15s;
+            position: relative;
+        }
+        .stamp-item:hover { transform: scale(1.04); }
+        .stamp-item.active {
+            border-color: var(--accent);
+            box-shadow: 0 0 12px rgba(56, 189, 248, 0.5);
+        }
+        .stamp-item img {
+            width: 82%;
+            height: 82%;
+            object-fit: contain;
+            pointer-events: none;
+            display: block;
+        }
+        .stamp-label {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            right: 2px;
+            background: rgba(0,0,0,0.65);
+            color: #fff;
+            font-size: 9px;
+            text-align: center;
+            border-radius: 4px;
+            padding: 1px 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .control-box {
+            background: #1a1e28;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .control-box label {
+            font-size: 12px;
+            color: var(--muted);
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+        }
+        .control-box input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .upload-btn {
+            background: #333a4a;
+            color: var(--text);
+            border: 1px dashed #64748b;
+            border-radius: 10px;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .upload-btn:hover { background: #3f485c; border-color: var(--accent); }
+
+        .hint-text {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.4;
+        }
+
+        /* --- CANVAS DESK AREA --- */
+        .desk-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 14px;
+            overflow: hidden;
+            position: relative;
+            gap: 10px;
+        }
+
+        /* Live Color-Coded Tally Bar */
+        .tally-bar {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: rgba(40, 45, 57, 0.95);
+            border: 1px solid var(--panel-border);
+            padding: 6px 14px;
+            border-radius: 999px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+            flex-wrap: wrap;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .tally-bar.visible { display: flex; }
+
+        .tally-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 15px;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #1a1e28;
+        }
+        .tally-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.6);
+        }
+        .tally-op {
+            color: var(--muted);
+            font-weight: 800;
+            font-size: 15px;
+        }
+        .tally-total {
+            font-size: 16px;
+            font-weight: 900;
+            color: var(--accent);
+            padding-left: 4px;
+        }
+
+        .paper-container {
+            position: relative;
+            background: #ffffff;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+            border-radius: 3px;
+        }
+
+        canvas.sheet {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        canvas.preview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Floating Text Input */
+        #text-input-overlay {
+            position: absolute;
+            display: none;
+            background: rgba(255, 255, 255, 0.85);
+            border: 2px dashed var(--accent);
+            border-radius: 4px;
+            outline: none;
+            padding: 2px 6px;
+            margin: 0;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
+            font-weight: bold;
+            min-width: 80px;
+            z-index: 20;
+            line-height: 1.1;
+        }
+
+        /* --- BOTTOM COLOR PALETTE (12 COLORS) --- */
+        .color-bar {
+            background: var(--panel-bg);
+            border-top: 1px solid var(--panel-border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+
+        .color-swatch {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .color-swatch:hover { transform: scale(1.12); }
+        .color-swatch.active {
+            transform: scale(1.22);
+            border-color: #fff;
+            box-shadow: 0 0 0 3px var(--accent);
+        }
+
+        /* --- CLEAN A4 PRINT STYLES --- */
+        @media print {
+            body {
+                background: #fff !important;
+                margin: 0;
+                padding: 0;
+            }
+            .topbar, .sidebar, .side-drawer, .color-bar, .tally-bar, #text-input-overlay, canvas.preview {
+                display: none !important;
+            }
+            .workspace, .desk-area {
+                padding: 0 !important;
+                margin: 0 !important;
+                display: block !important;
+                width: 100vw !important;
+                height: 100vh !important;
+            }
+            .paper-container {
+                width: 100vw !important;
+                height: 100vh !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+            }
+            #mainCanvas {
+                width: 100% !important;
+                height: 100% !important;
+                object-fit: contain;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP BAR -->
+    <header class="topbar">
+        <div class="brand">🎨 A4 Art Studio</div>
+        <div class="top-actions">
+            <a class="action-btn" href="index.html" title="Back to Home" style="text-decoration:none;">🏠 Home</a>
+            <button class="action-btn undo-btn" id="btn-undo" onclick="undo()" title="Undo (Ctrl+Z)" disabled>↩️ Undo</button>
+            <button class="action-btn" id="btn-orient" onclick="toggleOrientation()" title="Switch A4 Landscape / Portrait">🖼️ Landscape A4</button>
+            <button class="action-btn danger" onclick="clearSheet()">🗑️ Clear</button>
+            <button class="action-btn primary" onclick="printSheet()">🖨️ Print A4</button>
+        </div>
+    </header>
+
+    <!-- MAIN WORKSPACE -->
+    <div class="workspace">
+
+        <!-- LEFT TOOLS -->
+        <aside class="sidebar">
+            <div class="tool-section-label">Tools</div>
+            <button class="tool-btn active" id="tool-brush" onclick="setTool('brush')">
+                <span class="icon">🖌️</span>Brush
+            </button>
+            <button class="tool-btn" id="tool-count" onclick="setTool('count')">
+                <span class="icon">🔢</span>Count
+            </button>
+            <button class="tool-btn" id="tool-line" onclick="setTool('line')">
+                <span class="icon">📏</span>Line
+            </button>
+            <button class="tool-btn" id="tool-stamp" onclick="setTool('stamp')">
+                <span class="icon">⭐</span>Stamp
+            </button>
+            <button class="tool-btn" id="tool-text" onclick="setTool('text')">
+                <span class="icon">🔤</span>Write
+            </button>
+            <button class="tool-btn" id="tool-eraser" onclick="setTool('eraser')">
+                <span class="icon">🧽</span>Eraser
+            </button>
+
+            <div class="divider"></div>
+            <div class="tool-section-label">Size</div>
+            <div class="size-grid">
+                <button class="size-btn" id="size-0" onclick="setSize(0)" title="Small">
+                    <span class="size-dot" style="width: 6px; height: 6px;"></span>
+                </button>
+                <button class="size-btn active" id="size-1" onclick="setSize(1)" title="Medium">
+                    <span class="size-dot" style="width: 11px; height: 11px;"></span>
+                </button>
+                <button class="size-btn" id="size-2" onclick="setSize(2)" title="Large">
+                    <span class="size-dot" style="width: 17px; height: 17px;"></span>
+                </button>
+                <button class="size-btn" id="size-3" onclick="setSize(3)" title="Extra Large">
+                    <span class="size-dot" style="width: 24px; height: 24px;"></span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- COUNT DRAWER -->
+        <aside class="side-drawer" id="count-drawer">
+            <div class="drawer-title">Counting Mode</div>
+
+            <div class="segmented-control">
+                <button class="seg-btn active" id="cmode-global" onclick="setCountMode('global')">1, 2, 3...</button>
+                <button class="seg-btn" id="cmode-color" onclick="setCountMode('color')">Per Color</button>
+            </div>
+
+            <label class="toggle-row">
+                <span>✨ Constellation</span>
+                <input type="checkbox" id="toggle-constellation" onchange="onConstellationToggle()">
+            </label>
+
+            <button class="action-btn" id="btn-break-constellation" style="justify-content: center; display: none;" onclick="breakConstellation()">
+                ✂️ New Constellation
+            </button>
+
+            <label class="toggle-row">
+                <span>🔊 Speak Numbers</span>
+                <input type="checkbox" id="toggle-speak" checked>
+            </label>
+
+            <button class="action-btn" style="justify-content: center;" onclick="resetCounterOnly()">
+                🔄 Reset Counter
+            </button>
+
+            <div class="hint-text">
+                Tap to place numbered dots. In <b>Constellation</b> mode, click <b>New Constellation</b> (or press <b>Esc</b> / right-click) to finish one shape and start another.
+            </div>
+        </aside>
+
+        <!-- STAMP DRAWER -->
+        <aside class="side-drawer" id="stamp-drawer">
+            <div class="drawer-title">Stamp Shapes</div>
+
+            <label class="toggle-row">
+                <span>🔢 Number Stamps</span>
+                <input type="checkbox" id="toggle-stamp-count">
+            </label>
+
+            <div class="control-box">
+                <label>
+                    <span>Stamp Size</span>
+                    <span id="stamp-size-label">180px</span>
+                </label>
+                <input type="range" id="stamp-size-slider" min="60" max="450" value="180" oninput="updateStampSize(this.value)">
+            </div>
+
+            <div class="stamp-grid" id="stamp-grid"></div>
+
+            <div class="divider" style="width: 100%;"></div>
+            <div class="drawer-title">Custom Stamps</div>
+
+            <label class="upload-btn">
+                📁 Load .shapes Folder
+                <input type="file" id="folder-input" webkitdirectory directory multiple style="display:none" onchange="handleFiles(this.files)">
+            </label>
+
+            <label class="upload-btn">
+                📄 Load PDF / Image
+                <input type="file" id="file-input" accept=".pdf,.svg,.png,.jpg,.jpeg,.webp" multiple style="display:none" onchange="handleFiles(this.files)">
+            </label>
+
+            <div class="hint-text">
+                Load a <b>.shapes</b> folder or any <b>PDF, SVG, or PNG</b> file to use it as a stamp!
+            </div>
+        </aside>
+
+        <!-- A4 PAPER DESK -->
+        <main class="desk-area" id="desk-area">
+            <div class="tally-bar" id="tally-bar"></div>
+            <div class="paper-container" id="paper-container">
+                <canvas id="mainCanvas" class="sheet"></canvas>
+                <canvas id="previewCanvas" class="preview"></canvas>
+                <input type="text" id="text-input-overlay" placeholder="Type...">
+            </div>
+        </main>
+    </div>
+
+    <!-- 12 COLOR PALETTE -->
+    <footer class="color-bar" id="color-bar"></footer>
+
+<script>
+    if (window.pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    const COLORS = [
+        { name: 'Black',  hex: '#1e293b' },
+        { name: 'Red',    hex: '#ef4444' },
+        { name: 'Orange', hex: '#f97316' },
+        { name: 'Yellow', hex: '#facc15' },
+        { name: 'Lime',   hex: '#84cc16' },
+        { name: 'Green',  hex: '#16a34a' },
+        { name: 'Teal',   hex: '#14b8a6' },
+        { name: 'Sky',    hex: '#0ea5e9' },
+        { name: 'Blue',   hex: '#2563eb' },
+        { name: 'Purple', hex: '#9333ea' },
+        { name: 'Pink',   hex: '#ec4899' },
+        { name: 'Brown',  hex: '#92400e' }
+    ];
+
+    const BRUSH_SIZES = [5, 12, 24, 44];
+    const DOT_RADII   = [22, 34, 48, 66];
+    const TEXT_SIZES  = [32, 54, 82, 120];
+
+    const BUILTIN_STAMPS = [
+        { name: 'Star', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><polygon points="50,6 63,36 96,39 71,61 79,94 50,76 21,94 29,61 4,39 37,36" fill="${c}" stroke="#1e293b" stroke-width="3" stroke-linejoin="round"/></svg>` },
+        { name: 'Heart', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 88 C20 65 8 46 8 30 C8 16 19 8 31 8 C40 8 47 14 50 21 C53 14 60 8 69 8 C81 8 92 16 92 30 C92 46 80 65 50 88 Z" fill="${c}" stroke="#1e293b" stroke-width="3"/></svg>` },
+        { name: 'Sun', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g stroke="${c}" stroke-width="6" stroke-linecap="round"><line x1="50" y1="6" x2="50" y2="20"/><line x1="50" y1="80" x2="50" y2="94"/><line x1="6" y1="50" x2="20" y2="50"/><line x1="80" y1="50" x2="94" y2="50"/><line x1="19" y1="19" x2="29" y2="29"/><line x1="71" y1="71" x2="81" y2="81"/><line x1="81" y1="19" x2="71" y2="29"/><line x1="29" y1="71" x2="19" y2="81"/></g><circle cx="50" cy="50" r="22" fill="${c}" stroke="#1e293b" stroke-width="3"/></svg>` },
+        { name: 'Cloud', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M25 72 H76 C86 72 93 65 93 56 C93 48 87 41 79 40 C77 27 66 18 52 18 C39 18 28 26 25 38 C15 39 7 47 7 57 C7 66 15 72 25 72 Z" fill="${c}" stroke="#1e293b" stroke-width="3"/></svg>` },
+        { name: 'Flower', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><g fill="${c}" stroke="#1e293b" stroke-width="2.5"><circle cx="50" cy="24" r="16"/><circle cx="75" cy="42" r="16"/><circle cx="65" cy="72" r="16"/><circle cx="35" cy="72" r="16"/><circle cx="25" cy="42" r="16"/></g><circle cx="50" cy="50" r="14" fill="#facc15" stroke="#1e293b" stroke-width="2.5"/></svg>` },
+        { name: 'Smiley', svg: (c) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" fill="${c}" stroke="#1e293b" stroke-width="4"/><circle cx="35" cy="40" r="5" fill="#1e293b"/><circle cx="65" cy="40" r="5" fill="#1e293b"/><path d="M30 60 Q50 80 70 60" fill="none" stroke="#1e293b" stroke-width="5" stroke-linecap="round"/></svg>` }
+    ];
+
+    // --- STATE ---
+    let currentTool = 'brush';
+    let currentColor = COLORS[0].hex;
+    let currentSizeIdx = 1;
+    let isPortrait = false;
+
+    let countMode = 'global'; // 'global' | 'color'
+    let counterState = {
+        total: 0,
+        byColor: {},
+        lastPoint: null,
+        lastPointByColor: {}
+    };
+
+    let stamps = [];
+    let activeStampIdx = 0;
+    let stampSize = 180;
+
+    let isDrawing = false;
+    let startX = 0, startY = 0;
+    let lastX = 0, lastY = 0;
+
+    const MAX_UNDO = 30;
+    let undoStack = [];
+
+    // --- ELEMENTS ---
+    const mainCanvas = document.getElementById('mainCanvas');
+    const ctx = mainCanvas.getContext('2d', { willReadFrequently: true });
+    const previewCanvas = document.getElementById('previewCanvas');
+    const pCtx = previewCanvas.getContext('2d');
+    const paperContainer = document.getElementById('paper-container');
+    const deskArea = document.getElementById('desk-area');
+    const textInput = document.getElementById('text-input-overlay');
+    const btnUndo = document.getElementById('btn-undo');
+    const tallyBar = document.getElementById('tally-bar');
+
+    const A4_SHORT = 1240;
+    const A4_LONG  = 1754;
+
+    // --- AUDIO & VOICE ---
+    let audioCtx;
+    function playPop(freq = 500, duration = 0.06) {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.4, audioCtx.currentTime + duration);
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    function speakNumber(num) {
+        if (!document.getElementById('toggle-speak').checked) return;
+        if (!('speechSynthesis' in window)) return;
+        try {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(String(num));
+            u.rate = 1.15;
+            u.pitch = 1.1;
+            window.speechSynthesis.speak(u);
+        } catch (e) {}
+    }
+
+    // --- COUNTER HELPERS ---
+    function cloneCounterState() {
+        return {
+            total: counterState.total,
+            byColor: { ...counterState.byColor },
+            lastPoint: counterState.lastPoint ? { ...counterState.lastPoint } : null,
+            lastPointByColor: JSON.parse(JSON.stringify(counterState.lastPointByColor))
+        };
+    }
+
+    function resetCounterState() {
+        counterState = { total: 0, byColor: {}, lastPoint: null, lastPointByColor: {} };
+        renderTallyBar();
+    }
+
+    function resetCounterOnly() {
+        resetCounterState();
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        saveUndoState();
+        playPop(360, 0.08);
+        setTimeout(fitPaperToDesk, 20);
+    }
+
+    function breakConstellation() {
+        counterState.lastPoint = null;
+        counterState.lastPointByColor = {};
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        playPop(420, 0.06);
+    }
+
+    function setCountMode(mode) {
+        countMode = mode;
+        document.getElementById('cmode-global').classList.toggle('active', mode === 'global');
+        document.getElementById('cmode-color').classList.toggle('active', mode === 'color');
+        playPop(520);
+    }
+
+    function onConstellationToggle() {
+        const isOn = document.getElementById('toggle-constellation').checked;
+        document.getElementById('btn-break-constellation').style.display = isOn ? 'flex' : 'none';
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        playPop(580);
+    }
+
+    function renderTallyBar() {
+        const entries = Object.entries(counterState.byColor).filter(([, count]) => count > 0);
+        if (entries.length === 0) {
+            tallyBar.classList.remove('visible');
+            tallyBar.innerHTML = '';
+            fitPaperToDesk();
+            return;
+        }
+
+        tallyBar.classList.add('visible');
+        let html = '';
+        entries.forEach(([hex, count], idx) => {
+            if (idx > 0) html += `<span class="tally-op">+</span>`;
+            html += `<span class="tally-chip"><span class="tally-dot" style="background:${hex}"></span>${count}</span>`;
+        });
+
+        if (entries.length > 1) {
+            html += `<span class="tally-op">=</span><span class="tally-total">${counterState.total}</span>`;
+        } else {
+            html += `<span class="tally-total">Total: ${counterState.total}</span>`;
+        }
+
+        tallyBar.innerHTML = html;
+        fitPaperToDesk();
+    }
+
+    function getContrastTextColor(hex) {
+        const lightHexes = ['#facc15', '#84cc16'];
+        return lightHexes.includes(hex.toLowerCase()) ? '#1e293b' : '#ffffff';
+    }
+
+    // --- CANVAS & A4 FIT ---
+    function initCanvas() {
+        mainCanvas.width  = isPortrait ? A4_SHORT : A4_LONG;
+        mainCanvas.height = isPortrait ? A4_LONG  : A4_SHORT;
+        previewCanvas.width  = mainCanvas.width;
+        previewCanvas.height = mainCanvas.height;
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+
+        resetCounterState();
+        undoStack = [];
+        saveUndoState();
+        fitPaperToDesk();
+    }
+
+    function fitPaperToDesk() {
+        const pad = 20;
+        const tallyH = tallyBar.classList.contains('visible') ? (tallyBar.offsetHeight + 12) : 0;
+        const availW = deskArea.clientWidth - pad;
+        const availH = deskArea.clientHeight - pad - tallyH;
+        const ratio = mainCanvas.width / mainCanvas.height;
+
+        let displayW = availW;
+        let displayH = displayW / ratio;
+
+        if (displayH > availH) {
+            displayH = availH;
+            displayW = displayH * ratio;
+        }
+
+        paperContainer.style.width = `${Math.max(100, Math.floor(displayW))}px`;
+        paperContainer.style.height = `${Math.max(100, Math.floor(displayH))}px`;
+    }
+
+    window.addEventListener('resize', fitPaperToDesk);
+
+    function toggleOrientation() {
+        commitTextIfActive();
+        isPortrait = !isPortrait;
+        document.getElementById('btn-orient').innerText = isPortrait ? '📄 Portrait A4' : '🖼️ Landscape A4';
+        document.getElementById('print-page-style').textContent = `@page { size: A4 ${isPortrait ? 'portrait' : 'landscape'}; margin: 0; }`;
+        playPop(440);
+        initCanvas();
+    }
+
+    // --- UNDO / CLEAR / PRINT ---
+    function updateUndoButton() {
+        btnUndo.disabled = undoStack.length <= 1;
+    }
+
+    function saveUndoState() {
+        undoStack.push({
+            imageData: ctx.getImageData(0, 0, mainCanvas.width, mainCanvas.height),
+            counter: cloneCounterState()
+        });
+        if (undoStack.length > MAX_UNDO) undoStack.shift();
+        updateUndoButton();
+    }
+
+    function undo() {
+        commitTextIfActive();
+        if (undoStack.length > 1) {
+            undoStack.pop();
+            const prev = undoStack[undoStack.length - 1];
+            ctx.putImageData(prev.imageData, 0, 0);
+            counterState = {
+                total: prev.counter.total,
+                byColor: { ...prev.counter.byColor },
+                lastPoint: prev.counter.lastPoint ? { ...prev.counter.lastPoint } : null,
+                lastPointByColor: JSON.parse(JSON.stringify(prev.counter.lastPointByColor))
+            };
+            renderTallyBar();
+            updateUndoButton();
+            playPop(320);
+        }
+    }
+
+    function clearSheet() {
+        commitTextIfActive();
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        resetCounterState();
+        saveUndoState();
+        playPop(220, 0.12);
+    }
+
+    function printSheet() {
+        commitTextIfActive();
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        window.print();
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && document.activeElement !== textInput) {
+            e.preventDefault();
+            undo();
+        } else if (e.key === 'Escape' && currentTool === 'count' && document.activeElement !== textInput) {
+            breakConstellation();
+        }
+    });
+
+    // Right-click on canvas in Count mode breaks the constellation
+    mainCanvas.addEventListener('contextmenu', (e) => {
+        if (currentTool === 'count') {
+            e.preventDefault();
+            breakConstellation();
+        }
+    });
+
+    // --- COLORS & TOOLS ---
+    function initColors() {
+        const bar = document.getElementById('color-bar');
+        bar.innerHTML = '';
+        COLORS.forEach((c, idx) => {
+            const swatch = document.createElement('button');
+            swatch.className = 'color-swatch' + (idx === 0 ? ' active' : '');
+            swatch.style.background = c.hex;
+            swatch.title = c.name;
+            swatch.onclick = () => selectColor(c.hex, swatch);
+            bar.appendChild(swatch);
+        });
+    }
+
+    function selectColor(hex, el) {
+        currentColor = hex;
+        document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        if (currentTool === 'eraser') setTool('brush');
+        if (textInput.style.display === 'block') textInput.style.color = currentColor;
+        refreshBuiltinStampPreviews();
+        playPop(580);
+    }
+
+    function setTool(tool) {
+        commitTextIfActive();
+        currentTool = tool;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`tool-${tool}`).classList.add('active');
+
+        document.getElementById('stamp-drawer').classList.toggle('open', tool === 'stamp');
+        document.getElementById('count-drawer').classList.toggle('open', tool === 'count');
+
+        pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        mainCanvas.style.cursor = (tool === 'text') ? 'text' : 'crosshair';
+        setTimeout(fitPaperToDesk, 20);
+        playPop(480);
+    }
+
+    function setSize(idx) {
+        currentSizeIdx = idx;
+        document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`size-${idx}`).classList.add('active');
+        playPop(380 + idx * 80);
+    }
+
+    function updateStampSize(val) {
+        stampSize = parseInt(val);
+        document.getElementById('stamp-size-label').innerText = `${stampSize}px`;
+    }
+
+    // --- STAMPS (Persistent Data URLs so thumbnails always render) ---
+    function svgToImage(svgString) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+            img.onload = () => resolve(img);
+            img.src = dataUrl;
+        });
+    }
+
+    async function initBuiltinStamps() {
+        for (const item of BUILTIN_STAMPS) {
+            const img = await svgToImage(item.svg(currentColor));
+            stamps.push({
+                name: item.name,
+                type: 'svg',
+                svgFn: item.svg,
+                img: img,
+                isPdf: false
+            });
+        }
+        renderStampGrid();
+    }
+
+    async function refreshBuiltinStampPreviews() {
+        for (const s of stamps) {
+            if (s.type === 'svg' && s.svgFn) {
+                s.img = await svgToImage(s.svgFn(currentColor));
+            }
+        }
+        renderStampGrid();
+    }
+
+    function renderStampGrid() {
+        const grid = document.getElementById('stamp-grid');
+        grid.innerHTML = '';
+        stamps.forEach((s, idx) => {
+            const card = document.createElement('div');
+            card.className = 'stamp-item' + (idx === activeStampIdx ? ' active' : '');
+            card.onclick = () => {
+                activeStampIdx = idx;
+                renderStampGrid();
+                playPop(620);
+            };
+
+            const imgEl = document.createElement('img');
+            imgEl.src = s.img.src;
+            imgEl.alt = s.name;
+            card.appendChild(imgEl);
+
+            const lbl = document.createElement('div');
+            lbl.className = 'stamp-label';
+            lbl.innerText = s.name;
+            card.appendChild(lbl);
+
+            grid.appendChild(card);
+        });
+    }
+
+    async function handleFiles(fileList) {
+        if (!fileList || fileList.length === 0) return;
+
+        let addedCount = 0;
+        for (const file of Array.from(fileList)) {
+            const name = file.name.replace(/\.[^/.]+$/, '');
+            const ext = file.name.split('.').pop().toLowerCase();
+
+            if (ext === 'pdf') {
+                const img = await renderPdfToImage(file);
+                if (img) {
+                    stamps.push({ name, type: 'pdf', img, isPdf: true });
+                    addedCount++;
+                }
+            } else if (['png', 'jpg', 'jpeg', 'webp', 'svg'].includes(ext)) {
+                const img = await loadImageFile(file);
+                if (img) {
+                    stamps.push({ name, type: 'image', img, isPdf: false });
+                    addedCount++;
+                }
+            }
+        }
+
+        if (addedCount > 0) {
+            activeStampIdx = stamps.length - 1;
+            renderStampGrid();
+            playPop(700, 0.1);
+        }
+    }
+
+    function loadImageFile(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function renderPdfToImage(file) {
+        if (!window.pdfjsLib) {
+            alert('PDF stamps require an internet connection to load PDF.js. SVG and PNG stamps work 100% offline!');
+            return null;
+        }
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            const page = await pdf.getPage(1);
+            const viewport = page.getViewport({ scale: 2.0 });
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = viewport.width;
+            offCanvas.height = viewport.height;
+            const offCtx = offCanvas.getContext('2d');
+
+            await page.render({ canvasContext: offCtx, viewport }).promise;
+
+            return await new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.src = offCanvas.toDataURL('image/png');
+            });
+        } catch (err) {
+            console.error('PDF render error:', err);
+            alert(`Could not load PDF "${file.name}".`);
+            return null;
+        }
+    }
+
+    // --- DRAWING ---
+    function getCanvasPos(e) {
+        const rect = mainCanvas.getBoundingClientRect();
+        return {
+            x: (e.clientX - rect.left) * (mainCanvas.width / rect.width),
+            y: (e.clientY - rect.top) * (mainCanvas.height / rect.height),
+            cssX: e.clientX - rect.left,
+            cssY: e.clientY - rect.top,
+            scale: rect.width / mainCanvas.width
+        };
+    }
+
+    function drawStampOnContext(targetCtx, stamp, x, y, size, alpha = 1.0) {
+        if (!stamp || !stamp.img) return;
+        const aspect = stamp.img.width / stamp.img.height;
+        let drawW = size;
+        let drawH = size / aspect;
+        if (aspect < 1) {
+            drawH = size;
+            drawW = size * aspect;
+        }
+
+        targetCtx.save();
+        targetCtx.globalAlpha = alpha;
+        if (stamp.isPdf && alpha === 1.0) {
+            targetCtx.globalCompositeOperation = 'multiply';
+        }
+        targetCtx.drawImage(stamp.img, x - drawW / 2, y - drawH / 2, drawW, drawH);
+        targetCtx.restore();
+    }
+
+    function placeNumberedDot(x, y) {
+        counterState.total += 1;
+        counterState.byColor[currentColor] = (counterState.byColor[currentColor] || 0) + 1;
+        const displayNum = (countMode === 'color') ? counterState.byColor[currentColor] : counterState.total;
+
+        const r = DOT_RADII[currentSizeIdx];
+        const useConstellation = document.getElementById('toggle-constellation').checked;
+        const prevPt = (countMode === 'color') ? counterState.lastPointByColor[currentColor] : counterState.lastPoint;
+
+        if (useConstellation && prevPt) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.setLineDash([12, 10]);
+            ctx.moveTo(prevPt.x, prevPt.y);
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = currentColor;
+            ctx.globalAlpha = 0.45;
+            ctx.lineWidth = Math.max(4, r * 0.16);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = currentColor;
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        ctx.fillStyle = getContrastTextColor(currentColor);
+        const fontSize = displayNum >= 100 ? r * 0.72 : (displayNum >= 10 ? r * 0.92 : r * 1.15);
+        ctx.font = `900 ${fontSize}px 'Segoe UI', system-ui, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(displayNum), x, y + 2);
+        ctx.restore();
+
+        const pt = { x, y, color: currentColor };
+        counterState.lastPoint = pt;
+        counterState.lastPointByColor[currentColor] = pt;
+
+        renderTallyBar();
+        saveUndoState();
+        playPop(380 + Math.min(displayNum, 20) * 28, 0.08);
+        speakNumber(displayNum);
+    }
+
+    mainCanvas.addEventListener('pointerdown', (e) => {
+        if (e.button === 2) return; // Ignore right-click drawing
+        const pos = getCanvasPos(e);
+
+        if (currentTool === 'text') {
+            commitTextIfActive();
+            openTextInput(pos);
+            return;
+        }
+
+        if (currentTool === 'count') {
+            placeNumberedDot(pos.x, pos.y);
+            return;
+        }
+
+        if (currentTool === 'stamp') {
+            const stamp = stamps[activeStampIdx];
+            drawStampOnContext(ctx, stamp, pos.x, pos.y, stampSize, 1.0);
+
+            if (document.getElementById('toggle-stamp-count').checked) {
+                counterState.total += 1;
+                counterState.byColor[currentColor] = (counterState.byColor[currentColor] || 0) + 1;
+                const displayNum = (countMode === 'color') ? counterState.byColor[currentColor] : counterState.total;
+
+                const badgeR = Math.max(18, stampSize * 0.14);
+                const bx = pos.x + stampSize * 0.36;
+                const by = pos.y + stampSize * 0.36;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(bx, by, badgeR, 0, Math.PI * 2);
+                ctx.fillStyle = currentColor;
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.fillStyle = getContrastTextColor(currentColor);
+                ctx.font = `900 ${badgeR * 1.1}px 'Segoe UI', system-ui, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(displayNum), bx, by + 1);
+                ctx.restore();
+
+                renderTallyBar();
+                speakNumber(displayNum);
+            }
+
+            saveUndoState();
+            playPop(640, 0.08);
+            return;
+        }
+
+        isDrawing = true;
+        mainCanvas.setPointerCapture(e.pointerId);
+        startX = lastX = pos.x;
+        startY = lastY = pos.y;
+
+        if (currentTool === 'brush' || currentTool === 'eraser') {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, getStrokeWidth() / 2, 0, Math.PI * 2);
+            ctx.fillStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+            ctx.fill();
+        }
+    });
+
+    mainCanvas.addEventListener('pointermove', (e) => {
+        const pos = getCanvasPos(e);
+
+        if (currentTool === 'stamp') {
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            drawStampOnContext(pCtx, stamps[activeStampIdx], pos.x, pos.y, stampSize, 0.45);
+            return;
+        }
+
+        if (currentTool === 'count') {
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            const r = DOT_RADII[currentSizeIdx];
+            const useConstellation = document.getElementById('toggle-constellation').checked;
+            const prevPt = (countMode === 'color') ? counterState.lastPointByColor[currentColor] : counterState.lastPoint;
+
+            if (useConstellation && prevPt) {
+                pCtx.save();
+                pCtx.beginPath();
+                pCtx.setLineDash([12, 10]);
+                pCtx.moveTo(prevPt.x, prevPt.y);
+                pCtx.lineTo(pos.x, pos.y);
+                pCtx.strokeStyle = currentColor;
+                pCtx.globalAlpha = 0.35;
+                pCtx.lineWidth = Math.max(4, r * 0.16);
+                pCtx.stroke();
+                pCtx.restore();
+            }
+
+            pCtx.save();
+            pCtx.beginPath();
+            pCtx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
+            pCtx.fillStyle = currentColor;
+            pCtx.globalAlpha = 0.35;
+            pCtx.fill();
+            pCtx.restore();
+            return;
+        }
+
+        if (!isDrawing) return;
+
+        if (currentTool === 'brush' || currentTool === 'eraser') {
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = currentTool === 'eraser' ? '#ffffff' : currentColor;
+            ctx.lineWidth = getStrokeWidth();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            lastX = pos.x;
+            lastY = pos.y;
+        } else if (currentTool === 'line') {
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            pCtx.beginPath();
+            pCtx.moveTo(startX, startY);
+            pCtx.lineTo(pos.x, pos.y);
+            pCtx.strokeStyle = currentColor;
+            pCtx.lineWidth = getStrokeWidth();
+            pCtx.lineCap = 'round';
+            pCtx.stroke();
+        }
+    });
+
+    mainCanvas.addEventListener('pointerup', (e) => {
+        if (!isDrawing) return;
+        isDrawing = false;
+
+        if (currentTool === 'line') {
+            const pos = getCanvasPos(e);
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.strokeStyle = currentColor;
+            ctx.lineWidth = getStrokeWidth();
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            playPop(520, 0.05);
+        }
+
+        saveUndoState();
+    });
+
+    mainCanvas.addEventListener('pointerleave', () => {
+        if (currentTool === 'stamp' || currentTool === 'count') {
+            pCtx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        }
+    });
+
+    function getStrokeWidth() {
+        const base = BRUSH_SIZES[currentSizeIdx];
+        return currentTool === 'eraser' ? base * 2.2 : base;
+    }
+
+    // --- INLINE WRITING TOOL ---
+    let activeTextPos = null;
+
+    function openTextInput(pos) {
+        activeTextPos = pos;
+        const fontSizeCanvas = TEXT_SIZES[currentSizeIdx];
+        const fontSizeCss = Math.max(14, fontSizeCanvas * pos.scale);
+
+        textInput.value = '';
+        textInput.style.display = 'block';
+        textInput.style.left = `${pos.cssX}px`;
+        textInput.style.top = `${pos.cssY - fontSizeCss * 0.6}px`;
+        textInput.style.fontSize = `${fontSizeCss}px`;
+        textInput.style.color = currentColor;
+
+        setTimeout(() => textInput.focus(), 10);
+    }
+
+    function commitTextIfActive() {
+        if (textInput.style.display !== 'block' || !activeTextPos) return;
+
+        const text = textInput.value.trim();
+        textInput.style.display = 'none';
+        textInput.value = '';
+
+        if (text.length > 0) {
+            const fontSizeCanvas = TEXT_SIZES[currentSizeIdx];
+            ctx.save();
+            ctx.font = `bold ${fontSizeCanvas}px 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif`;
+            ctx.fillStyle = currentColor;
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, activeTextPos.x, activeTextPos.y);
+            ctx.restore();
+            saveUndoState();
+            playPop(680, 0.06);
+        }
+
+        activeTextPos = null;
+    }
+
+    textInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            commitTextIfActive();
+        } else if (e.key === 'Escape') {
+            textInput.style.display = 'none';
+            textInput.value = '';
+            activeTextPos = null;
+        }
+    });
+
+    textInput.addEventListener('blur', () => {
+        commitTextIfActive();
+    });
+
+    // --- BOOT ---
+    initColors();
+    initBuiltinStamps();
+    initCanvas();
+</script>
+</body>
+</html>

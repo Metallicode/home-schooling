@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Fractal Forge</title>
+    <style>
+        :root {
+            --bg-dark: #050508;
+            --panel-bg: #0e1017;
+            --card-bg: #151924;
+            --border: #252b3b;
+            --cyan: #00e5ff;
+            --pink: #ff4081;
+            --yellow: #ffeb3b;
+            --green: #00e676;
+            --text: #f1f5f9;
+            --muted: #8b95a8;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- TOP BAR --- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--cyan);
+            text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+            letter-spacing: 1.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #1b2030;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { border-color: var(--cyan); color: var(--cyan); transform: translateY(-1px); }
+        .btn:active { transform: scale(0.96); }
+        .btn.active {
+            background: var(--pink);
+            border-color: var(--pink);
+            color: #fff;
+            box-shadow: 0 0 16px rgba(255, 64, 129, 0.45);
+        }
+        .btn.surprise {
+            background: #2b2608;
+            border-color: var(--yellow);
+            color: var(--yellow);
+        }
+        .btn.surprise:hover {
+            background: #3d350a;
+            box-shadow: 0 0 15px rgba(255, 235, 59, 0.35);
+        }
+
+        /* --- MAIN WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* --- LEFT CONTROL SIDEBAR --- */
+        .sidebar {
+            width: 320px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section-card.custom-highlight {
+            border-color: var(--pink);
+            box-shadow: 0 0 15px rgba(255, 64, 129, 0.15);
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Algorithm Buttons (2x2 Grid) */
+        .algo-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .algo-btn {
+            background: #0e1017;
+            color: var(--muted);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 6px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .algo-btn .icon { font-size: 16px; }
+        .algo-btn:hover { border-color: var(--cyan); color: #fff; }
+        .algo-btn.active {
+            background: rgba(0, 229, 255, 0.14);
+            border-color: var(--cyan);
+            color: var(--cyan);
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+        }
+        .algo-btn.custom-btn.active {
+            background: rgba(255, 64, 129, 0.18);
+            border-color: var(--pink);
+            color: var(--pink);
+            box-shadow: 0 0 12px rgba(255, 64, 129, 0.3);
+        }
+
+        /* Interactive Pads */
+        .pad-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mini-pad {
+            width: 100%;
+            height: 145px;
+            background: radial-gradient(circle at center, #111827 0%, #07090e 100%);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            cursor: crosshair;
+            touch-action: none;
+            display: block;
+        }
+
+        .preset-row {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .mini-btn {
+            background: #0e1017;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 5px 8px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .mini-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+        .mini-btn.active { background: var(--cyan); color: #000; border-color: var(--cyan); }
+        .mini-btn.pink-active { background: var(--pink); color: #fff; border-color: var(--pink); }
+
+        .pad-hint {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            line-height: 1.3;
+        }
+
+        /* Sliders */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .slider-val { color: var(--cyan); }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #252b3b;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            cursor: pointer;
+        }
+
+        /* Color Theme Pills */
+        .theme-row {
+            display: flex;
+            gap: 6px;
+            justify-content: space-between;
+        }
+        .theme-dot {
+            flex: 1;
+            height: 26px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .theme-dot:hover { transform: scale(1.06); }
+        .theme-dot.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        /* --- MAIN FRACTAL STAGE --- */
+        .stage {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0e1420 0%, #030407 100%);
+            overflow: hidden;
+        }
+
+        #fractalCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: grab;
+            touch-action: none;
+        }
+        #fractalCanvas:active { cursor: grabbing; }
+
+        .hud-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: rgba(10, 12, 18, 0.78);
+            border: 1px solid var(--border);
+            padding: 7px 14px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--muted);
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+        }
+        .hud-badge strong { color: var(--yellow); }
+
+        .zoom-controls {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .zoom-btn {
+            background: rgba(14, 16, 23, 0.85);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .zoom-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+        @media (max-width: 780px) {
+            .workspace { flex-direction: column-reverse; }
+            .sidebar { width: 100%; height: 48vh; border-right: none; border-top: 1px solid var(--border); }
+            .stage { height: 52vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <a class="btn" href="index.html" title="Back to Home" style="text-decoration:none; text-shadow:none; letter-spacing:normal;">🏠 Home</a>
+            ❄️ The Fractal Forge
+        </div>
+        <div class="top-actions">
+            <button class="btn surprise" onclick="surpriseMe()">🎲 Surprise Me</button>
+            <button class="btn" id="btn-dance" onclick="toggleDance()">✨ Dance</button>
+            <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 Sound</button>
+            <button class="btn" onclick="saveImage()">📸 Save PNG</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+
+            <!-- 1. ALGORITHM PICKER -->
+            <div class="section-card">
+                <div class="section-label">1. Fractal Engine</div>
+                <div class="algo-grid">
+                    <button class="algo-btn active" id="algo-edge" onclick="setAlgo('edge')">
+                        <span class="icon">❄️</span>Edge Morph
+                    </button>
+                    <button class="algo-btn" id="algo-orbit" onclick="setAlgo('orbit')">
+                        <span class="icon">🌀</span>Orbit
+                    </button>
+                    <button class="algo-btn" id="algo-tree" onclick="setAlgo('tree')">
+                        <span class="icon">🌿</span>Crystal Tree
+                    </button>
+                    <button class="algo-btn custom-btn" id="algo-custom" onclick="setAlgo('custom')">
+                        <span class="icon">✏️</span>My Rule
+                    </button>
+                </div>
+            </div>
+
+            <!-- 1B. USER RULE GENERATOR PAD (Only visible in My Rule mode) -->
+            <div class="section-card custom-highlight" id="custom-rule-card" style="display: none;">
+                <div class="section-label">
+                    <span style="color: var(--pink);">✏️ Your Rule (A → B)</span>
+                    <button class="mini-btn" id="btn-mirror" onclick="toggleRuleMirror()" title="Alternate flipping the rule at each step">Mirror: Off</button>
+                </div>
+                <div class="pad-wrapper">
+                    <canvas id="rulePad" class="mini-pad"></canvas>
+                    <div class="preset-row">
+                        <button class="mini-btn" onclick="loadRulePreset('bolt')">Bolt</button>
+                        <button class="mini-btn" onclick="loadRulePreset('wave')">Wave</button>
+                        <button class="mini-btn" onclick="loadRulePreset('castle')">Castle</button>
+                        <button class="mini-btn" onclick="loadRulePreset('hook')">Hook</button>
+                        <button class="mini-btn" onclick="removeRulePoint()" title="Remove last bend">− Bend</button>
+                    </div>
+                    <div class="pad-hint">Every line of your Base Shape turns into this path! Drag yellow dots or tap to add bends.</div>
+                </div>
+            </div>
+
+            <!-- 2. BASE SHAPE SCULPTOR -->
+            <div class="section-card">
+                <div class="section-label">
+                    <span>2. Base Shape</span>
+                    <button class="mini-btn" id="btn-closed" onclick="toggleClosed()">Closed Loop</button>
+                </div>
+                <div class="pad-wrapper">
+                    <canvas id="shapePad" class="mini-pad"></canvas>
+                    <div class="preset-row">
+                        <button class="mini-btn" onclick="loadPreset('line')">Line</button>
+                        <button class="mini-btn" onclick="loadPreset('triangle')">Triangle</button>
+                        <button class="mini-btn" onclick="loadPreset('square')">Square</button>
+                        <button class="mini-btn" onclick="loadPreset('pentagon')">Pentagon</button>
+                        <button class="mini-btn" onclick="loadPreset('star')">Star</button>
+                        <button class="mini-btn" onclick="removePoint()" title="Remove last corner">− Pt</button>
+                    </div>
+                    <div class="pad-hint">Drag glowing dots to bend the base shape, or tap empty space to add a corner.</div>
+                </div>
+            </div>
+
+            <!-- 3. PARAMETERS -->
+            <div class="section-card">
+                <div class="section-label">3. Shape Controls</div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Depth (Steps)</span>
+                        <span class="slider-val" id="val-depth">4</span>
+                    </div>
+                    <input type="range" id="sl-depth" min="1" max="6" step="1" value="4" oninput="onParamChange()">
+                </div>
+
+                <div class="slider-group" id="group-scale">
+                    <div class="slider-header">
+                        <span id="lbl-scale">Shrink / Size</span>
+                        <span class="slider-val" id="val-scale">0.50</span>
+                    </div>
+                    <input type="range" id="sl-scale" min="0.22" max="0.78" step="0.01" value="0.50" oninput="onParamChange()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span id="lbl-twist">Twist / Tilt</span>
+                        <span class="slider-val" id="val-twist">0°</span>
+                    </div>
+                    <input type="range" id="sl-twist" min="-180" max="180" step="1" value="0" oninput="onParamChange()">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span id="lbl-spread">Spike Height</span>
+                        <span class="slider-val" id="val-spread">0.35</span>
+                    </div>
+                    <input type="range" id="sl-spread" min="-0.85" max="0.95" step="0.01" value="0.35" oninput="onParamChange()">
+                </div>
+            </div>
+
+            <!-- 4. COLORS -->
+            <div class="section-card">
+                <div class="section-label">4. Glow Palette</div>
+                <div class="theme-row">
+                    <button class="theme-dot active" id="th-cyber" onclick="setTheme('cyber')" title="Neon Cyber" style="background: linear-gradient(135deg, #00e5ff, #ff4081, #ffeb3b);"></button>
+                    <button class="theme-dot" id="th-rainbow" onclick="setTheme('rainbow')" title="Rainbow" style="background: linear-gradient(135deg, #ff1744, #ffeb3b, #00e676, #2979ff);"></button>
+                    <button class="theme-dot" id="th-fire" onclick="setTheme('fire')" title="Solar Fire" style="background: linear-gradient(135deg, #ffeb3b, #ff6d00, #ff1744);"></button>
+                    <button class="theme-dot" id="th-ocean" onclick="setTheme('ocean')" title="Deep Ocean" style="background: linear-gradient(135deg, #e0f7fa, #00e5ff, #3d5afe);"></button>
+                    <button class="theme-dot" id="th-ice" onclick="setTheme('ice')" title="Crystal Ice" style="background: linear-gradient(135deg, #ffffff, #80deea);"></button>
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- MAIN CANVAS STAGE -->
+        <main class="stage">
+            <div class="hud-badge" id="hud-stats">Depth <strong>4</strong> • <strong>768</strong> pieces</div>
+            <canvas id="fractalCanvas"></canvas>
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomBy(1.25)">＋</button>
+                <button class="zoom-btn" onclick="zoomBy(0.8)">－</button>
+                <button class="zoom-btn" onclick="resetCamera()">⌖ Reset View</button>
+            </div>
+        </main>
+    </div>
+
+<script>
+    // --- AUDIO ENGINE ---
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function playTone(freq = 440, dur = 0.08, type = 'sine') {
+        if (!soundEnabled) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(freq * 1.18, audioCtx.currentTime + dur);
+            gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+            osc.start();
+            osc.stop(audioCtx.currentTime + dur);
+        } catch (e) {}
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+        if (soundEnabled) playTone(520);
+    }
+
+    // --- STATE ---
+    let algo = 'edge'; // 'edge' | 'orbit' | 'tree' | 'custom'
+    let theme = 'cyber';
+    let isClosed = true;
+    let isDancing = false;
+    let danceTime = 0;
+
+    // Base shape vertices in normalized [-1, 1] coordinates
+    let basePoints = [];
+
+    // Custom Rule intermediate points in normalized A=(0,0) -> B=(1,0) space
+    // u = progress along segment (0..1), v = perpendicular offset (-0.7..0.7)
+    let rulePoints = [
+        { u: 0.35, v: -0.35 },
+        { u: 0.65, v: 0.35 }
+    ];
+    let ruleMirror = false;
+
+    // Camera for main canvas
+    let cam = { x: 0, y: 0, zoom: 1 };
+    let isPanning = false;
+    let panStart = { x: 0, y: 0 };
+
+    // Params
+    let params = {
+        depth: 4,
+        scale: 0.50,
+        twist: 0,
+        spread: 0.35
+    };
+
+    const THEMES = {
+        cyber:   ['#00e5ff', '#ff4081', '#ffeb3b', '#b388ff', '#00e676', '#00b0ff'],
+        fire:    ['#ffeb3b', '#ffc400', '#ff9100', '#ff3d00', '#ff1744', '#d500f9'],
+        ocean:   ['#e0f7fa', '#00e5ff', '#00b0ff', '#2979ff', '#536dfe', '#7c4dff'],
+        ice:     ['#ffffff', '#e0f7fa', '#80deea', '#4dd0e1', '#26c6da', '#00bcd4']
+    };
+
+    function getColor(depthIdx, maxD, extra = 0) {
+        if (theme === 'rainbow') {
+            const hue = (depthIdx * 52 + extra * 18 + danceTime * 20) % 360;
+            return `hsl(${hue}, 95%, 62%)`;
+        }
+        const pal = THEMES[theme];
+        return pal[(depthIdx + extra) % pal.length];
+    }
+
+    // --- PRESET BASE SHAPES ---
+    function loadPreset(name) {
+        basePoints = [];
+        if (name === 'line') {
+            isClosed = false;
+            basePoints = [{ x: -0.78, y: 0.05 }, { x: 0.78, y: 0.05 }];
+        } else if (name === 'triangle') {
+            isClosed = true;
+            for (let i = 0; i < 3; i++) {
+                const a = -Math.PI / 2 + (i * 2 * Math.PI) / 3;
+                basePoints.push({ x: Math.cos(a) * 0.72, y: Math.sin(a) * 0.72 });
+            }
+        } else if (name === 'square') {
+            isClosed = true;
+            for (let i = 0; i < 4; i++) {
+                const a = -Math.PI / 4 + (i * Math.PI) / 2;
+                basePoints.push({ x: Math.cos(a) * 0.72, y: Math.sin(a) * 0.72 });
+            }
+        } else if (name === 'pentagon') {
+            isClosed = true;
+            for (let i = 0; i < 5; i++) {
+                const a = -Math.PI / 2 + (i * 2 * Math.PI) / 5;
+                basePoints.push({ x: Math.cos(a) * 0.72, y: Math.sin(a) * 0.72 });
+            }
+        } else if (name === 'star') {
+            isClosed = true;
+            for (let i = 0; i < 10; i++) {
+                const a = -Math.PI / 2 + (i * Math.PI) / 5;
+                const r = i % 2 === 0 ? 0.78 : 0.34;
+                basePoints.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+            }
+        }
+
+        updateClosedBtn();
+        drawShapePad();
+        renderFractal();
+        playTone(480);
+    }
+
+    function toggleClosed() {
+        isClosed = !isClosed;
+        updateClosedBtn();
+        drawShapePad();
+        renderFractal();
+        playTone(420);
+    }
+
+    function updateClosedBtn() {
+        const btn = document.getElementById('btn-closed');
+        btn.innerText = isClosed ? 'Closed Loop' : 'Open Line';
+        btn.classList.toggle('active', isClosed);
+    }
+
+    function removePoint() {
+        if (basePoints.length > 2) {
+            basePoints.pop();
+            drawShapePad();
+            renderFractal();
+            playTone(300);
+        }
+    }
+
+    // --- CUSTOM RULE PRESETS & CONTROLS ---
+    function loadRulePreset(name) {
+        if (name === 'bolt') {
+            rulePoints = [{ u: 0.42, v: -0.34 }, { u: 0.58, v: 0.34 }];
+        } else if (name === 'wave') {
+            rulePoints = [{ u: 0.25, v: -0.32 }, { u: 0.50, v: 0.0 }, { u: 0.75, v: 0.32 }];
+        } else if (name === 'castle') {
+            rulePoints = [{ u: 0.33, v: 0.0 }, { u: 0.33, v: -0.35 }, { u: 0.67, v: -0.35 }, { u: 0.67, v: 0.0 }];
+        } else if (name === 'hook') {
+            rulePoints = [{ u: 0.5, v: -0.45 }];
+        }
+        drawRulePad();
+        renderFractal();
+        playTone(580, 0.07);
+    }
+
+    function toggleRuleMirror() {
+        ruleMirror = !ruleMirror;
+        const btn = document.getElementById('btn-mirror');
+        btn.innerText = ruleMirror ? 'Mirror: On' : 'Mirror: Off';
+        btn.classList.toggle('pink-active', ruleMirror);
+        renderFractal();
+        playTone(520);
+    }
+
+    function removeRulePoint() {
+        if (rulePoints.length > 1) {
+            rulePoints.pop();
+            drawRulePad();
+            renderFractal();
+            playTone(300);
+        }
+    }
+
+    // --- RULE PAD INTERACTION ---
+    const ruleCanvas = document.getElementById('rulePad');
+    const ruleCtx = ruleCanvas.getContext('2d');
+    let draggingRuleIdx = -1;
+
+    function resizeRulePad() {
+        if (algo !== 'custom') return;
+        const rect = ruleCanvas.getBoundingClientRect();
+        if (rect.width === 0) return;
+        const dpr = window.devicePixelRatio || 1;
+        ruleCanvas.width = rect.width * dpr;
+        ruleCanvas.height = rect.height * dpr;
+        drawRulePad();
+    }
+
+    function ruleToPad(u, v, w, h) {
+        const padX = 28;
+        const span = w - padX * 2;
+        return {
+            x: padX + u * span,
+            y: h / 2 + v * span * 0.75
+        };
+    }
+
+    function padToRule(e) {
+        const rect = ruleCanvas.getBoundingClientRect();
+        const padX = 28;
+        const span = rect.width - padX * 2;
+        const u = Math.max(-0.15, Math.min(1.15, (e.clientX - rect.left - padX) / span));
+        const v = Math.max(-0.58, Math.min(0.58, (e.clientY - rect.top - rect.height / 2) / (span * 0.75)));
+        return { u, v };
+    }
+
+    function drawRulePad() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = ruleCanvas.width / dpr;
+        const h = ruleCanvas.height / dpr;
+        if (w === 0) return;
+
+        ruleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ruleCtx.clearRect(0, 0, w, h);
+
+        const pStart = ruleToPad(0, 0, w, h);
+        const pEnd = ruleToPad(1, 0, w, h);
+
+        // Baseline A -> B reference
+        ruleCtx.save();
+        ruleCtx.setLineDash([4, 4]);
+        ruleCtx.strokeStyle = 'rgba(255,255,255,0.18)';
+        ruleCtx.lineWidth = 1.5;
+        ruleCtx.beginPath();
+        ruleCtx.moveTo(pStart.x, pStart.y);
+        ruleCtx.lineTo(pEnd.x, pEnd.y);
+        ruleCtx.stroke();
+        ruleCtx.restore();
+
+        // Draw user's custom rule polyline
+        ruleCtx.beginPath();
+        ruleCtx.moveTo(pStart.x, pStart.y);
+        rulePoints.forEach(rp => {
+            const p = ruleToPad(rp.u, rp.v, w, h);
+            ruleCtx.lineTo(p.x, p.y);
+        });
+        ruleCtx.lineTo(pEnd.x, pEnd.y);
+        ruleCtx.strokeStyle = '#ff4081';
+        ruleCtx.lineWidth = 3;
+        ruleCtx.stroke();
+
+        // Fixed A and B endpoints
+        [
+            { p: pStart, color: '#00e676', lbl: 'A' },
+            { p: pEnd,   color: '#ff4081', lbl: 'B' }
+        ].forEach(end => {
+            ruleCtx.beginPath();
+            ruleCtx.arc(end.p.x, end.p.y, 7, 0, Math.PI * 2);
+            ruleCtx.fillStyle = end.color;
+            ruleCtx.fill();
+            ruleCtx.fillStyle = '#050508';
+            ruleCtx.font = 'bold 10px Courier New';
+            ruleCtx.textAlign = 'center';
+            ruleCtx.textBaseline = 'middle';
+            ruleCtx.fillText(end.lbl, end.p.x, end.p.y + 0.5);
+        });
+
+        // Draggable yellow bend handles
+        rulePoints.forEach((rp, i) => {
+            const p = ruleToPad(rp.u, rp.v, w, h);
+            ruleCtx.beginPath();
+            ruleCtx.arc(p.x, p.y, draggingRuleIdx === i ? 8 : 6.5, 0, Math.PI * 2);
+            ruleCtx.fillStyle = draggingRuleIdx === i ? '#00e5ff' : '#ffeb3b';
+            ruleCtx.fill();
+            ruleCtx.strokeStyle = '#050508';
+            ruleCtx.lineWidth = 2;
+            ruleCtx.stroke();
+        });
+    }
+
+    ruleCanvas.addEventListener('pointerdown', (e) => {
+        const rect = ruleCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let hit = -1;
+        rulePoints.forEach((rp, i) => {
+            const p = ruleToPad(rp.u, rp.v, rect.width, rect.height);
+            if (Math.hypot(mx - p.x, my - p.y) < 16) hit = i;
+        });
+
+        if (hit !== -1) {
+            draggingRuleIdx = hit;
+        } else if (rulePoints.length < 5) {
+            const newPt = padToRule(e);
+            // Insert sorted by u so the path stays intuitive
+            let insertIdx = rulePoints.findIndex(rp => rp.u > newPt.u);
+            if (insertIdx === -1) insertIdx = rulePoints.length;
+            rulePoints.splice(insertIdx, 0, newPt);
+            draggingRuleIdx = insertIdx;
+            playTone(680, 0.06);
+        }
+
+        if (draggingRuleIdx !== -1) {
+            ruleCanvas.setPointerCapture(e.pointerId);
+            drawRulePad();
+            renderFractal();
+        }
+    });
+
+    ruleCanvas.addEventListener('pointermove', (e) => {
+        if (draggingRuleIdx === -1) return;
+        rulePoints[draggingRuleIdx] = padToRule(e);
+        drawRulePad();
+        renderFractal();
+    });
+
+    ruleCanvas.addEventListener('pointerup', () => {
+        draggingRuleIdx = -1;
+        drawRulePad();
+    });
+
+    // --- BASE SHAPE PAD INTERACTION ---
+    const padCanvas = document.getElementById('shapePad');
+    const padCtx = padCanvas.getContext('2d');
+    let draggingPtIdx = -1;
+
+    function resizePad() {
+        const rect = padCanvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        padCanvas.width = rect.width * dpr;
+        padCanvas.height = rect.height * dpr;
+        drawShapePad();
+    }
+
+    function padToNorm(e) {
+        const rect = padCanvas.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const radius = Math.min(rect.width, rect.height) * 0.44;
+        return {
+            x: Math.max(-1, Math.min(1, (e.clientX - rect.left - cx) / radius)),
+            y: Math.max(-1, Math.min(1, (e.clientY - rect.top - cy) / radius))
+        };
+    }
+
+    function normToPad(pt, w, h) {
+        const cx = w / 2;
+        const cy = h / 2;
+        const radius = Math.min(w, h) * 0.44;
+        return { x: cx + pt.x * radius, y: cy + pt.y * radius };
+    }
+
+    function drawShapePad() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = padCanvas.width / dpr;
+        const h = padCanvas.height / dpr;
+        padCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        padCtx.clearRect(0, 0, w, h);
+
+        padCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+        padCtx.lineWidth = 1;
+        padCtx.beginPath();
+        padCtx.moveTo(w / 2, 0); padCtx.lineTo(w / 2, h);
+        padCtx.moveTo(0, h / 2); padCtx.lineTo(w, h / 2);
+        padCtx.stroke();
+
+        if (basePoints.length === 0) return;
+
+        padCtx.beginPath();
+        basePoints.forEach((pt, i) => {
+            const p = normToPad(pt, w, h);
+            if (i === 0) padCtx.moveTo(p.x, p.y);
+            else padCtx.lineTo(p.x, p.y);
+        });
+        if (isClosed && basePoints.length > 2) padCtx.closePath();
+        padCtx.strokeStyle = '#00e5ff';
+        padCtx.lineWidth = 2.5;
+        padCtx.stroke();
+
+        basePoints.forEach((pt, i) => {
+            const p = normToPad(pt, w, h);
+            padCtx.beginPath();
+            padCtx.arc(p.x, p.y, draggingPtIdx === i ? 8 : 6, 0, Math.PI * 2);
+            padCtx.fillStyle = draggingPtIdx === i ? '#ff4081' : '#ffeb3b';
+            padCtx.fill();
+            padCtx.strokeStyle = '#050508';
+            padCtx.lineWidth = 2;
+            padCtx.stroke();
+        });
+    }
+
+    padCanvas.addEventListener('pointerdown', (e) => {
+        const rect = padCanvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+
+        let hit = -1;
+        basePoints.forEach((pt, i) => {
+            const p = normToPad(pt, rect.width, rect.height);
+            if (Math.hypot(mx - p.x, my - p.y) < 16) hit = i;
+        });
+
+        if (hit !== -1) {
+            draggingPtIdx = hit;
+        } else if (basePoints.length < 10) {
+            const norm = padToNorm(e);
+            basePoints.push(norm);
+            draggingPtIdx = basePoints.length - 1;
+            playTone(620, 0.06);
+        }
+
+        if (draggingPtIdx !== -1) {
+            padCanvas.setPointerCapture(e.pointerId);
+            drawShapePad();
+            renderFractal();
+        }
+    });
+
+    padCanvas.addEventListener('pointermove', (e) => {
+        if (draggingPtIdx === -1) return;
+        basePoints[draggingPtIdx] = padToNorm(e);
+        drawShapePad();
+        renderFractal();
+    });
+
+    padCanvas.addEventListener('pointerup', () => {
+        draggingPtIdx = -1;
+        drawShapePad();
+    });
+
+    // --- CONTROLS ---
+    function setAlgo(newAlgo) {
+        algo = newAlgo;
+        document.querySelectorAll('.algo-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`algo-${newAlgo}`).classList.add('active');
+
+        const customCard = document.getElementById('custom-rule-card');
+        customCard.style.display = (algo === 'custom') ? 'flex' : 'none';
+
+        const lblScale = document.getElementById('lbl-scale');
+        const lblTwist = document.getElementById('lbl-twist');
+        const lblSpread = document.getElementById('lbl-spread');
+        const slDepth = document.getElementById('sl-depth');
+        const groupScale = document.getElementById('group-scale');
+
+        groupScale.style.display = 'flex';
+
+        if (algo === 'edge') {
+            lblScale.innerText = 'Segment Pinch';
+            lblTwist.innerText = 'Spike Tilt';
+            lblSpread.innerText = 'Spike Height';
+            slDepth.max = 5;
+            if (params.depth > 5) { params.depth = 4; slDepth.value = 4; }
+        } else if (algo === 'orbit') {
+            lblScale.innerText = 'Shrink Ratio';
+            lblTwist.innerText = 'Spin Angle';
+            lblSpread.innerText = 'Corner Push';
+            slDepth.max = 5;
+            if (params.depth > 5) { params.depth = 4; slDepth.value = 4; }
+        } else if (algo === 'tree') {
+            lblScale.innerText = 'Branch Shrink';
+            lblTwist.innerText = 'Wind Bend';
+            lblSpread.innerText = 'Branch Spread';
+            slDepth.max = 7;
+        } else if (algo === 'custom') {
+            groupScale.style.display = 'none';
+            lblTwist.innerText = 'Rule Twist';
+            lblSpread.innerText = 'Rule Amplify';
+            slDepth.max = 6;
+            if (params.depth > 5) { params.depth = 4; slDepth.value = 4; }
+            setTimeout(resizeRulePad, 20);
+        }
+
+        updateSliderLabels();
+        renderFractal();
+        playTone(540, 0.09, 'triangle');
+    }
+
+    function setTheme(t) {
+        theme = t;
+        document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+        document.getElementById(`th-${t}`).classList.add('active');
+        renderFractal();
+        playTone(600, 0.06);
+    }
+
+    function onParamChange() {
+        params.depth = parseInt(document.getElementById('sl-depth').value);
+        params.scale = parseFloat(document.getElementById('sl-scale').value);
+        params.twist = parseFloat(document.getElementById('sl-twist').value);
+        params.spread = parseFloat(document.getElementById('sl-spread').value);
+        updateSliderLabels();
+        renderFractal();
+    }
+
+    function updateSliderLabels() {
+        document.getElementById('val-depth').innerText = params.depth;
+        document.getElementById('val-scale').innerText = params.scale.toFixed(2);
+        document.getElementById('val-twist').innerText = `${Math.round(params.twist)}°`;
+        document.getElementById('val-spread').innerText = params.spread.toFixed(2);
+    }
+
+    function surpriseMe() {
+        const algos = ['edge', 'orbit', 'tree', 'custom'];
+        const presets = ['line', 'triangle', 'square', 'pentagon', 'star'];
+        const themes = ['cyber', 'rainbow', 'fire', 'ocean', 'ice'];
+
+        const chosenAlgo = algos[Math.floor(Math.random() * algos.length)];
+        const chosenPreset = presets[Math.floor(Math.random() * presets.length)];
+        const chosenTheme = themes[Math.floor(Math.random() * themes.length)];
+
+        setTheme(chosenTheme);
+        loadPreset(chosenPreset);
+        setAlgo(chosenAlgo);
+
+        if (chosenAlgo === 'custom') {
+            const numBends = Math.floor(Math.random() * 3) + 1;
+            rulePoints = [];
+            for (let i = 0; i < numBends; i++) {
+                rulePoints.push({
+                    u: +((i + 1) / (numBends + 1) + (Math.random() - 0.5) * 0.15).toFixed(2),
+                    v: +((Math.random() - 0.5) * 0.9).toFixed(2)
+                });
+            }
+            drawRulePad();
+        } else if (Math.random() > 0.5) {
+            basePoints = basePoints.map(p => ({
+                x: Math.max(-0.9, Math.min(0.9, p.x + (Math.random() - 0.5) * 0.25)),
+                y: Math.max(-0.9, Math.min(0.9, p.y + (Math.random() - 0.5) * 0.25))
+            }));
+            drawShapePad();
+        }
+
+        params.depth = chosenAlgo === 'tree' ? Math.floor(Math.random() * 3) + 4 : Math.floor(Math.random() * 2) + 3;
+        params.scale = +(0.35 + Math.random() * 0.32).toFixed(2);
+        params.twist = Math.floor((Math.random() - 0.5) * 140);
+        params.spread = +((Math.random() - 0.2) * 1.0).toFixed(2);
+
+        document.getElementById('sl-depth').value = params.depth;
+        document.getElementById('sl-scale').value = params.scale;
+        document.getElementById('sl-twist').value = params.twist;
+        document.getElementById('sl-spread').value = params.spread;
+
+        resetCamera();
+        updateSliderLabels();
+        renderFractal();
+        playTone(720, 0.14, 'triangle');
+    }
+
+    // --- DANCE ANIMATION ---
+    let danceRaf = null;
+    function toggleDance() {
+        isDancing = !isDancing;
+        const btn = document.getElementById('btn-dance');
+        btn.classList.toggle('active', isDancing);
+        btn.innerText = isDancing ? '⏸ Stop Dance' : '✨ Dance';
+
+        if (isDancing) {
+            playTone(660, 0.1);
+            animateDance();
+        } else {
+            cancelAnimationFrame(danceRaf);
+        }
+    }
+
+    function animateDance() {
+        if (!isDancing) return;
+        danceTime += 0.018;
+        params.twist = Math.sin(danceTime) * 75;
+        document.getElementById('sl-twist').value = params.twist;
+        updateSliderLabels();
+        renderFractal();
+        danceRaf = requestAnimationFrame(animateDance);
+    }
+
+    // --- MAIN FRACTAL RENDERER ---
+    const canvas = document.getElementById('fractalCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeMain() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        renderFractal();
+    }
+
+    window.addEventListener('resize', () => {
+        resizePad();
+        resizeRulePad();
+        resizeMain();
+    });
+
+    function zoomBy(factor) {
+        cam.zoom = Math.max(0.25, Math.min(18, cam.zoom * factor));
+        renderFractal();
+    }
+
+    function resetCamera() {
+        cam = { x: 0, y: 0, zoom: 1 };
+        renderFractal();
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        isPanning = true;
+        panStart = { x: e.clientX - cam.x, y: e.clientY - cam.y };
+        canvas.setPointerCapture(e.pointerId);
+    });
+    canvas.addEventListener('pointermove', (e) => {
+        if (!isPanning) return;
+        cam.x = e.clientX - panStart.x;
+        cam.y = e.clientY - panStart.y;
+        renderFractal();
+    });
+    canvas.addEventListener('pointerup', () => { isPanning = false; });
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        zoomBy(e.deltaY < 0 ? 1.12 : 0.89);
+    }, { passive: false });
+
+    function getBaseEdges(baseRadius) {
+        const pts = basePoints.map(p => ({ x: p.x * baseRadius, y: p.y * baseRadius }));
+        const edges = [];
+        for (let i = 0; i < pts.length - 1; i++) {
+            edges.push([pts[i], pts[i + 1]]);
+        }
+        if (isClosed && pts.length > 2) {
+            edges.push([pts[pts.length - 1], pts[0]]);
+        }
+        return { pts, edges };
+    }
+
+    function renderFractal() {
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width / dpr;
+        const h = canvas.height / dpr;
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, w, h);
+
+        if (basePoints.length < 2) return;
+
+        ctx.save();
+        ctx.translate(w / 2 + cam.x, h / 2 + cam.y);
+        ctx.scale(cam.zoom, cam.zoom);
+
+        const baseRadius = Math.min(w, h) * 0.34;
+        const MAX_OPS = 15000;
+        let ops = 0;
+
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // -----------------------------------------
+        // ENGINE 1: EDGE MORPH (Koch / Lightning)
+        // -----------------------------------------
+        if (algo === 'edge') {
+            const { edges } = getBaseEdges(baseRadius);
+            const pinch = 0.5 - (params.scale - 0.22) * 0.45;
+            const spikeH = params.spread;
+            const tiltRad = (params.twist * Math.PI) / 180;
+
+            function drawEdge(x1, y1, x2, y2, depth, edgeIdx) {
+                if (ops > MAX_OPS) return;
+                if (depth === 0) {
+                    ops++;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.strokeStyle = getColor(edgeIdx, params.depth, Math.floor(ops / 60));
+                    ctx.lineWidth = Math.max(0.7, 2.2 / Math.sqrt(cam.zoom));
+                    ctx.stroke();
+                    return;
+                }
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                const len = Math.hypot(dx, dy);
+                const angle = Math.atan2(dy, dx);
+
+                const pA = { x: x1 + dx * pinch, y: y1 + dy * pinch };
+                const pB = { x: x1 + dx * (1 - pinch), y: y1 + dy * (1 - pinch) };
+
+                const midX = (x1 + x2) / 2;
+                const midY = (y1 + y2) / 2;
+                const peakAngle = angle - Math.PI / 2 + tiltRad * 0.5;
+                const peak = {
+                    x: midX + Math.cos(peakAngle) * len * spikeH,
+                    y: midY + Math.sin(peakAngle) * len * spikeH
+                };
+
+                drawEdge(x1, y1, pA.x, pA.y, depth - 1, edgeIdx);
+                drawEdge(pA.x, pA.y, peak.x, peak.y, depth - 1, edgeIdx + 1);
+                drawEdge(peak.x, peak.y, pB.x, pB.y, depth - 1, edgeIdx + 2);
+                drawEdge(pB.x, pB.y, x2, y2, depth - 1, edgeIdx);
+            }
+
+            edges.forEach((e, idx) => drawEdge(e[0].x, e[0].y, e[1].x, e[1].y, params.depth, idx));
+        }
+
+        // -----------------------------------------
+        // ENGINE 2: VERTEX ORBIT (Shape-in-Shape)
+        // -----------------------------------------
+        else if (algo === 'orbit') {
+            const { pts } = getBaseEdges(baseRadius);
+            const twistRad = (params.twist * Math.PI) / 180;
+            const push = 0.65 + params.spread * 0.85;
+
+            function drawOrbit(depth) {
+                if (ops > MAX_OPS) return;
+                ops++;
+
+                ctx.beginPath();
+                pts.forEach((p, i) => {
+                    if (i === 0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                if (isClosed && pts.length > 2) ctx.closePath();
+
+                ctx.strokeStyle = getColor(params.depth - depth, params.depth);
+                ctx.lineWidth = Math.max(0.8, (1.4 + depth * 0.45) / Math.pow(params.scale, params.depth - depth) * 0.25);
+                ctx.stroke();
+
+                if (depth === 0) return;
+
+                for (let i = 0; i < pts.length; i++) {
+                    if (ops > MAX_OPS) break;
+                    ctx.save();
+                    ctx.translate(pts[i].x * push, pts[i].y * push);
+                    ctx.rotate(twistRad);
+                    ctx.scale(params.scale, params.scale);
+                    drawOrbit(depth - 1);
+                    ctx.restore();
+                }
+            }
+
+            drawOrbit(params.depth);
+        }
+
+        // -----------------------------------------
+        // ENGINE 3: CRYSTAL TREE (Branching)
+        // -----------------------------------------
+        else if (algo === 'tree') {
+            const { pts } = getBaseEdges(baseRadius * 0.48);
+            const spreadRad = 0.25 + Math.abs(params.spread) * 1.35;
+            const bendRad = (params.twist * Math.PI) / 180 * 0.45;
+            const shrink = Math.min(0.76, Math.max(0.35, params.scale));
+
+            function growBranch(len, depth, colorOffset) {
+                if (ops > MAX_OPS || depth === 0 || len < 1.5) return;
+                ops++;
+
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, -len);
+                ctx.strokeStyle = getColor(params.depth - depth, params.depth, colorOffset);
+                ctx.lineWidth = Math.max(0.8, depth * 1.15);
+                ctx.stroke();
+
+                ctx.translate(0, -len);
+
+                ctx.save();
+                ctx.rotate(-spreadRad + bendRad);
+                growBranch(len * shrink, depth - 1, colorOffset);
+                ctx.restore();
+
+                ctx.save();
+                ctx.rotate(spreadRad + bendRad);
+                growBranch(len * shrink, depth - 1, colorOffset + 1);
+                ctx.restore();
+
+                if (params.spread < -0.15) {
+                    ctx.save();
+                    ctx.rotate(bendRad);
+                    growBranch(len * shrink * 0.85, depth - 1, colorOffset + 2);
+                    ctx.restore();
+                }
+            }
+
+            if (pts.length === 2 && !isClosed) {
+                ctx.save();
+                ctx.translate(0, baseRadius * 0.95);
+                growBranch(baseRadius * 0.65, params.depth, 0);
+                ctx.restore();
+            } else {
+                ctx.beginPath();
+                pts.forEach((p, i) => i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y));
+                if (isClosed) ctx.closePath();
+                ctx.strokeStyle = getColor(0, params.depth);
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                const trunkLen = baseRadius * 0.48;
+                pts.forEach((p, i) => {
+                    const outAngle = Math.atan2(p.y, p.x) + Math.PI / 2;
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(outAngle);
+                    growBranch(trunkLen, Math.min(params.depth, 6), i);
+                    ctx.restore();
+                });
+            }
+        }
+
+        // -----------------------------------------
+        // ENGINE 4: USER-BASED FRACTAL RULE (A -> B)
+        // -----------------------------------------
+        else if (algo === 'custom') {
+            const { edges } = getBaseEdges(baseRadius);
+            const amp = params.spread * 2.4; // 0.35 -> ~0.84x, negative inverts
+            const twistRad = (params.twist * Math.PI) / 180;
+            const cosT = Math.cos(twistRad * 0.35);
+            const sinT = Math.sin(twistRad * 0.35);
+
+            function drawCustom(x1, y1, x2, y2, depth, flip, segIdx) {
+                if (ops > MAX_OPS) return;
+                if (depth === 0) {
+                    ops++;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.strokeStyle = getColor(segIdx, params.depth, Math.floor(ops / 80));
+                    ctx.lineWidth = Math.max(0.75, 2.1 / Math.sqrt(cam.zoom));
+                    ctx.stroke();
+                    return;
+                }
+
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                // Perpendicular vector (rotated slightly by twist)
+                const rawPx = -dy;
+                const rawPy = dx;
+                const px = rawPx * cosT - rawPy * sinT;
+                const py = rawPx * sinT + rawPy * cosT;
+
+                // Map the user's A -> B rule points onto this segment
+                const mapped = [{ x: x1, y: y1 }];
+                for (let i = 0; i < rulePoints.length; i++) {
+                    const rp = rulePoints[i];
+                    const vEff = rp.v * amp * flip;
+                    mapped.push({
+                        x: x1 + dx * rp.u + px * vEff,
+                        y: y1 + dy * rp.u + py * vEff
+                    });
+                }
+                mapped.push({ x: x2, y: y2 });
+
+                for (let i = 0; i < mapped.length - 1; i++) {
+                    const nextFlip = ruleMirror ? (i % 2 === 0 ? flip : -flip) : flip;
+                    drawCustom(mapped[i].x, mapped[i].y, mapped[i + 1].x, mapped[i + 1].y, depth - 1, nextFlip, segIdx + i);
+                }
+            }
+
+            edges.forEach((e, idx) => drawCustom(e[0].x, e[0].y, e[1].x, e[1].y, params.depth, 1, idx));
+        }
+
+        ctx.restore();
+
+        const capNote = ops >= MAX_OPS ? ' (max detail)' : '';
+        document.getElementById('hud-stats').innerHTML =
+            `Depth <strong>${params.depth}</strong> • <strong>${ops.toLocaleString()}</strong> pieces${capNote}`;
+    }
+
+    function saveImage() {
+        const link = document.createElement('a');
+        link.download = `fractal-${algo}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        playTone(800, 0.12);
+    }
+
+    // --- BOOT ---
+    loadPreset('triangle');
+    setAlgo('custom');
+    setTimeout(() => {
+        resizePad();
+        resizeRulePad();
+        resizeMain();
+    }, 50);
+</script>
+</body>
+</html>

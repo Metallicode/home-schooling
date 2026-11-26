@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Weird Physics Tumbler</title>
+    <style>
+        :root {
+            --bg-dark: #050508;
+            --panel-bg: #0e1017;
+            --card-bg: #151924;
+            --border: #252b3b;
+            --cyan: #00e5ff;
+            --pink: #ff4081;
+            --yellow: #ffeb3b;
+            --green: #00e676;
+            --text: #f1f5f9;
+            --muted: #8b95a8;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- TOP BAR --- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 18px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            gap: 12px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            font-size: 19px;
+            font-weight: 900;
+            color: var(--yellow);
+            text-shadow: 0 0 12px rgba(255, 235, 59, 0.45);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #1b2030;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn:active { transform: scale(0.95); }
+        .btn.danger { border-color: #ef4444; color: #fca5a5; background: #2d1215; }
+        .btn.danger:hover { background: #451a1f; }
+
+        /* --- WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 300px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Material Buttons */
+        .mat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 7px;
+        }
+
+        .mat-btn {
+            background: #0e1017;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 6px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: all 0.15s;
+        }
+        .mat-btn .icon { font-size: 18px; }
+        .mat-btn .sub { font-size: 9px; color: var(--muted); font-weight: normal; }
+        .mat-btn:hover { transform: translateY(-2px); border-color: #64748b; }
+        .mat-btn.active {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--mat-color, var(--cyan));
+            box-shadow: 0 0 14px var(--mat-glow, rgba(0, 229, 255, 0.35));
+        }
+
+        /* Done / Drop Button */
+        .drop-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-done {
+            background: #1e293b;
+            color: #64748b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 13px;
+            font-size: 15px;
+            font-family: inherit;
+            font-weight: 900;
+            cursor: not-allowed;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        .btn-done.ready {
+            background: var(--green);
+            color: #050508;
+            border-color: var(--green);
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.45);
+            animation: pulseDone 1.2s infinite alternate;
+        }
+        .btn-done.ready:active { transform: scale(0.96); }
+
+        @keyframes pulseDone {
+            from { box-shadow: 0 0 12px rgba(0, 230, 118, 0.35); }
+            to { box-shadow: 0 0 26px rgba(0, 230, 118, 0.8); }
+        }
+
+        /* Polygon Picker */
+        .poly-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+        }
+        .poly-btn {
+            background: #0e1017;
+            color: var(--muted);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 0;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .poly-btn:hover { border-color: var(--cyan); color: #fff; }
+        .poly-btn.active {
+            background: rgba(0, 229, 255, 0.16);
+            border-color: var(--cyan);
+            color: var(--cyan);
+        }
+
+        /* Sliders */
+        .slider-group { display: flex; flex-direction: column; gap: 5px; }
+        .slider-header { display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; }
+        .slider-val { color: var(--cyan); }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            background: #252b3b;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--cyan);
+            box-shadow: 0 0 8px var(--cyan);
+            cursor: pointer;
+        }
+
+        /* --- STAGE --- */
+        .stage {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0e1420 0%, #030407 100%);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .stage-hint {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 12, 18, 0.8);
+            border: 1px solid var(--border);
+            padding: 7px 16px;
+            border-radius: 999px;
+            font-size: 12px;
+            color: var(--muted);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .stage-hint strong { color: var(--yellow); }
+
+        @media (max-width: 780px) {
+            .workspace { flex-direction: column-reverse; }
+            .sidebar { width: 100%; height: 44vh; border-right: none; border-top: 1px solid var(--border); }
+            .stage { height: 56vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="brand">
+            <a class="btn" href="index.html" title="Back to Home" style="text-decoration:none; text-shadow:none; letter-spacing:normal;">🏠 Home</a>
+            🌀 Weird Physics Tumbler
+        </div>
+        <div class="top-actions">
+            <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 Sound</button>
+            <button class="btn danger" onclick="clearBodies()">🗑️ Clear All</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+
+            <!-- 1. MATERIAL PICKER -->
+            <div class="section-card">
+                <div class="section-label">1. Pick Physics Material</div>
+                <div class="mat-grid" id="mat-grid"></div>
+            </div>
+
+            <!-- 2. DRAW & DROP -->
+            <div class="section-card">
+                <div class="section-label">2. Draw Inside & Release</div>
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Brush Thickness</span>
+                        <span class="slider-val" id="val-brush">16px</span>
+                    </div>
+                    <input type="range" id="sl-brush" min="8" max="28" value="16" oninput="updateBrush(this.value)">
+                </div>
+                <div class="drop-actions">
+                    <button class="btn-done" id="btn-done" onclick="spawnDraft()">✅ Done (Drop!)</button>
+                    <button class="btn" id="btn-cancel" style="justify-content:center; display:none;" onclick="cancelDraft()">✖ Clear Drawing</button>
+                </div>
+            </div>
+
+            <!-- 3. ARENA CONTROLS -->
+            <div class="section-card">
+                <div class="section-label">3. Spinning Tumbler</div>
+                <div class="poly-row">
+                    <button class="poly-btn" id="poly-3" onclick="setSides(3)" title="Triangle">△</button>
+                    <button class="poly-btn" id="poly-4" onclick="setSides(4)" title="Square">□</button>
+                    <button class="poly-btn active" id="poly-5" onclick="setSides(5)" title="Pentagon">⬠</button>
+                    <button class="poly-btn" id="poly-6" onclick="setSides(6)" title="Hexagon">⬡</button>
+                    <button class="poly-btn" id="poly-8" onclick="setSides(8)" title="Octagon">⯄</button>
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-header">
+                        <span>Spin Speed</span>
+                        <span class="slider-val" id="val-spin">0.45</span>
+                    </div>
+                    <input type="range" id="sl-spin" min="-1.5" max="1.5" step="0.05" value="0.45" oninput="updateSpin(this.value)">
+                </div>
+            </div>
+
+        </aside>
+
+        <!-- MAIN CANVAS -->
+        <main class="stage">
+            <div class="stage-hint" id="stage-hint">Draw a shape inside the tumbler, then click <strong>DONE</strong>!</div>
+            <canvas id="simCanvas"></canvas>
+        </main>
+    </div>
+
+<script>
+    // --- 8 WEIRD MATERIALS ---
+    const MATERIALS = {
+        bouncy: {
+            name: 'Bouncy', icon: '🏀', sub: 'Super Rubber',
+            color: '#ff4081', glow: 'rgba(255, 64, 129, 0.45)',
+            gravity: 0.42, restitution: 0.92, friction: 0.15, density: 1.0, airDrag: 0.998
+        },
+        wobbly: {
+            name: 'Wobbly', icon: '🍮', sub: 'Springy Jelly',
+            color: '#ff9100', glow: 'rgba(255, 145, 0, 0.45)',
+            gravity: 0.40, restitution: 0.78, friction: 0.35, density: 0.9, airDrag: 0.996
+        },
+        magnet: {
+            name: 'Magnet', icon: '🧲', sub: 'Pulls Shapes',
+            color: '#ff1744', glow: 'rgba(255, 23, 68, 0.5)',
+            gravity: 0.45, restitution: 0.35, friction: 0.4, density: 2.2, airDrag: 0.998
+        },
+        heavy: {
+            name: 'Heavy', icon: '🪨', sub: 'Dense Rock',
+            color: '#94a3b8', glow: 'rgba(148, 163, 184, 0.45)',
+            gravity: 0.65, restitution: 0.22, friction: 0.45, density: 3.5, airDrag: 0.999
+        },
+        floaty: {
+            name: 'Floaty', icon: '🎈', sub: 'Helium Up!',
+            color: '#00e5ff', glow: 'rgba(0, 229, 255, 0.45)',
+            gravity: -0.28, restitution: 0.72, friction: 0.1, density: 0.4, airDrag: 0.992
+        },
+        zerog: {
+            name: 'Zero-G', icon: '🚀', sub: 'Space Drift',
+            color: '#b388ff', glow: 'rgba(179, 136, 255, 0.45)',
+            gravity: 0.0, restitution: 0.96, friction: 0.05, density: 0.9, airDrag: 0.9995
+        },
+        slime: {
+            name: 'Slime', icon: '🟢', sub: 'Sticky Goo',
+            color: '#00e676', glow: 'rgba(0, 230, 118, 0.45)',
+            gravity: 0.38, restitution: 0.12, friction: 0.92, density: 1.2, airDrag: 0.994
+        },
+        hyper: {
+            name: 'Hyper', icon: '⚡', sub: 'Chaos Boost',
+            color: '#ffeb3b', glow: 'rgba(255, 235, 59, 0.45)',
+            gravity: 0.35, restitution: 1.14, friction: 0.08, density: 0.85, airDrag: 0.999
+        }
+    };
+
+    // --- MULTI-SYNTH AUDIO ENGINE ---
+    let audioCtx = null;
+    let masterBus = null;
+    let noiseBuffer = null;
+    let soundEnabled = true;
+    const lastSoundByMat = {};
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Master compressor keeps dense multi-shape collisions punchy and distortion-free
+            const comp = audioCtx.createDynamicsCompressor();
+            comp.threshold.value = -16;
+            comp.knee.value = 18;
+            comp.ratio.value = 6;
+            comp.attack.value = 0.003;
+            comp.release.value = 0.12;
+
+            masterBus = audioCtx.createGain();
+            masterBus.gain.value = 0.85;
+            masterBus.connect(comp);
+            comp.connect(audioCtx.destination);
+
+            // Pre-generate 0.5s white noise buffer for rock, slime, floaty & hyper synths
+            const len = Math.floor(audioCtx.sampleRate * 0.5);
+            noiseBuffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+            const data = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function createNoiseNode() {
+        const src = audioCtx.createBufferSource();
+        src.buffer = noiseBuffer;
+        return src;
+    }
+
+    const MATERIAL_SYNTHS = {
+        // 🏀 Rubber superball boing + soft sub-thump
+        bouncy(t, v) {
+            const pitchVar = 0.9 + Math.random() * 0.22;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(175 * pitchVar, t);
+            osc.frequency.exponentialRampToValueAtTime((420 + v * 160) * pitchVar, t + 0.055);
+            osc.frequency.exponentialRampToValueAtTime(290 * pitchVar, t + 0.16);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.24 * v, t + 0.008);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            osc.connect(g); g.connect(masterBus);
+            osc.start(t); osc.stop(t + 0.19);
+        },
+
+        // 🍮 Springy jelly vibrato wobble (LFO modulating carrier pitch)
+        wobbly(t, v) {
+            const base = (240 + Math.random() * 60);
+            const osc = audioCtx.createOscillator();
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            const g = audioCtx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(base, t);
+            osc.frequency.exponentialRampToValueAtTime(base * 0.85, t + 0.32);
+
+            lfo.type = 'sine';
+            lfo.frequency.setValueAtTime(20 + v * 10, t);
+            lfoGain.gain.setValueAtTime(55 * v + 25, t);
+            lfoGain.gain.exponentialRampToValueAtTime(4, t + 0.32);
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.24 * v, t + 0.012);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.34);
+
+            osc.connect(g); g.connect(masterBus);
+            osc.start(t); lfo.start(t);
+            osc.stop(t + 0.35); lfo.stop(t + 0.35);
+        },
+
+        // 🧲 Metallic clank using inharmonic FM partials
+        magnet(t, v) {
+            const base = 340 + Math.random() * 50;
+            const carrier = audioCtx.createOscillator();
+            const mod = audioCtx.createOscillator();
+            const modGain = audioCtx.createGain();
+            const g = audioCtx.createGain();
+
+            carrier.type = 'sine';
+            carrier.frequency.setValueAtTime(base, t);
+
+            mod.type = 'triangle';
+            mod.frequency.setValueAtTime(base * 2.76, t); // Metallic inharmonic ratio
+            modGain.gain.setValueAtTime(base * 2.2 * v, t);
+            modGain.gain.exponentialRampToValueAtTime(10, t + 0.14);
+
+            mod.connect(modGain);
+            modGain.connect(carrier.frequency);
+
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.22 * v, t + 0.003);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+
+            carrier.connect(g); g.connect(masterBus);
+            carrier.start(t); mod.start(t);
+            carrier.stop(t + 0.25); mod.stop(t + 0.25);
+        },
+
+        // 🪨 Deep stone thud + gravelly low-pass noise crunch
+        heavy(t, v) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(115, t);
+            osc.frequency.exponentialRampToValueAtTime(36, t + 0.14);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.35 * v, t + 0.005);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+            osc.connect(g); g.connect(masterBus);
+            osc.start(t); osc.stop(t + 0.19);
+
+            // Rock grit layer
+            const noise = createNoiseNode();
+            const filt = audioCtx.createBiquadFilter();
+            const ng = audioCtx.createGain();
+            filt.type = 'lowpass';
+            filt.frequency.setValueAtTime(420, t);
+            filt.frequency.exponentialRampToValueAtTime(120, t + 0.1);
+            ng.gain.setValueAtTime(0.22 * v, t);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+            noise.connect(filt); filt.connect(ng); ng.connect(masterBus);
+            noise.start(t); noise.stop(t + 0.12);
+        },
+
+        // 🎈 Hollow balloon bop + soft airy puff
+        floaty(t, v) {
+            const base = 520 + Math.random() * 140;
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(base, t);
+            osc.frequency.exponentialRampToValueAtTime(base * 1.45, t + 0.09);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.14 * v, t + 0.01);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+            osc.connect(g); g.connect(masterBus);
+            osc.start(t); osc.stop(t + 0.13);
+
+            const noise = createNoiseNode();
+            const filt = audioCtx.createBiquadFilter();
+            const ng = audioCtx.createGain();
+            filt.type = 'bandpass';
+            filt.frequency.setValueAtTime(1400, t);
+            filt.Q.value = 6;
+            ng.gain.setValueAtTime(0.08 * v, t);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+            noise.connect(filt); filt.connect(ng); ng.connect(masterBus);
+            noise.start(t); noise.stop(t + 0.07);
+        },
+
+        // 🚀 Crystalline sci-fi space ping (fundamental + shimmering 5th)
+        zerog(t, v) {
+            const notes = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+            const base = notes[Math.floor(Math.random() * notes.length)];
+            [1, 1.5].forEach((ratio, idx) => {
+                const osc = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(base * ratio, t);
+                g.gain.setValueAtTime(0.001, t);
+                g.gain.linearRampToValueAtTime((idx === 0 ? 0.16 : 0.08) * v, t + 0.008);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
+                osc.connect(g); g.connect(masterBus);
+                osc.start(t); osc.stop(t + 0.4);
+            });
+        },
+
+        // 🟢 Wet gooey squelch (resonant bandpass sweep)
+        slime(t, v) {
+            const osc = audioCtx.createOscillator();
+            const filt = audioCtx.createBiquadFilter();
+            const g = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(140 + Math.random() * 40, t);
+            osc.frequency.exponentialRampToValueAtTime(85, t + 0.14);
+
+            filt.type = 'bandpass';
+            filt.Q.value = 11;
+            filt.frequency.setValueAtTime(950, t);
+            filt.frequency.exponentialRampToValueAtTime(240, t + 0.06);
+            filt.frequency.exponentialRampToValueAtTime(720, t + 0.13);
+
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.28 * v, t + 0.015);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+
+            osc.connect(filt); filt.connect(g); g.connect(masterBus);
+            osc.start(t); osc.stop(t + 0.17);
+        },
+
+        // ⚡ Electric arcade zap + high-pass spark burst
+        hyper(t, v) {
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            const startF = 380 + Math.random() * 140;
+            osc.frequency.setValueAtTime(startF, t);
+            osc.frequency.exponentialRampToValueAtTime(startF * 3.2, t + 0.085);
+            g.gain.setValueAtTime(0.001, t);
+            g.gain.linearRampToValueAtTime(0.16 * v, t + 0.004);
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+            osc.connect(g); g.connect(masterBus);
+            osc.start(t); osc.stop(t + 0.11);
+
+            const noise = createNoiseNode();
+            const filt = audioCtx.createBiquadFilter();
+            const ng = audioCtx.createGain();
+            filt.type = 'highpass';
+            filt.frequency.setValueAtTime(3200, t);
+            ng.gain.setValueAtTime(0.14 * v, t);
+            ng.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+            noise.connect(filt); filt.connect(ng); ng.connect(masterBus);
+            noise.start(t); noise.stop(t + 0.06);
+        }
+    };
+
+    function playBump(material, impactSpeed) {
+        if (!soundEnabled || impactSpeed < 1.2) return;
+        const now = performance.now();
+        if (now - (lastSoundByMat[material] || 0) < 55) return;
+        lastSoundByMat[material] = now;
+
+        try {
+            initAudio();
+            const intensity = Math.max(0.18, Math.min(1.0, impactSpeed / 10));
+            const synth = MATERIAL_SYNTHS[material];
+            if (synth) synth(audioCtx.currentTime, intensity);
+        } catch (e) {}
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+    }
+
+    // --- STATE ---
+    let selectedMat = 'bouncy';
+    let brushRadius = 16;
+    let arenaSides = 5;
+    let arenaSpin = 0.45;
+    let arenaAngle = 0;
+    let arenaRadius = 240;
+    let simTime = 0;
+
+    let bodies = [];
+    let sparks = [];
+    let magnetLinks = [];
+
+    let isDrawing = false;
+    let draftStrokes = [];
+    let currentStroke = null;
+
+    // --- CANVAS SETUP ---
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    let cw = 800, ch = 600, cx = 400, cy = 300;
+
+    function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        cw = rect.width;
+        ch = rect.height;
+        cx = cw / 2;
+        cy = ch / 2;
+        arenaRadius = Math.min(cw, ch) * 0.41;
+    }
+    window.addEventListener('resize', resize);
+
+    // --- UI INIT ---
+    function initMaterialButtons() {
+        const grid = document.getElementById('mat-grid');
+        grid.innerHTML = '';
+        Object.entries(MATERIALS).forEach(([key, m]) => {
+            const btn = document.createElement('button');
+            btn.className = 'mat-btn' + (key === selectedMat ? ' active' : '');
+            btn.id = `mat-${key}`;
+            btn.style.setProperty('--mat-color', m.color);
+            btn.style.setProperty('--mat-glow', m.glow);
+            btn.innerHTML = `<span class="icon">${m.icon}</span><span>${m.name}</span><span class="sub">${m.sub}</span>`;
+            btn.onclick = () => selectMaterial(key);
+            grid.appendChild(btn);
+        });
+    }
+
+    function selectMaterial(key) {
+        selectedMat = key;
+        document.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`mat-${key}`).classList.add('active');
+        playBump(key, 6); // Audition the material's unique synth on click!
+    }
+
+    function setSides(n) {
+        arenaSides = n;
+        document.querySelectorAll('.poly-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`poly-${n}`).classList.add('active');
+        playBump('zerog', 4);
+    }
+
+    function updateBrush(val) {
+        brushRadius = parseInt(val);
+        document.getElementById('val-brush').innerText = `${brushRadius}px`;
+    }
+
+    function updateSpin(val) {
+        arenaSpin = parseFloat(val);
+        document.getElementById('val-spin').innerText = arenaSpin.toFixed(2);
+    }
+
+    function updateDraftButtons() {
+        const hasDraft = draftStrokes.length > 0;
+        document.getElementById('btn-done').classList.toggle('ready', hasDraft);
+        document.getElementById('btn-cancel').style.display = hasDraft ? 'flex' : 'none';
+    }
+
+    function cancelDraft() {
+        draftStrokes = [];
+        currentStroke = null;
+        updateDraftButtons();
+    }
+
+    function clearBodies() {
+        bodies = [];
+        sparks = [];
+        magnetLinks = [];
+        cancelDraft();
+    }
+
+    // --- DRAWING INPUT ---
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        isDrawing = true;
+        canvas.setPointerCapture(e.pointerId);
+        const p = getPos(e);
+        currentStroke = [p];
+        draftStrokes.push(currentStroke);
+        updateDraftButtons();
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+        if (!isDrawing || !currentStroke) return;
+        const p = getPos(e);
+        const last = currentStroke[currentStroke.length - 1];
+        if (Math.hypot(p.x - last.x, p.y - last.y) >= 8) {
+            currentStroke.push(p);
+        }
+    });
+
+    canvas.addEventListener('pointerup', () => {
+        isDrawing = false;
+        currentStroke = null;
+    });
+
+    // --- WOBBLE KICK HELPER ---
+    function kickWobble(body, worldIx, worldIy, worldContactX, worldContactY) {
+        if (body.material !== 'wobbly') return;
+        const cosA = Math.cos(-body.angle);
+        const sinA = Math.sin(-body.angle);
+        const lix = worldIx * cosA - worldIy * sinA;
+        const liy = worldIx * sinA + worldIy * cosA;
+
+        const dx = worldContactX - body.x;
+        const dy = worldContactY - body.y;
+        const lcx = dx * cosA - dy * sinA;
+        const lcy = dx * sinA + dy * cosA;
+
+        for (const stroke of body.localStrokes) {
+            for (const pt of stroke) {
+                const dist = Math.hypot(pt.lx - lcx, pt.ly - lcy);
+                const influence = Math.max(0.25, 1 - dist / (body.boundRadius * 1.4));
+                pt.ovx = Math.max(-18, Math.min(18, pt.ovx - lix * influence * 2.4));
+                pt.ovy = Math.max(-18, Math.min(18, pt.ovy - liy * influence * 2.4));
+            }
+        }
+    }
+
+    // --- CONVERT DRAFT DRAWING TO RIGID BODY ---
+    function spawnDraft() {
+        if (draftStrokes.length === 0) return;
+
+        const rawCircles = [];
+        const step = Math.max(10, brushRadius * 0.95);
+
+        draftStrokes.forEach(stroke => {
+            if (stroke.length === 1) {
+                rawCircles.push({ x: stroke[0].x, y: stroke[0].y, r: brushRadius });
+                return;
+            }
+            rawCircles.push({ x: stroke[0].x, y: stroke[0].y, r: brushRadius });
+            let acc = 0;
+            for (let i = 1; i < stroke.length; i++) {
+                const a = stroke[i - 1], b = stroke[i];
+                const d = Math.hypot(b.x - a.x, b.y - a.y);
+                acc += d;
+                if (acc >= step || i === stroke.length - 1) {
+                    rawCircles.push({ x: b.x, y: b.y, r: brushRadius });
+                    acc = 0;
+                }
+            }
+        });
+
+        let comX = 0, comY = 0;
+        rawCircles.forEach(c => { comX += c.x; comY += c.y; });
+        comX /= rawCircles.length;
+        comY /= rawCircles.length;
+
+        const mat = MATERIALS[selectedMat];
+        const circleMass = (Math.PI * brushRadius * brushRadius * 0.002) * mat.density;
+        const totalMass = circleMass * rawCircles.length;
+
+        let inertia = 0;
+        let boundRadius = 0;
+        const localCircles = rawCircles.map(c => {
+            const lx = c.x - comX;
+            const ly = c.y - comY;
+            const distSq = lx * lx + ly * ly;
+            inertia += circleMass * (distSq + 0.5 * c.r * c.r);
+            boundRadius = Math.max(boundRadius, Math.sqrt(distSq) + c.r);
+            return { lx, ly, r: c.r };
+        });
+
+        const localStrokes = draftStrokes.map(stroke =>
+            stroke.map(pt => ({
+                lx: pt.x - comX,
+                ly: pt.y - comY,
+                ox: 0, oy: 0,
+                ovx: (selectedMat === 'wobbly') ? (Math.random() - 0.5) * 6 : 0,
+                ovy: (selectedMat === 'wobbly') ? (Math.random() - 0.5) * 6 : 0
+            }))
+        );
+
+        const initVx = (selectedMat === 'zerog' || selectedMat === 'hyper') ? (Math.random() - 0.5) * 4 : 0;
+        const initVy = (selectedMat === 'zerog' || selectedMat === 'hyper') ? (Math.random() - 0.5) * 4 : 0;
+
+        bodies.push({
+            x: comX,
+            y: comY,
+            vx: initVx,
+            vy: initVy,
+            angle: 0,
+            omega: (Math.random() - 0.5) * 0.03,
+            mass: totalMass,
+            invMass: 1 / totalMass,
+            inertia: Math.max(inertia, 50),
+            invInertia: 1 / Math.max(inertia, 50),
+            boundRadius,
+            brushRadius,
+            material: selectedMat,
+            localCircles,
+            localStrokes
+        });
+
+        playBump(selectedMat, 7);
+        draftStrokes = [];
+        currentStroke = null;
+        updateDraftButtons();
+    }
+
+    // --- PHYSICS ENGINE ---
+    function getArenaVertices() {
+        const verts = [];
+        for (let i = 0; i < arenaSides; i++) {
+            const a = arenaAngle + (i * Math.PI * 2) / arenaSides - Math.PI / 2;
+            verts.push({
+                x: cx + Math.cos(a) * arenaRadius,
+                y: cy + Math.sin(a) * arenaRadius
+            });
+        }
+        return verts;
+    }
+
+    function addSpark(x, y, color) {
+        if (sparks.length > 60) return;
+        for (let i = 0; i < 3; i++) {
+            sparks.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 5,
+                vy: (Math.random() - 0.5) * 5,
+                life: 1.0,
+                color
+            });
+        }
+    }
+
+    function stepPhysics(dt) {
+        simTime += dt;
+        const SUBSTEPS = 4;
+        const subDt = dt / SUBSTEPS;
+        magnetLinks = [];
+
+        for (let s = 0; s < SUBSTEPS; s++) {
+            arenaAngle += arenaSpin * subDt;
+            const verts = getArenaVertices();
+
+            // 0. MAGNETIC FORCES
+            const MAG_RANGE = 270;
+            for (let i = 0; i < bodies.length; i++) {
+                if (bodies[i].material !== 'magnet') continue;
+                const M = bodies[i];
+                for (let j = 0; j < bodies.length; j++) {
+                    if (i === j) continue;
+                    const B = bodies[j];
+                    const dx = M.x - B.x;
+                    const dy = M.y - B.y;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < MAG_RANGE && dist > 10) {
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        const strength = (1 - dist / MAG_RANGE) * 0.52 * (B.material === 'magnet' ? 1.5 : 1.0);
+                        const fx = nx * strength * subDt * 60;
+                        const fy = ny * strength * subDt * 60;
+
+                        B.vx += fx * Math.min(1.5, B.invMass * 1.2);
+                        B.vy += fy * Math.min(1.5, B.invMass * 1.2);
+                        M.vx -= fx * Math.min(0.6, M.invMass * 0.6);
+                        M.vy -= fy * Math.min(0.6, M.invMass * 0.6);
+
+                        if (dist < M.boundRadius + B.boundRadius + 25) {
+                            B.vx *= 0.992;
+                            B.vy *= 0.992;
+                        }
+
+                        if (s === 0) {
+                            magnetLinks.push({ x1: M.x, y1: M.y, x2: B.x, y2: B.y, alpha: (1 - dist / MAG_RANGE) * 0.65 });
+                        }
+                    }
+                }
+            }
+
+            // 1. Integrate forces & velocities
+            for (const b of bodies) {
+                const mat = MATERIALS[b.material];
+                b.vy += mat.gravity * subDt * 60;
+
+                const drag = Math.pow(mat.airDrag, subDt * 60);
+                b.vx *= drag;
+                b.vy *= drag;
+                b.omega *= 0.996;
+
+                const speed = Math.hypot(b.vx, b.vy);
+                const maxSpeed = b.material === 'hyper' ? 18 : 22;
+                if (speed > maxSpeed) {
+                    b.vx = (b.vx / speed) * maxSpeed;
+                    b.vy = (b.vy / speed) * maxSpeed;
+                }
+                b.omega = Math.max(-0.35, Math.min(0.35, b.omega));
+
+                b.x += b.vx * subDt * 60;
+                b.y += b.vy * subDt * 60;
+                b.angle += b.omega * subDt * 60;
+            }
+
+            // 2. Collide bodies with Rotating Polygon Walls
+            const wallOmegaPerFrame = arenaSpin / 60;
+            for (const b of bodies) {
+                const mat = MATERIALS[b.material];
+                const cosA = Math.cos(b.angle);
+                const sinA = Math.sin(b.angle);
+
+                for (const c of b.localCircles) {
+                    const rx = c.lx * cosA - c.ly * sinA;
+                    const ry = c.lx * sinA + c.ly * cosA;
+                    const wx = b.x + rx;
+                    const wy = b.y + ry;
+
+                    for (let i = 0; i < verts.length; i++) {
+                        const A = verts[i];
+                        const B = verts[(i + 1) % verts.length];
+
+                        const ex = B.x - A.x;
+                        const ey = B.y - A.y;
+                        const eLen = Math.hypot(ex, ey);
+                        const nx = -ey / eLen;
+                        const ny = ex / eLen;
+
+                        const dist = (wx - A.x) * nx + (wy - A.y) * ny;
+                        if (dist < c.r) {
+                            const pen = c.r - dist;
+                            b.x += nx * pen;
+                            b.y += ny * pen;
+
+                            const contactRx = rx - nx * c.r;
+                            const contactRy = ry - ny * c.r;
+
+                            const vbx = b.vx - b.omega * contactRy;
+                            const vby = b.vy + b.omega * contactRx;
+
+                            const wallRx = (wx - nx * c.r) - cx;
+                            const wallRy = (wy - ny * c.r) - cy;
+                            const vwx = -wallOmegaPerFrame * wallRy;
+                            const vwy = wallOmegaPerFrame * wallRx;
+
+                            const rvx = vbx - vwx;
+                            const rvy = vby - vwy;
+                            const velAlongNormal = rvx * nx + rvy * ny;
+
+                            if (velAlongNormal < 0) {
+                                const rCrossN = contactRx * ny - contactRy * nx;
+                                const denom = b.invMass + rCrossN * rCrossN * b.invInertia;
+                                let j = -(1 + mat.restitution) * velAlongNormal / denom;
+
+                                b.vx += j * nx * b.invMass;
+                                b.vy += j * ny * b.invMass;
+                                b.omega += rCrossN * j * b.invInertia;
+
+                                const tx = -ny, ty = nx;
+                                const velAlongTan = rvx * tx + rvy * ty;
+                                const rCrossT = contactRx * ty - contactRy * tx;
+                                const denomT = b.invMass + rCrossT * rCrossT * b.invInertia;
+                                let jt = -velAlongTan / denomT;
+                                const maxJt = Math.abs(j) * mat.friction + (b.material === 'slime' ? 0.45 : 0);
+                                jt = Math.max(-maxJt, Math.min(maxJt, jt));
+
+                                b.vx += jt * tx * b.invMass;
+                                b.vy += jt * ty * b.invMass;
+                                b.omega += rCrossT * jt * b.invInertia;
+
+                                if (s === 0 && Math.abs(velAlongNormal) > 1.4) {
+                                    kickWobble(b, nx * Math.abs(velAlongNormal), ny * Math.abs(velAlongNormal), wx - nx * c.r, wy - ny * c.r);
+                                    playBump(b.material, Math.abs(velAlongNormal));
+                                    if (b.material === 'hyper' || Math.abs(velAlongNormal) > 5) {
+                                        addSpark(wx - nx * c.r, wy - ny * c.r, mat.color);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Body-to-Body Collisions
+            for (let i = 0; i < bodies.length; i++) {
+                for (let j = i + 1; j < bodies.length; j++) {
+                    const A = bodies[i];
+                    const B = bodies[j];
+
+                    const bdx = B.x - A.x;
+                    const bdy = B.y - A.y;
+                    const minBound = A.boundRadius + B.boundRadius;
+                    if (bdx * bdx + bdy * bdy > minBound * minBound) continue;
+
+                    const cosA = Math.cos(A.angle), sinA = Math.sin(A.angle);
+                    const cosB = Math.cos(B.angle), sinB = Math.sin(B.angle);
+                    const matA = MATERIALS[A.material];
+                    const matB = MATERIALS[B.material];
+                    const e = Math.max(matA.restitution, matB.restitution);
+                    const mu = (matA.friction + matB.friction) * 0.5;
+
+                    for (const cA of A.localCircles) {
+                        const rAx = cA.lx * cosA - cA.ly * sinA;
+                        const rAy = cA.lx * sinA + cA.ly * cosA;
+                        const wAx = A.x + rAx;
+                        const wAy = A.y + rAy;
+
+                        for (const cB of B.localCircles) {
+                            const rBx = cB.lx * cosB - cB.ly * sinB;
+                            const rBy = cB.lx * sinB + cB.ly * cosB;
+                            const wBx = B.x + rBx;
+                            const wBy = B.y + rBy;
+
+                            const dx = wBx - wAx;
+                            const dy = wBy - wAy;
+                            const distSq = dx * dx + dy * dy;
+                            const minDist = cA.r + cB.r;
+
+                            if (distSq < minDist * minDist && distSq > 0.0001) {
+                                const dist = Math.sqrt(distSq);
+                                const nx = dx / dist;
+                                const ny = dy / dist;
+                                const pen = minDist - dist;
+
+                                const totalInvMass = A.invMass + B.invMass;
+                                const corr = pen * 0.8 / totalInvMass;
+                                A.x -= nx * corr * A.invMass;
+                                A.y -= ny * corr * A.invMass;
+                                B.x += nx * corr * B.invMass;
+                                B.y += ny * corr * B.invMass;
+
+                                const cAx = rAx + nx * cA.r;
+                                const cAy = rAy + ny * cA.r;
+                                const cBx = rBx - nx * cB.r;
+                                const cBy = rBy - ny * cB.r;
+
+                                const vAx = A.vx - A.omega * cAy;
+                                const vAy = A.vy + A.omega * cAx;
+                                const vBx = B.vx - B.omega * cBy;
+                                const vBy = B.vy + B.omega * cBx;
+
+                                const rvx = vBx - vAx;
+                                const rvy = vBy - vAy;
+                                const velAlongNormal = rvx * nx + rvy * ny;
+
+                                if (velAlongNormal < 0) {
+                                    const rACrossN = cAx * ny - cAy * nx;
+                                    const rBCrossN = cBx * ny - cBy * nx;
+                                    const denom = totalInvMass +
+                                        rACrossN * rACrossN * A.invInertia +
+                                        rBCrossN * rBCrossN * B.invInertia;
+
+                                    const imp = -(1 + e) * velAlongNormal / denom;
+
+                                    A.vx -= imp * nx * A.invMass;
+                                    A.vy -= imp * ny * A.invMass;
+                                    A.omega -= rACrossN * imp * A.invInertia;
+
+                                    B.vx += imp * nx * B.invMass;
+                                    B.vy += imp * ny * B.invMass;
+                                    B.omega += rBCrossN * imp * B.invInertia;
+
+                                    const tx = -ny, ty = nx;
+                                    const velAlongTan = rvx * tx + rvy * ty;
+                                    const rACrossT = cAx * ty - cAy * tx;
+                                    const rBCrossT = cBx * ty - cBy * tx;
+                                    const denomT = totalInvMass +
+                                        rACrossT * rACrossT * A.invInertia +
+                                        rBCrossT * rBCrossT * B.invInertia;
+                                    let jt = -velAlongTan / denomT;
+                                    const maxJt = Math.abs(imp) * mu;
+                                    jt = Math.max(-maxJt, Math.min(maxJt, jt));
+
+                                    A.vx -= jt * tx * A.invMass;
+                                    A.vy -= jt * ty * A.invMass;
+                                    A.omega -= rACrossT * jt * A.invInertia;
+
+                                    B.vx += jt * tx * B.invMass;
+                                    B.vy += jt * ty * B.invMass;
+                                    B.omega += rBCrossT * jt * B.invInertia;
+
+                                    if (s === 0 && Math.abs(velAlongNormal) > 1.8) {
+                                        const hitX = wAx + nx * cA.r;
+                                        const hitY = wAy + ny * cA.r;
+                                        const spd = Math.abs(velAlongNormal);
+                                        kickWobble(A, -nx * spd, -ny * spd, hitX, hitY);
+                                        kickWobble(B, nx * spd, ny * spd, hitX, hitY);
+                                        // Trigger both materials' synths when two different materials collide!
+                                        playBump(A.material, spd);
+                                        if (B.material !== A.material) playBump(B.material, spd * 0.85);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Update Wobbly Spring-Damper Jelly Oscillations
+        for (const b of bodies) {
+            if (b.material !== 'wobbly') continue;
+            const stiffness = 0.22;
+            const damping = 0.88;
+            for (const stroke of b.localStrokes) {
+                for (let i = 0; i < stroke.length; i++) {
+                    const pt = stroke[i];
+                    pt.ovx += -pt.ox * stiffness;
+                    pt.ovy += -pt.oy * stiffness;
+
+                    if (i > 0) {
+                        pt.ovx += (stroke[i - 1].ox - pt.ox) * 0.08;
+                        pt.ovy += (stroke[i - 1].oy - pt.oy) * 0.08;
+                    }
+                    if (i < stroke.length - 1) {
+                        pt.ovx += (stroke[i + 1].ox - pt.ox) * 0.08;
+                        pt.ovy += (stroke[i + 1].oy - pt.oy) * 0.08;
+                    }
+
+                    pt.ovx *= damping;
+                    pt.ovy *= damping;
+                    pt.ox = Math.max(-24, Math.min(24, pt.ox + pt.ovx));
+                    pt.oy = Math.max(-24, Math.min(24, pt.oy + pt.ovy));
+                }
+            }
+        }
+
+        // 5. Update sparks
+        for (let i = sparks.length - 1; i >= 0; i--) {
+            const sp = sparks[i];
+            sp.x += sp.vx;
+            sp.y += sp.vy;
+            sp.life -= 0.05;
+            if (sp.life <= 0) sparks.splice(i, 1);
+        }
+    }
+
+    // --- RENDER LOOP ---
+    function render() {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cw, ch);
+
+        // 1. Draw Spinning Polygon Arena
+        const verts = getArenaVertices();
+        ctx.save();
+        ctx.beginPath();
+        verts.forEach((v, i) => i === 0 ? ctx.moveTo(v.x, v.y) : ctx.lineTo(v.x, v.y));
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+        ctx.fill();
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 16;
+        ctx.shadowColor = '#00e5ff';
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        verts.forEach(v => {
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fill();
+        });
+        ctx.restore();
+
+        // 1B. Draw Magnetic Field Rings & Pull Lines
+        for (const b of bodies) {
+            if (b.material !== 'magnet') continue;
+            const pulse = (simTime * 1.4) % 1;
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.boundRadius + pulse * 110, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(255, 23, 68, ${(1 - pulse) * 0.35})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+        for (const link of magnetLinks) {
+            ctx.save();
+            ctx.setLineDash([5, 6]);
+            ctx.beginPath();
+            ctx.moveTo(link.x1, link.y1);
+            ctx.lineTo(link.x2, link.y2);
+            ctx.strokeStyle = `rgba(255, 82, 82, ${link.alpha})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 2. Draw Active Physics Bodies
+        for (const b of bodies) {
+            const mat = MATERIALS[b.material];
+            ctx.save();
+            ctx.translate(b.x, b.y);
+            ctx.rotate(b.angle);
+
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mat.color;
+            ctx.fillStyle = mat.color;
+            ctx.lineWidth = b.brushRadius * 2;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = mat.color;
+
+            for (const stroke of b.localStrokes) {
+                if (stroke.length === 1) {
+                    const pt = stroke[0];
+                    const wobR = b.brushRadius + (b.material === 'wobbly' ? Math.sin(pt.ox * 0.3) * 4 : 0);
+                    ctx.beginPath();
+                    ctx.arc(pt.lx + pt.ox, pt.ly + pt.oy, Math.max(6, wobR), 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    stroke.forEach((pt, idx) => {
+                        const px = pt.lx + pt.ox;
+                        const py = pt.ly + pt.oy;
+                        idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                    });
+                    ctx.stroke();
+                }
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = b.material === 'wobbly' ? 'rgba(255, 255, 255, 0.65)' : 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = Math.max(2, b.brushRadius * 0.45);
+            for (const stroke of b.localStrokes) {
+                if (stroke.length > 1) {
+                    ctx.beginPath();
+                    stroke.forEach((pt, idx) => {
+                        const px = pt.lx + pt.ox;
+                        const py = pt.ly + pt.oy;
+                        idx === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                    });
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+        }
+
+        // 3. Draw Current Unreleased Draft Stroke
+        if (draftStrokes.length > 0) {
+            const mat = MATERIALS[selectedMat];
+            ctx.save();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = mat.color;
+            ctx.fillStyle = mat.color;
+            ctx.globalAlpha = 0.72;
+            ctx.lineWidth = brushRadius * 2;
+
+            for (const stroke of draftStrokes) {
+                if (stroke.length === 1) {
+                    ctx.beginPath();
+                    ctx.arc(stroke[0].x, stroke[0].y, brushRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.beginPath();
+                    stroke.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+                    ctx.stroke();
+                }
+            }
+
+            ctx.setLineDash([6, 6]);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            for (const stroke of draftStrokes) {
+                if (stroke.length > 1) {
+                    ctx.beginPath();
+                    stroke.forEach((pt, idx) => idx === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y));
+                    ctx.stroke();
+                }
+            }
+            ctx.restore();
+        }
+
+        // 4. Draw Collision Sparks
+        for (const sp of sparks) {
+            ctx.save();
+            ctx.globalAlpha = sp.life;
+            ctx.fillStyle = sp.color;
+            ctx.beginPath();
+            ctx.arc(sp.x, sp.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    let lastTime = performance.now();
+    function loop(now) {
+        const dt = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+        stepPhysics(dt);
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    // --- BOOT ---
+    initMaterialButtons();
+    resize();
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,1469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Amazing Machine</title>
+    <style>
+        :root {
+            --bg-dark: #050508;
+            --panel-bg: #0e1017;
+            --card-bg: #151924;
+            --border: #252b3b;
+            --cyan: #00e5ff;
+            --pink: #ff4081;
+            --yellow: #ffeb3b;
+            --green: #00e676;
+            --orange: #ff9100;
+            --purple: #b388ff;
+            --text: #f1f5f9;
+            --muted: #8b95a8;
+        }
+
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', Courier, monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- TOP BAR --- */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: 900;
+            color: var(--cyan);
+            text-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
+            letter-spacing: 1px;
+        }
+
+        .level-nav {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #151924;
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        .level-title {
+            font-size: 13px;
+            font-weight: 900;
+            color: var(--yellow);
+            min-width: 145px;
+            text-align: center;
+        }
+
+        .goal-pill {
+            background: #0c2618;
+            border: 2px solid var(--green);
+            color: var(--green);
+            border-radius: 999px;
+            padding: 5px 14px;
+            font-size: 14px;
+            font-weight: 900;
+            box-shadow: 0 0 12px rgba(0, 230, 118, 0.25);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: #1b2030;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 11px;
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn:active { transform: scale(0.95); }
+        .btn.active { background: var(--cyan); color: #050508; border-color: var(--cyan); }
+        .btn.danger { border-color: #ef4444; color: #fca5a5; background: #2d1215; }
+        .btn.danger:hover { background: #451a1f; }
+
+        /* --- WORKSPACE --- */
+        .workspace {
+            display: flex;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 260px;
+            background: var(--panel-bg);
+            border-right: 1px solid var(--border);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .section-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .section-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--muted);
+            font-weight: bold;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+        }
+
+        .tool-btn {
+            background: #0e1017;
+            color: var(--text);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 4px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            transition: all 0.15s;
+        }
+        .tool-btn .icon { font-size: 18px; line-height: 1.1; }
+        .tool-btn .sub { font-size: 9px; color: var(--muted); font-weight: normal; }
+        .tool-btn:hover { border-color: #64748b; transform: translateY(-1px); }
+        .tool-btn.active {
+            background: rgba(0, 229, 255, 0.14);
+            border-color: var(--tool-color, var(--cyan));
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.28);
+        }
+
+        /* Selection Controls */
+        .sel-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .sel-controls .btn { justify-content: center; padding: 8px 6px; }
+        .sel-controls .btn.full { grid-column: span 2; }
+
+        .hint-box {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+        .hint-box b { color: var(--yellow); }
+
+        /* --- STAGE --- */
+        .stage {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at center, #0e1420 0%, #030407 100%);
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        /* Win Overlay */
+        .win-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(5, 5, 8, 0.82);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s;
+            backdrop-filter: blur(4px);
+            z-index: 20;
+        }
+        .win-overlay.show { opacity: 1; pointer-events: all; }
+        .win-title {
+            font-size: 40px;
+            font-weight: 900;
+            color: var(--green);
+            text-shadow: 0 0 24px rgba(0, 230, 118, 0.7);
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .win-sub { font-size: 16px; color: #cbd5e1; }
+        .win-btns { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+        .btn-big {
+            background: var(--green);
+            color: #050508;
+            border: none;
+            border-radius: 12px;
+            padding: 13px 26px;
+            font-size: 16px;
+            font-family: inherit;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.5);
+        }
+        .btn-big.sec {
+            background: #1e293b;
+            color: #fff;
+            border: 2px solid #475569;
+            box-shadow: none;
+        }
+
+        @media (max-width: 780px) {
+            .workspace { flex-direction: column-reverse; }
+            .sidebar { width: 100%; height: 40vh; border-right: none; border-top: 1px solid var(--border); }
+            .stage { height: 60vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="topbar">
+        <div class="brand" style="display:flex; align-items:center; gap:10px;">
+            <a class="btn" href="index.html" title="Back to Home" style="text-decoration:none; text-shadow:none; letter-spacing:normal;">🏠 Home</a>
+            ⚙️ The Amazing Machine
+        </div>
+
+        <div class="level-nav">
+            <button class="btn" onclick="changeLevel(-1)" title="Previous Level">◀</button>
+            <div class="level-title" id="level-title">Lvl 1: First Drop</div>
+            <button class="btn" onclick="changeLevel(1)" title="Next Level">▶</button>
+            <button class="btn" onclick="loadRandomLevel()" title="Generate Random Puzzle">🎲</button>
+        </div>
+
+        <div class="goal-pill" id="goal-pill">🎯 0 / 10</div>
+
+        <div class="top-actions">
+            <button class="btn active" id="btn-drip" onclick="toggleDrip()">⏸ Pause Drip</button>
+            <button class="btn" id="btn-sound" onclick="toggleSound()">🔊 Sound</button>
+            <button class="btn danger" onclick="clearUserPieces()">🗑️ Clear</button>
+        </div>
+    </header>
+
+    <div class="workspace">
+        <!-- LEFT TOOLBOX -->
+        <aside class="sidebar">
+            <div class="section-card">
+                <div class="section-label">1. Contraptions</div>
+                <div class="tool-grid" id="tool-grid"></div>
+                <button class="btn" id="tool-move" style="justify-content:center;" onclick="selectTool(null)">✋ Select / Move Only</button>
+            </div>
+
+            <div class="section-card" id="sel-card" style="display: none; border-color: var(--yellow);">
+                <div class="section-label" style="color: var(--yellow);">Selected Piece</div>
+                <div class="sel-controls">
+                    <button class="btn" onclick="rotateSelected(-15)">↺ -15°</button>
+                    <button class="btn" onclick="rotateSelected(15)">↻ +15°</button>
+                    <button class="btn full" id="btn-flip" onclick="flipSelected()">⇄ Flip / Reverse</button>
+                    <button class="btn danger full" onclick="deleteSelected()">🗑️ Remove Piece</button>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <div class="section-label">How To Build</div>
+                <div class="hint-box">
+                    • Pick a part and <b>tap the stage</b> to place it.<br>
+                    • <b>Drag</b> any part to move it.<br>
+                    • Drag the <b>yellow knob</b> (or <b>Q / E</b>) to tilt.<br>
+                    • Use <b>Flip / Reverse</b> (or <b>F</b>) on Gears, Escalators & Curves!
+                </div>
+            </div>
+        </aside>
+
+        <!-- PLAY STAGE -->
+        <main class="stage">
+            <canvas id="gameCanvas"></canvas>
+
+            <div class="win-overlay" id="win-overlay">
+                <div class="win-title">🎉 MACHINE COMPLETE!</div>
+                <div class="win-sub">All 10 balls reached the goal!</div>
+                <div class="win-btns">
+                    <button class="btn-big" onclick="nextLevelFromWin()">Next Level →</button>
+                    <button class="btn-big sec" onclick="keepWatching()">Keep Watching</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+<script>
+    // --- 10 CONTRAPTION DEFINITIONS ---
+    const PIECE_DEFS = {
+        ramp:       { name: 'Ramp',       icon: '📐', sub: 'Smooth Slide',  color: '#00e5ff', w: 165, h: 16, restitution: 0.25, friction: 0.04, defaultAngle: 0.32 },
+        curve:      { name: 'Curve',      icon: '🌙', sub: 'Quarter Pipe',  color: '#38bdf8', r: 90,  h: 14, restitution: 0.22, friction: 0.03, defaultAngle: 0 },
+        escalator:  { name: 'Escalator',  icon: '🪜', sub: 'Motor Belt',    color: '#b388ff', w: 175, h: 22, restitution: 0.15, friction: 0.10, defaultAngle: -0.35 },
+        gear:       { name: 'Gear',       icon: '⚙️', sub: 'Spinning Cog',  color: '#facc15', r: 52,         restitution: 0.45, friction: 0.15, defaultAngle: 0 },
+        tube:       { name: 'Tube',       icon: '🧪', sub: 'Hollow Pipe',   color: '#22d3ee', w: 185, h: 48, restitution: 0.15, friction: 0.02, defaultAngle: 0.25 },
+        trampoline: { name: 'Trampoline', icon: '🟣', sub: 'Super Bounce',  color: '#ff4081', w: 115, h: 18, restitution: 1.25, friction: 0.05, defaultAngle: 0 },
+        seesaw:     { name: 'Seesaw',     icon: '⚖️', sub: 'Tilting Plank', color: '#ffeb3b', w: 180, h: 16, restitution: 0.30, friction: 0.12, defaultAngle: 0 },
+        sticky:     { name: 'Sticky Pad', icon: '🟢', sub: 'Slows Balls',   color: '#00e676', w: 120, h: 22, restitution: 0.05, friction: 0.85, defaultAngle: 0.18 },
+        block:      { name: 'Block',      icon: '🧱', sub: 'Solid Wall',    color: '#94a3b8', w: 68,  h: 68, restitution: 0.45, friction: 0.20, defaultAngle: 0 },
+        bumper:     { name: 'Bumper',     icon: '⚡', sub: 'Pinball Pop',   color: '#ff9100', r: 28,         restitution: 1.35, friction: 0.05, defaultAngle: 0 }
+    };
+
+    // --- LEVELS ---
+    const LEVELS = [
+        {
+            name: 'Lvl 1: First Drop',
+            spawner: { x: 0.20, y: 0.10 },
+            goal:    { x: 0.80, y: 0.84 },
+            obstacles: []
+        },
+        {
+            name: 'Lvl 2: The Divider',
+            spawner: { x: 0.20, y: 0.10 },
+            goal:    { x: 0.82, y: 0.82 },
+            obstacles: [
+                { x: 0.50, y: 0.58, w: 0.03, h: 0.56, angle: 0 }
+            ]
+        },
+        {
+            name: 'Lvl 3: The Canyon',
+            spawner: { x: 0.16, y: 0.10 },
+            goal:    { x: 0.84, y: 0.50 },
+            obstacles: [
+                { x: 0.22, y: 0.48, w: 0.28, h: 0.03, angle: 0.15 },
+                { x: 0.78, y: 0.62, w: 0.26, h: 0.03, angle: 0 }
+            ]
+        },
+        {
+            name: 'Lvl 4: Zig-Zag',
+            spawner: { x: 0.22, y: 0.10 },
+            goal:    { x: 0.22, y: 0.86 },
+            obstacles: [
+                { x: 0.38, y: 0.36, w: 0.56, h: 0.03, angle: 0.08 },
+                { x: 0.62, y: 0.64, w: 0.56, h: 0.03, angle: -0.08 }
+            ]
+        },
+        {
+            name: 'Lvl 5: High Vault',
+            spawner: { x: 0.18, y: 0.12 },
+            goal:    { x: 0.82, y: 0.28 },
+            obstacles: [
+                { x: 0.54, y: 0.34, w: 0.03, h: 0.48, angle: 0 },
+                { x: 0.82, y: 0.42, w: 0.20, h: 0.03, angle: 0 }
+            ]
+        },
+        {
+            name: 'Lvl 6: Pinball Maze',
+            spawner: { x: 0.50, y: 0.09 },
+            goal:    { x: 0.84, y: 0.86 },
+            obstacles: [
+                { x: 0.50, y: 0.34, w: 0.28, h: 0.03, angle: 0 },
+                { x: 0.26, y: 0.60, w: 0.32, h: 0.03, angle: 0.25 },
+                { x: 0.68, y: 0.62, w: 0.03, h: 0.38, angle: 0 }
+            ]
+        }
+    ];
+
+    // --- AUDIO ENGINE ---
+    let audioCtx = null;
+    let soundEnabled = true;
+    const lastHitSound = {};
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playSFX(type, speed = 5) {
+        if (!soundEnabled) return;
+        const now = performance.now();
+        if (type !== 'goal' && type !== 'win' && now - (lastHitSound[type] || 0) < 50) return;
+        lastHitSound[type] = now;
+
+        try {
+            initAudio();
+            const t = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const vol = Math.min(0.15, Math.max(0.03, speed * 0.015));
+
+            if (type === 'trampoline') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(190, t);
+                osc.frequency.exponentialRampToValueAtTime(640, t + 0.12);
+                gain.gain.setValueAtTime(vol * 1.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+                osc.start(t); osc.stop(t + 0.17);
+            } else if (type === 'bumper') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(720, t);
+                osc.frequency.exponentialRampToValueAtTime(1180, t + 0.07);
+                gain.gain.setValueAtTime(vol * 1.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+                osc.start(t); osc.stop(t + 0.12);
+            } else if (type === 'gear') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(220 + Math.random() * 60, t);
+                osc.frequency.exponentialRampToValueAtTime(130, t + 0.05);
+                gain.gain.setValueAtTime(vol * 0.65, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+                osc.start(t); osc.stop(t + 0.07);
+            } else if (type === 'escalator') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, t);
+                osc.frequency.linearRampToValueAtTime(360, t + 0.05);
+                gain.gain.setValueAtTime(vol * 0.55, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+                osc.start(t); osc.stop(t + 0.07);
+            } else if (type === 'tube') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(420, t);
+                osc.frequency.exponentialRampToValueAtTime(240, t + 0.07);
+                gain.gain.setValueAtTime(vol * 0.75, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+                osc.start(t); osc.stop(t + 0.09);
+            } else if (type === 'sticky') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(170, t);
+                osc.frequency.exponentialRampToValueAtTime(80, t + 0.09);
+                gain.gain.setValueAtTime(vol * 0.7, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+                osc.start(t); osc.stop(t + 0.11);
+            } else if (type === 'goal') {
+                const notes = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
+                const f = notes[Math.min(notes.length - 1, Math.floor(goalCount / 2))];
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, t);
+                osc.frequency.exponentialRampToValueAtTime(f * 1.25, t + 0.14);
+                gain.gain.setValueAtTime(0.14, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22);
+                osc.start(t); osc.stop(t + 0.23);
+            } else if (type === 'win') {
+                [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+                    const o = audioCtx.createOscillator();
+                    const g = audioCtx.createGain();
+                    o.type = 'triangle';
+                    o.frequency.setValueAtTime(f, t + i * 0.1);
+                    g.gain.setValueAtTime(0.14, t + i * 0.1);
+                    g.gain.exponentialRampToValueAtTime(0.001, t + i * 0.1 + 0.45);
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.start(t + i * 0.1); o.stop(t + i * 0.1 + 0.46);
+                });
+            } else {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(340 + Math.random() * 120, t);
+                osc.frequency.exponentialRampToValueAtTime(160, t + 0.05);
+                gain.gain.setValueAtTime(vol * 0.8, t);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+                osc.start(t); osc.stop(t + 0.07);
+            }
+        } catch (e) {}
+    }
+
+    function toggleSound() {
+        soundEnabled = !soundEnabled;
+        document.getElementById('btn-sound').innerText = soundEnabled ? '🔊 Sound' : '🔇 Muted';
+    }
+
+    // --- STATE ---
+    const GOAL_TARGET = 10;
+    const BALL_RADIUS = 11;
+    const MAX_BALLS = 34;
+
+    let currentLevelIdx = 0;
+    let activeLevel = null;
+    let isDripActive = true;
+    let dripTimer = 0;
+    let goalCount = 0;
+    let hasWon = false;
+    let simTime = 0;
+
+    let armedTool = 'ramp';
+    let pieces = [];
+    let selectedPiece = null;
+    let balls = [];
+    let particles = [];
+
+    let dragMode = null;
+    let dragOffset = { x: 0, y: 0 };
+    let mousePos = { x: -500, y: -500 };
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    let cw = 900, ch = 600;
+
+    function resize() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        cw = rect.width;
+        ch = rect.height;
+    }
+    window.addEventListener('resize', resize);
+
+    // --- UI INIT ---
+    function initToolbox() {
+        const grid = document.getElementById('tool-grid');
+        grid.innerHTML = '';
+        Object.entries(PIECE_DEFS).forEach(([key, d]) => {
+            const btn = document.createElement('button');
+            btn.className = 'tool-btn' + (key === armedTool ? ' active' : '');
+            btn.id = `tool-${key}`;
+            btn.style.setProperty('--tool-color', d.color);
+            btn.innerHTML = `<span class="icon">${d.icon}</span><span>${d.name}</span><span class="sub">${d.sub}</span>`;
+            btn.onclick = () => selectTool(key);
+            grid.appendChild(btn);
+        });
+    }
+
+    function selectTool(key) {
+        armedTool = key;
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tool-move').classList.remove('active');
+        if (key) {
+            document.getElementById(`tool-${key}`).classList.add('active');
+            canvas.style.cursor = 'crosshair';
+        } else {
+            document.getElementById('tool-move').classList.add('active');
+            canvas.style.cursor = 'default';
+        }
+    }
+
+    function setSelectedPiece(piece) {
+        selectedPiece = piece;
+        document.getElementById('sel-card').style.display = piece ? 'flex' : 'none';
+    }
+
+    function rotateSelected(deg) {
+        if (!selectedPiece) return;
+        selectedPiece.angle += (deg * Math.PI) / 180;
+        if (selectedPiece.type === 'seesaw') selectedPiece.omega = 0;
+    }
+
+    function flipSelected() {
+        if (!selectedPiece) return;
+        selectedPiece.dir = -(selectedPiece.dir || 1);
+        playSFX(selectedPiece.type, 4);
+    }
+
+    function deleteSelected() {
+        if (!selectedPiece) return;
+        pieces = pieces.filter(p => p !== selectedPiece);
+        setSelectedPiece(null);
+    }
+
+    function clearUserPieces() {
+        pieces = [];
+        balls = [];
+        goalCount = 0;
+        hasWon = false;
+        setSelectedPiece(null);
+        updateGoalUI();
+        document.getElementById('win-overlay').classList.remove('show');
+    }
+
+    function toggleDrip() {
+        isDripActive = !isDripActive;
+        const btn = document.getElementById('btn-drip');
+        btn.classList.toggle('active', isDripActive);
+        btn.innerText = isDripActive ? '⏸ Pause Drip' : '▶ Start Drip';
+    }
+
+    function updateGoalUI() {
+        document.getElementById('goal-pill').innerText = `🎯 ${Math.min(goalCount, GOAL_TARGET)} / ${GOAL_TARGET}`;
+    }
+
+    // --- LEVEL LOADING ---
+    function loadLevel(idx) {
+        currentLevelIdx = (idx + LEVELS.length) % LEVELS.length;
+        activeLevel = JSON.parse(JSON.stringify(LEVELS[currentLevelIdx]));
+        document.getElementById('level-title').innerText = activeLevel.name;
+        resetRunState();
+    }
+
+    function loadRandomLevel() {
+        const spawnerX = 0.15 + Math.random() * 0.70;
+        let goalX = 0.15 + Math.random() * 0.70;
+        if (Math.abs(goalX - spawnerX) < 0.25) goalX = spawnerX > 0.5 ? 0.18 : 0.82;
+        const goalY = 0.45 + Math.random() * 0.42;
+
+        const obsCount = 2 + Math.floor(Math.random() * 2);
+        const obstacles = [];
+        for (let i = 0; i < obsCount; i++) {
+            const vertical = Math.random() > 0.5;
+            obstacles.push({
+                x: 0.25 + Math.random() * 0.50,
+                y: 0.30 + Math.random() * 0.45,
+                w: vertical ? 0.028 : (0.18 + Math.random() * 0.16),
+                h: vertical ? (0.24 + Math.random() * 0.22) : 0.028,
+                angle: vertical ? 0 : (Math.random() - 0.5) * 0.45
+            });
+        }
+
+        activeLevel = {
+            name: '🎲 Random Machine',
+            spawner: { x: spawnerX, y: 0.10 },
+            goal: { x: goalX, y: goalY },
+            obstacles
+        };
+        document.getElementById('level-title').innerText = activeLevel.name;
+        resetRunState();
+    }
+
+    function resetRunState() {
+        pieces = [];
+        balls = [];
+        particles = [];
+        goalCount = 0;
+        hasWon = false;
+        dripTimer = 0.3;
+        setSelectedPiece(null);
+        updateGoalUI();
+        document.getElementById('win-overlay').classList.remove('show');
+    }
+
+    function changeLevel(delta) { loadLevel(currentLevelIdx + delta); }
+
+    function nextLevelFromWin() {
+        if (activeLevel.name.includes('Random')) loadRandomLevel();
+        else loadLevel(currentLevelIdx + 1);
+    }
+
+    function keepWatching() {
+        document.getElementById('win-overlay').classList.remove('show');
+    }
+
+    // --- POINTER & KEYBOARD ---
+    function getPointerPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    function getRotateHandlePos(p) {
+        const dist = (p.type === 'curve' ? p.r * 0.75 : p.w / 2) + 28;
+        return {
+            x: p.x + Math.cos(p.angle) * dist,
+            y: p.y + Math.sin(p.angle) * dist
+        };
+    }
+
+    function hitTestPiece(mx, my) {
+        for (let i = pieces.length - 1; i >= 0; i--) {
+            const p = pieces[i];
+            if (p.type === 'bumper' || p.type === 'gear') {
+                if (Math.hypot(mx - p.x, my - p.y) <= p.r + 10) return p;
+            } else if (p.type === 'curve') {
+                if (Math.hypot(mx - p.x, my - p.y) <= p.r * 0.85) return p;
+            } else {
+                const dx = mx - p.x, dy = my - p.y;
+                const c = Math.cos(-p.angle), s = Math.sin(-p.angle);
+                const lx = dx * c - dy * s;
+                const ly = dx * s + dy * c;
+                if (Math.abs(lx) <= p.w / 2 + 10 && Math.abs(ly) <= p.h / 2 + 12) return p;
+            }
+        }
+        return null;
+    }
+
+    canvas.addEventListener('pointerdown', (e) => {
+        initAudio();
+        const pos = getPointerPos(e);
+        mousePos = pos;
+
+        if (selectedPiece && selectedPiece.type !== 'bumper' && selectedPiece.type !== 'gear') {
+            const hPos = getRotateHandlePos(selectedPiece);
+            if (Math.hypot(pos.x - hPos.x, pos.y - hPos.y) <= 18) {
+                dragMode = 'rotate';
+                canvas.setPointerCapture(e.pointerId);
+                return;
+            }
+        }
+
+        const hit = hitTestPiece(pos.x, pos.y);
+        if (hit) {
+            setSelectedPiece(hit);
+            dragMode = 'move';
+            dragOffset = { x: pos.x - hit.x, y: pos.y - hit.y };
+            canvas.setPointerCapture(e.pointerId);
+            return;
+        }
+
+        if (armedTool) {
+            const def = PIECE_DEFS[armedTool];
+            const newPiece = {
+                type: armedTool,
+                x: pos.x,
+                y: pos.y,
+                w: def.w || 0,
+                h: def.h || 0,
+                r: def.r || 0,
+                angle: def.defaultAngle,
+                dir: 1,
+                omega: 0,
+                bounceAnim: 0
+            };
+            pieces.push(newPiece);
+            setSelectedPiece(newPiece);
+            dragMode = 'move';
+            dragOffset = { x: 0, y: 0 };
+            canvas.setPointerCapture(e.pointerId);
+            playSFX(armedTool, 4);
+        } else {
+            setSelectedPiece(null);
+        }
+    });
+
+    canvas.addEventListener('pointermove', (e) => {
+        const pos = getPointerPos(e);
+        mousePos = pos;
+        if (!dragMode || !selectedPiece) return;
+
+        if (dragMode === 'move') {
+            selectedPiece.x = Math.max(20, Math.min(cw - 20, pos.x - dragOffset.x));
+            selectedPiece.y = Math.max(20, Math.min(ch - 20, pos.y - dragOffset.y));
+        } else if (dragMode === 'rotate') {
+            selectedPiece.angle = Math.atan2(pos.y - selectedPiece.y, pos.x - selectedPiece.x);
+            if (selectedPiece.type === 'seesaw') selectedPiece.omega = 0;
+        }
+    });
+
+    canvas.addEventListener('pointerup', () => { dragMode = null; });
+    canvas.addEventListener('pointerleave', () => { mousePos = { x: -500, y: -500 }; });
+
+    window.addEventListener('keydown', (e) => {
+        if (!selectedPiece) return;
+        if (e.key === 'q' || e.key === 'Q' || e.key === 'ArrowLeft') rotateSelected(-10);
+        else if (e.key === 'e' || e.key === 'E' || e.key === 'ArrowRight') rotateSelected(10);
+        else if (e.key === 'f' || e.key === 'F') flipSelected();
+        else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+
+    // --- PARTICLES ---
+    function spawnBurst(x, y, color, count = 8) {
+        for (let i = 0; i < count; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = 1.5 + Math.random() * 4.5;
+            particles.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1.0, color });
+        }
+    }
+
+    // --- PHYSICS HELPERS ---
+    const BALL_COLORS = ['#00e5ff', '#ff4081', '#ffeb3b', '#b388ff', '#00e676', '#ff9100'];
+
+    function spawnBall() {
+        const sx = activeLevel.spawner.x * cw;
+        const sy = activeLevel.spawner.y * ch + 22;
+        balls.push({
+            x: sx + (Math.random() - 0.5) * 4,
+            y: sy,
+            vx: (Math.random() - 0.5) * 0.8,
+            vy: 1.5,
+            r: BALL_RADIUS,
+            color: BALL_COLORS[Math.floor(Math.random() * BALL_COLORS.length)]
+        });
+        if (balls.length > MAX_BALLS) balls.shift();
+    }
+
+    function collideBallWithOBB(ball, box, opts = {}) {
+        const dx = ball.x - box.x;
+        const dy = ball.y - box.y;
+        const cos = Math.cos(-box.angle);
+        const sin = Math.sin(-box.angle);
+        const lx = dx * cos - dy * sin;
+        const ly = dx * sin + dy * cos;
+
+        const hw = box.w / 2;
+        const hh = box.h / 2;
+        const cx = Math.max(-hw, Math.min(hw, lx));
+        const cy = Math.max(-hh, Math.min(hh, ly));
+
+        let nx = lx - cx;
+        let ny = ly - cy;
+        let distSq = nx * nx + ny * ny;
+        if (distSq >= ball.r * ball.r) return false;
+
+        let lnx, lny, pen;
+        if (distSq < 1e-6) {
+            const px = hw - Math.abs(lx);
+            const py = hh - Math.abs(ly);
+            if (px < py) { lnx = lx >= 0 ? 1 : -1; lny = 0; pen = px + ball.r; }
+            else { lnx = 0; lny = ly >= 0 ? 1 : -1; pen = py + ball.r; }
+        } else {
+            const dist = Math.sqrt(distSq);
+            lnx = nx / dist; lny = ny / dist; pen = ball.r - dist;
+        }
+
+        const wCos = Math.cos(box.angle);
+        const wSin = Math.sin(box.angle);
+        const wnx = lnx * wCos - lny * wSin;
+        const wny = lnx * wSin + lny * wCos;
+
+        ball.x += wnx * pen;
+        ball.y += wny * pen;
+
+        const pivotX = opts.pivotX !== undefined ? opts.pivotX : box.x;
+        const pivotY = opts.pivotY !== undefined ? opts.pivotY : box.y;
+        const rx = ball.x - pivotX;
+        const ry = ball.y - pivotY;
+
+        const surfOmega = opts.omega || 0;
+        const surfVx = surfOmega ? -surfOmega * ry : 0;
+        const surfVy = surfOmega ? surfOmega * rx : 0;
+
+        const rvx = ball.vx - surfVx;
+        const rvy = ball.vy - surfVy;
+        const vn = rvx * wnx + rvy * wny;
+
+        if (vn < 0) {
+            const rest = opts.restitution ?? 0.35;
+            const fric = opts.friction ?? 0.1;
+            let j = -(1 + rest) * vn;
+
+            if (opts.type === 'trampoline') {
+                j = Math.max(j, 11.5);
+                if (opts.piece) opts.piece.bounceAnim = 1.0;
+                spawnBurst(ball.x - wnx * ball.r, ball.y - wny * ball.r, '#ff4081', 5);
+            }
+
+            ball.vx += wnx * j;
+            ball.vy += wny * j;
+
+            if (opts.type === 'sticky') {
+                ball.vx *= 0.55;
+                ball.vy *= 0.55;
+            } else if (opts.type === 'escalator') {
+                // Motorized belt pushes ball smoothly along escalator direction!
+                const beltDirX = wCos * (opts.dir || 1);
+                const beltDirY = wSin * (opts.dir || 1);
+                const targetSpeed = 6.8;
+                const currentAlong = ball.vx * beltDirX + ball.vy * beltDirY;
+                const boost = (targetSpeed - currentAlong) * 0.42;
+                ball.vx += beltDirX * boost;
+                ball.vy += beltDirY * boost;
+            } else {
+                const tx = -wny, ty = wnx;
+                const vt = rvx * tx + rvy * ty;
+                ball.vx -= tx * vt * fric;
+                ball.vy -= ty * vt * fric;
+            }
+
+            if (opts.isSeesaw && opts.piece) {
+                const torque = (rx * wny - ry * wnx) * (-j);
+                opts.piece.omega += torque * 0.00018;
+            }
+
+            if (Math.abs(vn) > 1.4) {
+                playSFX(opts.type || 'wall', Math.abs(vn));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // Helper: get the 6 OBB segments of a Curved Slope
+    function getCurveSegments(p) {
+        const segs = [];
+        const R = p.r;
+        const N = 6;
+        const dir = p.dir || 1;
+        // Arc center offset so the curve sits nicely centered around (p.x, p.y)
+        const localCx = dir > 0 ? R * 0.45 : -R * 0.45;
+        const localCy = -R * 0.45;
+        const startA = dir > 0 ? Math.PI : 0;
+        const endA   = Math.PI / 2;
+
+        const cosA = Math.cos(p.angle), sinA = Math.sin(p.angle);
+        for (let i = 0; i < N; i++) {
+            const a0 = startA + (endA - startA) * (i / N);
+            const a1 = startA + (endA - startA) * ((i + 1) / N);
+            const x0 = localCx + Math.cos(a0) * R, y0 = localCy + Math.sin(a0) * R;
+            const x1 = localCx + Math.cos(a1) * R, y1 = localCy + Math.sin(a1) * R;
+            const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+            const segLen = Math.hypot(x1 - x0, y1 - y0) + 4;
+            const segAngle = Math.atan2(y1 - y0, x1 - x0) + p.angle;
+
+            segs.push({
+                x: p.x + mx * cosA - my * sinA,
+                y: p.y + mx * sinA + my * cosA,
+                w: segLen,
+                h: p.h,
+                angle: segAngle
+            });
+        }
+        return segs;
+    }
+
+    function stepPhysics(dt) {
+        simTime += dt;
+        if (isDripActive) {
+            dripTimer -= dt;
+            if (dripTimer <= 0) {
+                spawnBall();
+                dripTimer = 0.72;
+            }
+        }
+
+        const SUBSTEPS = 4;
+        const subDt = dt / SUBSTEPS;
+
+        const obsBoxes = activeLevel.obstacles.map(o => ({
+            x: o.x * cw, y: o.y * ch, w: o.w * cw, h: o.h * ch, angle: o.angle
+        }));
+
+        const gx = activeLevel.goal.x * cw;
+        const gy = activeLevel.goal.y * ch;
+
+        for (let s = 0; s < SUBSTEPS; s++) {
+            // Update dynamic pieces
+            for (const p of pieces) {
+                if (p.type === 'seesaw') {
+                    p.omega += (-p.angle * 0.0025);
+                    p.omega *= 0.99;
+                    p.omega = Math.max(-0.14, Math.min(0.14, p.omega));
+                    p.angle += p.omega * subDt * 60;
+                    if (p.angle > 0.85) { p.angle = 0.85; p.omega *= -0.35; }
+                    if (p.angle < -0.85) { p.angle = -0.85; p.omega *= -0.35; }
+                } else if (p.type === 'gear') {
+                    p.angle += (p.dir || 1) * 2.1 * subDt;
+                }
+                if (p.bounceAnim > 0) p.bounceAnim = Math.max(0, p.bounceAnim - subDt * 4.5);
+            }
+
+            // Integrate & collide balls
+            for (let i = balls.length - 1; i >= 0; i--) {
+                const b = balls[i];
+                b.vy += 0.34 * subDt * 60;
+                b.vx *= 0.999;
+                b.vy *= 0.999;
+
+                const sp = Math.hypot(b.vx, b.vy);
+                if (sp > 20) { b.vx = (b.vx / sp) * 20; b.vy = (b.vy / sp) * 20; }
+
+                b.x += b.vx * subDt * 60;
+                b.y += b.vy * subDt * 60;
+
+                if (b.x < b.r) { b.x = b.r; b.vx = Math.abs(b.vx) * 0.6; }
+                if (b.x > cw - b.r) { b.x = cw - b.r; b.vx = -Math.abs(b.vx) * 0.6; }
+                if (b.y < b.r) { b.y = b.r; b.vy = Math.abs(b.vy) * 0.6; }
+                if (b.y > ch + 40) { balls.splice(i, 1); continue; }
+
+                for (const ob of obsBoxes) {
+                    collideBallWithOBB(b, ob, { restitution: 0.4, friction: 0.15, type: 'wall' });
+                }
+
+                for (const p of pieces) {
+                    const def = PIECE_DEFS[p.type];
+                    if (p.type === 'bumper') {
+                        const dx = b.x - p.x, dy = b.y - p.y;
+                        const dist = Math.hypot(dx, dy);
+                        const minDist = b.r + p.r;
+                        if (dist < minDist && dist > 0.001) {
+                            const nx = dx / dist, ny = dy / dist;
+                            b.x = p.x + nx * minDist;
+                            b.y = p.y + ny * minDist;
+                            const launch = Math.max(10.5, Math.hypot(b.vx, b.vy) * 1.15);
+                            b.vx = nx * launch;
+                            b.vy = ny * launch;
+                            p.bounceAnim = 1.0;
+                            spawnBurst(p.x + nx * p.r, p.y + ny * p.r, '#ff9100', 6);
+                            playSFX('bumper', launch);
+                        }
+                    } else if (p.type === 'gear') {
+                        // Broadphase check
+                        if (Math.hypot(b.x - p.x, b.y - p.y) > p.r + b.r + 12) continue;
+                        const gearOmega = (p.dir || 1) * 2.1 / 60;
+
+                        // Center hub collision
+                        const hubR = 26;
+                        const hdx = b.x - p.x, hdy = b.y - p.y;
+                        const hDist = Math.hypot(hdx, hdy);
+                        if (hDist < hubR + b.r && hDist > 0.001) {
+                            const nx = hdx / hDist, ny = hdy / hDist;
+                            b.x = p.x + nx * (hubR + b.r);
+                            b.y = p.y + ny * (hubR + b.r);
+                            b.vx += nx * 1.5 - ny * gearOmega * hubR;
+                            b.vy += ny * 1.5 + nx * gearOmega * hubR;
+                        }
+
+                        // 6 Rotating Teeth
+                        for (let t = 0; t < 6; t++) {
+                            const ta = p.angle + (t * Math.PI) / 3;
+                            const toothBox = {
+                                x: p.x + Math.cos(ta) * 36,
+                                y: p.y + Math.sin(ta) * 36,
+                                w: 26, h: 14,
+                                angle: ta
+                            };
+                            collideBallWithOBB(b, toothBox, {
+                                restitution: def.restitution,
+                                friction: def.friction,
+                                type: 'gear',
+                                omega: gearOmega,
+                                pivotX: p.x,
+                                pivotY: p.y
+                            });
+                        }
+                    } else if (p.type === 'curve') {
+                        if (Math.hypot(b.x - p.x, b.y - p.y) > p.r * 1.4 + b.r) continue;
+                        const segs = getCurveSegments(p);
+                        for (const seg of segs) {
+                            collideBallWithOBB(b, seg, {
+                                restitution: def.restitution,
+                                friction: def.friction,
+                                type: 'curve'
+                            });
+                        }
+                    } else if (p.type === 'tube') {
+                        if (Math.hypot(b.x - p.x, b.y - p.y) > p.w * 0.65 + b.r) continue;
+                        const sinA = Math.sin(p.angle), cosA = Math.cos(p.angle);
+                        const wallOff = 19; // Leaves 28px clear inner bore for 22px ball
+                        const topWall = { x: p.x + sinA * wallOff, y: p.y - cosA * wallOff, w: p.w, h: 10, angle: p.angle };
+                        const botWall = { x: p.x - sinA * wallOff, y: p.y + cosA * wallOff, w: p.w, h: 10, angle: p.angle };
+                        collideBallWithOBB(b, topWall, { restitution: def.restitution, friction: def.friction, type: 'tube' });
+                        collideBallWithOBB(b, botWall, { restitution: def.restitution, friction: def.friction, type: 'tube' });
+                    } else {
+                        collideBallWithOBB(b, p, {
+                            restitution: def.restitution,
+                            friction: def.friction,
+                            type: p.type,
+                            dir: p.dir || 1,
+                            isSeesaw: p.type === 'seesaw',
+                            omega: p.type === 'seesaw' ? p.omega : 0,
+                            piece: p
+                        });
+                    }
+                }
+            }
+        }
+
+        // Goal check
+        for (let i = balls.length - 1; i >= 0; i--) {
+            const b = balls[i];
+            if (Math.hypot(b.x - gx, b.y - gy) < 36) {
+                balls.splice(i, 1);
+                goalCount++;
+                updateGoalUI();
+                spawnBurst(gx, gy, '#00e676', 12);
+                playSFX('goal', 8);
+
+                if (goalCount >= GOAL_TARGET && !hasWon) {
+                    hasWon = true;
+                    playSFX('win', 10);
+                    spawnBurst(gx, gy, '#ffeb3b', 28);
+                    document.getElementById('win-overlay').classList.add('show');
+                }
+            }
+        }
+
+        // Ball-to-Ball
+        for (let i = 0; i < balls.length; i++) {
+            for (let j = i + 1; j < balls.length; j++) {
+                const A = balls[i], B = balls[j];
+                const dx = B.x - A.x, dy = B.y - A.y;
+                const distSq = dx * dx + dy * dy;
+                const minDist = A.r + B.r;
+                if (distSq < minDist * minDist && distSq > 0.0001) {
+                    const dist = Math.sqrt(distSq);
+                    const nx = dx / dist, ny = dy / dist;
+                    const pen = (minDist - dist) * 0.5;
+                    A.x -= nx * pen; A.y -= ny * pen;
+                    B.x += nx * pen; B.y += ny * pen;
+                    const rvx = B.vx - A.vx, rvy = B.vy - A.vy;
+                    const vn = rvx * nx + rvy * ny;
+                    if (vn < 0) {
+                        const imp = -0.85 * vn;
+                        A.vx -= nx * imp; A.vy -= ny * imp;
+                        B.vx += nx * imp; B.vy += ny * imp;
+                    }
+                }
+            }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const pt = particles[i];
+            pt.x += pt.vx; pt.y += pt.vy;
+            pt.life -= dt * 2.2;
+            if (pt.life <= 0) particles.splice(i, 1);
+        }
+    }
+
+    // --- RENDERING ---
+    function drawPiece(p, alpha = 1.0) {
+        const def = PIECE_DEFS[p.type];
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+
+        if (p.type === 'bumper') {
+            const r = p.r + (p.bounceAnim || 0) * 7;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fillStyle = '#2d1a05';
+            ctx.fill();
+            ctx.lineWidth = 5;
+            ctx.strokeStyle = def.color;
+            ctx.shadowBlur = 14 + (p.bounceAnim || 0) * 14;
+            ctx.shadowColor = def.color;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.42, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fill();
+        } else if (p.type === 'gear') {
+            // Draw 6 Teeth
+            ctx.fillStyle = '#2b2408';
+            ctx.strokeStyle = def.color;
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = def.color;
+
+            for (let t = 0; t < 6; t++) {
+                ctx.save();
+                ctx.rotate((t * Math.PI) / 3);
+                ctx.beginPath();
+                ctx.roundRect(22, -7, 27, 14, 4);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // Center Hub
+            ctx.beginPath();
+            ctx.arc(0, 0, 26, 0, Math.PI * 2);
+            ctx.fillStyle = '#1b1708';
+            ctx.fill();
+            ctx.stroke();
+
+            // Center axle & spin indicator
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.arc(0, 0, 9, 0, Math.PI * 2);
+            ctx.fillStyle = (p.dir || 1) > 0 ? '#00e5ff' : '#ff4081';
+            ctx.fill();
+        } else if (p.type === 'curve') {
+            const R = p.r;
+            const dir = p.dir || 1;
+            const localCx = dir > 0 ? R * 0.45 : -R * 0.45;
+            const localCy = -R * 0.45;
+
+            ctx.beginPath();
+            if (dir > 0) ctx.arc(localCx, localCy, R, Math.PI / 2, Math.PI, false);
+            else ctx.arc(localCx, localCy, R, 0, Math.PI / 2, false);
+
+            ctx.strokeStyle = def.color;
+            ctx.lineWidth = p.h;
+            ctx.lineCap = 'round';
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = def.color;
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        } else if (p.type === 'tube') {
+            const hw = p.w / 2;
+            const wallOff = 19;
+
+            // Translucent glass interior
+            ctx.fillStyle = 'rgba(34, 211, 238, 0.14)';
+            ctx.fillRect(-hw, -wallOff + 4, p.w, (wallOff - 4) * 2);
+
+            // Glass sheen stripes
+            ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+            ctx.lineWidth = 2;
+            for (let x = -hw + 20; x < hw - 10; x += 32) {
+                ctx.beginPath();
+                ctx.moveTo(x, -wallOff + 6);
+                ctx.lineTo(x + 10, wallOff - 6);
+                ctx.stroke();
+            }
+
+            // Solid Top & Bottom Pipe Rails
+            ctx.fillStyle = '#0e2933';
+            ctx.strokeStyle = def.color;
+            ctx.lineWidth = 2.5;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = def.color;
+            ctx.beginPath();
+            ctx.roundRect(-hw, -wallOff - 5, p.w, 10, 4);
+            ctx.roundRect(-hw, wallOff - 5, p.w, 10, 4);
+            ctx.fill();
+            ctx.stroke();
+        } else {
+            const hw = p.w / 2;
+            const hh = p.h / 2 + (p.type === 'trampoline' ? (p.bounceAnim || 0) * 4 : 0);
+
+            ctx.fillStyle = p.type === 'block' ? '#1e293b' : '#111622';
+            ctx.strokeStyle = def.color;
+            ctx.lineWidth = 3.5;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = def.color;
+
+            ctx.beginPath();
+            ctx.roundRect(-hw, -hh, p.w, hh * 2, 6);
+            ctx.fill();
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            if (p.type === 'trampoline') {
+                ctx.fillStyle = def.color;
+                ctx.fillRect(-hw + 4, -hh, p.w - 8, 6);
+            } else if (p.type === 'sticky') {
+                ctx.fillStyle = def.color;
+                for (let x = -hw + 14; x < hw - 10; x += 22) {
+                    ctx.beginPath();
+                    ctx.arc(x, -hh + 3, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else if (p.type === 'seesaw') {
+                ctx.beginPath();
+                ctx.arc(0, 0, 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff4081';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#fff';
+                ctx.stroke();
+            } else if (p.type === 'escalator') {
+                // Animated moving chevrons showing belt direction!
+                const dir = p.dir || 1;
+                const shift = ((simTime * 55 * dir) % 24 + 24) % 24;
+                ctx.strokeStyle = '#e9d5ff';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                for (let x = -hw + 10 + shift; x < hw - 12; x += 24) {
+                    ctx.beginPath();
+                    ctx.moveTo(x - 4 * dir, -5);
+                    ctx.lineTo(x + 4 * dir, 0);
+                    ctx.lineTo(x - 4 * dir, 5);
+                    ctx.stroke();
+                }
+            }
+        }
+        ctx.restore();
+    }
+
+    function render() {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, cw, ch);
+
+        // Engineering grid
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x < cw; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ch); ctx.stroke(); }
+        for (let y = 0; y < ch; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke(); }
+
+        // 1. Fixed Obstacles
+        for (const o of activeLevel.obstacles) {
+            ctx.save();
+            ctx.translate(o.x * cw, o.y * ch);
+            ctx.rotate(o.angle);
+            const ow = o.w * cw, oh = o.h * ch;
+            ctx.fillStyle = '#1e2433';
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.roundRect(-ow / 2, -oh / 2, ow, oh, 5);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // 2. Spawner Pipe
+        const sx = activeLevel.spawner.x * cw;
+        const sy = activeLevel.spawner.y * ch;
+        ctx.save();
+        ctx.fillStyle = '#1e293b';
+        ctx.strokeStyle = '#00e5ff';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.roundRect(sx - 24, sy - 34, 48, 44, 6);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#00e5ff';
+        ctx.fillRect(sx - 28, sy + 6, 56, 8);
+        ctx.restore();
+
+        // 3. Goal Portal
+        const gx = activeLevel.goal.x * cw;
+        const gy = activeLevel.goal.y * ch;
+        const progress = Math.min(1, goalCount / GOAL_TARGET);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(gx, gy, 34, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 230, 118, 0.12)';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0, 230, 118, 0.35)';
+        ctx.stroke();
+
+        if (progress > 0) {
+            ctx.beginPath();
+            ctx.arc(gx, gy, 34, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+            ctx.strokeStyle = '#00e676';
+            ctx.lineWidth = 6;
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = '#00e676';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        ctx.fillStyle = '#00e676';
+        ctx.font = 'bold 16px Courier New';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('GOAL', gx, gy - 7);
+        ctx.font = 'bold 13px Courier New';
+        ctx.fillStyle = '#fff';
+        ctx.fillText(`${Math.min(goalCount, GOAL_TARGET)}/${GOAL_TARGET}`, gx, gy + 11);
+        ctx.restore();
+
+        // 4. Ghost placement preview
+        if (armedTool && !dragMode && mousePos.x > 0 && !hitTestPiece(mousePos.x, mousePos.y)) {
+            const def = PIECE_DEFS[armedTool];
+            drawPiece({
+                type: armedTool,
+                x: mousePos.x, y: mousePos.y,
+                w: def.w || 0, h: def.h || 0, r: def.r || 0,
+                angle: def.defaultAngle, dir: 1, bounceAnim: 0
+            }, 0.35);
+        }
+
+        // 5. User Pieces (draw non-tubes first, then balls, then tubes on top for glass effect!)
+        for (const p of pieces) {
+            if (p.type !== 'tube') drawPiece(p, 1.0);
+        }
+
+        // 6. Dripping Balls
+        for (const b of balls) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            ctx.fillStyle = b.color;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = b.color;
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.65)';
+            ctx.beginPath();
+            ctx.arc(b.x - 3, b.y - 3, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        // Draw Tubes over balls so balls visibly travel INSIDE the glass tube
+        for (const p of pieces) {
+            if (p.type === 'tube') drawPiece(p, 1.0);
+        }
+
+        // 7. Selection Outline + Rotation Handle
+        if (selectedPiece) {
+            const p = selectedPiece;
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = '#ffeb3b';
+            ctx.lineWidth = 2;
+
+            if (p.type === 'bumper' || p.type === 'gear') {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.r + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            } else if (p.type === 'curve') {
+                ctx.beginPath();
+                ctx.arc(0, 0, p.r * 0.72, 0, Math.PI * 2);
+                ctx.stroke();
+                const armX = p.r * 0.75 + 28;
+                ctx.setLineDash([]);
+                ctx.beginPath(); ctx.moveTo(p.r * 0.72, 0); ctx.lineTo(armX, 0); ctx.stroke();
+                ctx.beginPath(); ctx.arc(armX, 0, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffeb3b'; ctx.fill();
+                ctx.strokeStyle = '#050508'; ctx.lineWidth = 2; ctx.stroke();
+            } else {
+                ctx.strokeRect(-p.w / 2 - 6, -p.h / 2 - 6, p.w + 12, p.h + 12);
+                const armX = p.w / 2 + 28;
+                ctx.setLineDash([]);
+                ctx.beginPath(); ctx.moveTo(p.w / 2 + 6, 0); ctx.lineTo(armX, 0); ctx.stroke();
+                ctx.beginPath(); ctx.arc(armX, 0, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffeb3b'; ctx.fill();
+                ctx.strokeStyle = '#050508'; ctx.lineWidth = 2; ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // 8. Particles
+        for (const pt of particles) {
+            ctx.save();
+            ctx.globalAlpha = pt.life;
+            ctx.fillStyle = pt.color;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    let lastTime = performance.now();
+    function loop(now) {
+        const dt = Math.min(0.033, (now - lastTime) / 1000);
+        lastTime = now;
+        stepPhysics(dt);
+        render();
+        requestAnimationFrame(loop);
+    }
+
+    // --- BOOT ---
+    initToolbox();
+    resize();
+    loadLevel(0);
+    requestAnimationFrame(loop);
+</script>
+</body>
+</html>
